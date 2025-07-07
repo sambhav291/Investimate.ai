@@ -1,0 +1,642 @@
+from fastapi import FastAPI, HTTPException, Depends, Body, Request, status, APIRouter
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse, RedirectResponse, JSONResponse
+from authlib.integrations.starlette_client import OAuth
+from starlette.middleware.sessions import SessionMiddleware
+from starlette.config import Config
+from sqlalchemy.orm import Session
+from pydantic import BaseModel
+from jose import jwt, JWTError, ExpiredSignatureError
+from dotenv import load_dotenv
+import os
+import sys
+import io
+import logging
+from datetime import datetime, timedelta, timezone
+from urllib.parse import unquote
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from Generator.summary_generator import generate_stock_summary
+from Generator.report_generator import generate_stock_report
+from Auth.database import engine, Base
+from Auth import schemas, auth, services, models
+from fastapi.security import OAuth2PasswordRequestForm
+from Auth.supabase_utils import upload_pdf_to_supabase, get_signed_url, supabase, SUPABASE_BUCKET
+
+# Load environment variables
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
+
+# Configure minimal logging
+logging.basicConfig(level=logging.WARNING)
+logger = logging.getLogger(__name__)
+
+# Environment variables
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+
+# Database setup
+Base.metadata.create_all(bind=engine)
+
+# FastAPI app initialization
+app = FastAPI()
+
+# Middleware setup
+app.add_middleware( 
+    SessionMiddleware,
+    secret_key="md384503mr4rm59*r89x#mim@m9"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# OAuth configuration
+config = Config(environ={
+    "GOOGLE_CLIENT_ID": GOOGLE_CLIENT_ID,
+    "GOOGLE_CLIENT_SECRET": GOOGLE_CLIENT_SECRET,
+})
+
+oauth = OAuth(config)
+oauth.register(
+    name='google',
+    client_id=GOOGLE_CLIENT_ID,
+    client_secret=GOOGLE_CLIENT_SECRET,
+    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+    client_kwargs={'scope': 'openid email profile'}
+)
+
+# Helper function to normalize Supabase storage paths
+def normalize_storage_path(path: str) -> str:
+    """
+    Normalize a storage path for Supabase by removing leading ./ and ensuring
+    it's relative to the bucket root.
+    """
+    if not path:
+        return path
+    
+    # Remove leading ./ or ./
+    if path.startswith('./'):
+        path = path[2:]
+    elif path.startswith('.\\'):
+        path = path[2:]
+    
+    # Remove leading / if present
+    if path.startswith('/'):
+        path = path[1:]
+    
+    # Ensure forward slashes for Supabase
+    path = path.replace('\\', '/')
+    
+    logger.info(f"Normalized storage path: {path}")
+    return path
+
+# Pydantic models
+class StockRequest(BaseModel):
+    stock_name: str
+    filename: str | None = None
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+# Authentication endpoints
+@app.get("/auth/google/login")
+async def google_login(request: Request):
+    redirect_uri = "http://localhost:8000/auth/google/callback"
+    return await oauth.google.authorize_redirect(request, redirect_uri)
+
+@app.get("/auth/google/callback")
+async def google_callback(request: Request, db: Session = Depends(services.get_db)):
+    token = await oauth.google.authorize_access_token(request)
+    user_info = token.get("userinfo")
+    if not user_info:
+        user_info = jwt.get_unverified_claims(token["id_token"])
+
+    user = await services.get_user_by_email(user_info['email'], db)
+    if not user:
+        user = await services.create_user_google(user_info, db)
+    else:
+        if user.profile_pic != user_info.get('picture', ''):
+            user.profile_pic = user_info.get('picture', '')
+            db.commit()
+            db.refresh(user)
+
+    jwt_token = await auth.create_tokens(user)
+    response = RedirectResponse("http://localhost:5173/")
+    response.set_cookie(
+        key="access_token",
+        value=jwt_token["access_token"],
+        httponly=True,
+        secure=False,
+        samesite="lax",
+        max_age=60*60*24*7,
+        path="/"
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=jwt_token["refresh_token"],
+        httponly=True,
+        secure=False,
+        samesite="lax",
+        max_age=60*60*24*7,
+        path="/"
+    )
+    return response
+
+@app.post("/token/from-cookie")
+async def token_from_cookie(request: Request, db: Session = Depends(services.get_db)):
+    user = auth.get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated via cookie")
+
+    tokens = await auth.create_tokens(user)
+
+    return {
+        "access_token": tokens["access_token"],
+        "refresh_token": tokens["refresh_token"]
+    }
+
+
+@app.post("/signup", response_model=schemas.UserOut)
+async def register(
+    user: schemas.UserCreate, db: Session = Depends(services.get_db)
+):
+    existing = await services.get_user_by_email(user.email, db)
+    if existing:
+        raise HTTPException(status_code=400, detail="User already exists")
+    
+    new_user = await services.create_user(user, db)
+    return await auth.create_tokens(new_user)
+
+@app.post("/login")
+async def login(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(services.get_db)
+):
+    try:
+        db_user = await auth.authenticate_user(form_data.username, form_data.password, db)
+        if not db_user:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+        
+        tokens = await auth.create_tokens(db_user)
+        
+        response = JSONResponse(content={
+            "access_token": tokens["access_token"],
+            "refresh_token": tokens["refresh_token"],
+            "token_type": "bearer"
+        })
+        
+        response.set_cookie(
+            key="access_token",
+            value=tokens["access_token"],
+            httponly=True,
+            secure=False,
+            samesite="lax",
+            max_age=60*60*24*7,
+            path="/",
+        )
+        
+        response.set_cookie(
+            key="refresh_token",
+            value=tokens["refresh_token"],
+            httponly=True,
+            secure=False,
+            samesite="lax",
+            max_age=60*60*24*7,
+            path="/",
+        )
+        
+        return response
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Login error: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+# @app.post("/refresh")
+# async def refresh_token(
+#     req: RefreshRequest,
+#     db: Session = Depends(services.get_db)
+# ):
+#     try:
+#         payload = jwt.decode(
+#             req.refresh_token,
+#             os.getenv("SECRET_KEY"),
+#             algorithms=[os.getenv("ALGORITHM", "HS256")]
+#         )
+        
+#         if payload.get("type") != "refresh":
+#             raise HTTPException(status_code=401, detail="Invalid refresh token")
+        
+#         user_id = payload.get("sub")
+#         if not user_id:
+#             raise HTTPException(status_code=401, detail="Invalid token payload")
+        
+#         user = db.query(models.User).filter(models.User.id == int(user_id)).first()
+#         if not user:
+#             raise HTTPException(status_code=401, detail="User not found")
+        
+#         tokens = await auth.create_tokens(user)
+        
+#         response = JSONResponse(content={
+#             "access_token": tokens["access_token"],
+#             "refresh_token": tokens["refresh_token"],
+#             "token_type": "bearer"
+#         })
+        
+#         response.set_cookie(
+#             key="access_token",
+#             value=tokens["access_token"], 
+#             httponly=True,
+#             secure=False,
+#             samesite="lax",
+#             max_age=60*60*24*7,
+#             path="/",
+#         )
+        
+#         response.set_cookie(
+#             key="refresh_token",
+#             value=tokens["refresh_token"],
+#             httponly=True,
+#             secure=False,
+#             samesite="lax",
+#             max_age=60*60*24*7,
+#             path="/",
+#         )
+        
+#         return response
+        
+#     except ExpiredSignatureError:
+#         raise HTTPException(status_code=401, detail="Token expired")
+#     except JWTError:
+#         raise HTTPException(status_code=401, detail="Invalid token")
+#     except HTTPException:
+#         raise
+#     except Exception as e:
+#         logger.error(f"Refresh token error: {e}")
+#         raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+
+
+
+@app.post("/refresh")
+async def refresh_token(
+    request: Request,
+    req: RefreshRequest = None,
+    db: Session = Depends(services.get_db)
+):
+    """
+    Refresh access token using refresh token from request body or cookie
+    """
+    try:
+        # Try to get refresh token from request body first, then from cookie
+        refresh_token_value = None
+        
+        if req and req.refresh_token:
+            refresh_token_value = req.refresh_token
+        else:
+            # Try to get from cookie
+            refresh_token_value = request.cookies.get("refresh_token")
+        
+        if not refresh_token_value:
+            raise HTTPException(status_code=401, detail="No refresh token provided")
+        
+        # Verify refresh token
+        payload = jwt.decode(
+            refresh_token_value,
+            os.getenv("SECRET_KEY"),
+            algorithms=[os.getenv("ALGORITHM", "HS256")]
+        )
+        
+        if payload.get("type") != "refresh":
+            raise HTTPException(status_code=401, detail="Invalid refresh token")
+        
+        user_id = payload.get("sub")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Invalid token payload")
+        
+        user = db.query(models.User).filter(models.User.id == int(user_id)).first()
+        if not user:
+            raise HTTPException(status_code=401, detail="User not found")
+        
+        # Generate new tokens
+        tokens = await auth.create_tokens(user)
+        
+        response = JSONResponse(content={
+            "access_token": tokens["access_token"],
+            "refresh_token": tokens["refresh_token"],
+            "token_type": "bearer"
+        })
+        
+        # Set cookies
+        response.set_cookie(
+            key="access_token",
+            value=tokens["access_token"], 
+            httponly=True,
+            secure=False, # true in production with HTTPS
+            samesite="lax",
+            max_age=60*60*24*7,
+            path="/",
+        )
+        
+        response.set_cookie(
+            key="refresh_token",
+            value=tokens["refresh_token"],
+            httponly=True,
+            secure=False,
+            samesite="lax",
+            max_age=60*60*24*7,
+            path="/",
+        )
+        
+        return response
+        
+    except ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Refresh token error: {e}")
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+@app.get("/signup/me")
+async def get_user(user: schemas.UserLogin = Depends(auth.get_current_user)):
+    return user
+
+
+
+@app.post("/logout")
+async def logout():
+    """
+    Logout user by clearing auth cookies
+    """
+    try:
+        response = JSONResponse(content={"message": "Logged out successfully"})
+        
+        # Clear both access and refresh token cookies
+        response.set_cookie(
+            key="access_token",
+            value="",
+            httponly=True,
+            secure=False,  # Set to True in production with HTTPS
+            samesite="lax",
+            expires=datetime.now(timezone.utc),
+            path="/"
+        )
+        
+        response.set_cookie(
+            key="refresh_token",
+            value="",
+            httponly=True,
+            secure=False,  # Set to True in production with HTTPS
+            samesite="lax",
+            expires=datetime.now(timezone.utc),
+            path="/"
+        )
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"Logout error: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+# Stock analysis endpoints
+@app.post("/generate-summary")
+def generate_summary(req: StockRequest):
+    return generate_stock_summary(req.stock_name)
+
+@app.post("/generate-report")
+async def generate_report(req: StockRequest):
+    try:
+        logger.info(f"Generating report for stock: {req.stock_name}")
+        
+        # Generate the report (this should return a local file path or the storage path)
+        raw_storage_path, actual_filename = generate_stock_report(req.stock_name)
+        if not raw_storage_path:
+            raise HTTPException(status_code=500, detail="PDF file was not generated successfully")
+        
+        logger.info(f"Raw storage path from generator: {raw_storage_path}")
+        
+        # Normalize the storage path for Supabase
+        storage_path = normalize_storage_path(raw_storage_path)
+        logger.info(f"Normalized storage path: {storage_path}")
+        
+        # Generate signed URL
+        upload_pdf_to_supabase(raw_storage_path)
+        logger.info(f"Uploaded PDF to Supabase: {raw_storage_path}")
+        signed_url = get_signed_url(storage_path)
+        if not signed_url:  
+            logger.error(f"Failed to generate signed URL for path: {storage_path}")
+            raise HTTPException(status_code=500, detail="Could not generate signed URL for PDF")
+        
+        logger.info(f"Generated signed URL: {signed_url}")
+        
+        return {
+            "msg": "PDF report generated successfully",
+            "signed_url": signed_url,
+            "storage_path": storage_path,
+            "filename": actual_filename
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in generate_report: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+# Report management endpoints
+
+@app.get("/preview-pdf")
+async def preview_pdf(
+    storage_path: str,
+    download: int = 0,
+    user: schemas.UserOut = Depends(auth.get_current_user)
+):
+    try:
+        logger.info(f"Preview PDF requested for path: {storage_path}")
+        
+        # URL decode the storage path in case it's encoded
+        decoded_path = unquote(storage_path)
+        logger.info(f"URL decoded path: {decoded_path}")
+        
+        # Normalize the storage path
+        normalized_path = normalize_storage_path(decoded_path)
+        logger.info(f"Normalized path for preview: {normalized_path}")
+        
+        # Download from Supabase
+        res = supabase.storage.from_(SUPABASE_BUCKET).download(normalized_path)
+        logger.info(f"Successfully downloaded PDF from Supabase, size: {len(res)} bytes")
+        
+        disposition = "attachment" if download else "inline"
+        filename = os.path.basename(normalized_path)
+        
+        return StreamingResponse(
+            io.BytesIO(res),
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"{disposition}; filename={filename}",
+                "Content-Type": "application/pdf",
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0"
+            }
+        )
+    except Exception as e:
+        logger.error(f"PDF preview error for path '{storage_path}': {str(e)}")
+        raise HTTPException(status_code=404, detail=f"PDF not found: {str(e)}")
+
+
+@app.post("/save-report")
+async def save_report(
+    req: StockRequest = Body(...),
+    db: Session = Depends(services.get_db),
+    user: schemas.UserOut = Depends(auth.get_current_user)
+):
+    try:
+        filename = req.filename  # ✅ Access directly from parsed model
+        if not filename:
+            raise HTTPException(status_code=400, detail="Filename is required")
+
+        storage_path = f"reports/{filename}"
+        
+        logger.info(f"Saving report with storage_path: {storage_path}, filename: {filename}")
+
+        existing = db.query(models.UserReport).filter_by(
+            user_id=user.id,
+            filename=filename
+        ).first()
+        if existing:
+            return {"msg": "Report already saved", "id": existing.id}
+
+        report = models.UserReport(
+            user_id=user.id,
+            filename=filename,
+            filepath=storage_path
+        )
+        db.add(report)
+        db.commit()
+        db.refresh(report)
+        
+        logger.info(f"Report saved to database with ID: {report.id}")
+        return {"msg": "Report saved to library", "id": report.id}
+    except Exception as e:
+        logger.error(f"Error saving report: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to save report: {str(e)}")
+    
+@app.get("/get-report-url/{report_id}")
+async def get_report_url(
+    report_id: int,
+    db: Session = Depends(services.get_db),
+    user: schemas.UserOut = Depends(auth.get_current_user)
+):
+    try:
+        report = db.query(models.UserReport).filter_by(id=report_id, user_id=user.id).first()
+        if not report:
+            raise HTTPException(status_code=404, detail="Report not found")
+        
+        # Normalize the filepath before generating signed URL
+        normalized_path = normalize_storage_path(report.filepath)
+        logger.info(f"Getting signed URL for report ID {report_id}, normalized path: {normalized_path}")
+        
+        signed_url = get_signed_url(normalized_path)
+        if not signed_url:
+            logger.error(f"Failed to generate signed URL for report ID {report_id}")
+            raise HTTPException(status_code=500, detail="Could not generate signed URL")
+        
+        return {"signed_url": signed_url}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting report URL for ID {report_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to get report URL")
+
+@app.get("/my-reports")
+async def list_my_reports(
+    db: Session = Depends(services.get_db),
+    user: schemas.UserOut = Depends(auth.get_current_user)
+):
+    reports = db.query(models.UserReport).filter(models.UserReport.user_id == user.id).all()
+    return [
+        {"id": r.id, "filename": r.filename, "created_at": r.created_at}
+        for r in reports
+    ]
+
+@app.get("/my-reports/{report_id}")
+async def get_report_info(
+    report_id: int,
+    db: Session = Depends(services.get_db),
+    user: schemas.UserOut = Depends(auth.get_current_user)
+):
+    report = db.query(models.UserReport).filter(
+        models.UserReport.id == report_id, models.UserReport.user_id == user.id
+    ).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    
+    # Normalize the filepath before returning
+    normalized_filepath = normalize_storage_path(report.filepath)
+    
+    return {
+        "filepath": normalized_filepath,  
+        "filename": report.filename
+    }
+
+@app.delete("/delete-report/{report_id}")
+async def delete_report(
+    report_id: int,
+    db: Session = Depends(services.get_db),
+    user: schemas.UserOut = Depends(auth.get_current_user)
+):
+    report = db.query(models.UserReport).filter(
+        models.UserReport.id == report_id, models.UserReport.user_id == user.id
+    ).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    
+    try:
+        # Optionally delete from Supabase storage as well
+        normalized_path = normalize_storage_path(report.filepath)
+        logger.info(f"Deleting report from storage: {normalized_path}")
+        
+        # Uncomment the next line if you want to delete from Supabase storage too
+        # supabase.storage.from_(SUPABASE_BUCKET).remove([normalized_path])
+        
+        db.delete(report)
+        db.commit()
+        return {"msg": "Report deleted"}
+    except Exception as e:
+        logger.error(f"Error deleting report ID {report_id}: {str(e)}")
+        # Still delete from database even if storage deletion fails
+        db.delete(report)
+        db.commit()
+        return {"msg": "Report deleted from database (storage deletion may have failed)"}
+
+# Health check
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy"}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
