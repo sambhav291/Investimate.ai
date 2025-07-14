@@ -60,8 +60,6 @@ def generate_stock_summary(stock_name: str):
                 # Extract text from the concall data
                 concall_text = " ".join([transcript.get("text", "") for transcript in concall_raw])
                 _, _, concall_preprocessed = preprocess_concall_transcripts(concall_text)
-                print("#################################################################################")
-                print(f"{concall_preprocessed}")
                 
                 if concall_preprocessed and len(concall_preprocessed) > 0:
                     concall_summary = summarize_concall_transcripts(concall_preprocessed) or "Concall transcript processed but no summary generated."

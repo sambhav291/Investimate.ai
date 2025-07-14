@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Boolean
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 from .database import Base
 
 class User(Base):
@@ -22,6 +22,6 @@ class UserReport(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     filename = Column(String, nullable=False)
     filepath = Column(String, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     user = relationship("User", back_populates="reports")

@@ -26,6 +26,28 @@ from Auth.supabase_utils import upload_pdf_to_supabase, get_signed_url, supabase
 # Load environment variables
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 
+# Production configuration
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+DEBUG = os.getenv("DEBUG", "true").lower() == "true"
+
+# CORS origins - update for production
+CORS_ORIGINS = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000",
+]
+
+# Add production origins if specified
+if os.getenv("CORS_ORIGINS"):
+    try:
+        import json
+        prod_origins = json.loads(os.getenv("CORS_ORIGINS"))
+        CORS_ORIGINS.extend(prod_origins)
+    except:
+        # Fallback: single origin as string
+        CORS_ORIGINS.append(os.getenv("CORS_ORIGINS"))
+
 # Configure minimal logging
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
@@ -48,7 +70,7 @@ app.add_middleware(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -218,69 +240,6 @@ async def login(
         logger.error(f"Login error: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-# @app.post("/refresh")
-# async def refresh_token(
-#     req: RefreshRequest,
-#     db: Session = Depends(services.get_db)
-# ):
-#     try:
-#         payload = jwt.decode(
-#             req.refresh_token,
-#             os.getenv("SECRET_KEY"),
-#             algorithms=[os.getenv("ALGORITHM", "HS256")]
-#         )
-        
-#         if payload.get("type") != "refresh":
-#             raise HTTPException(status_code=401, detail="Invalid refresh token")
-        
-#         user_id = payload.get("sub")
-#         if not user_id:
-#             raise HTTPException(status_code=401, detail="Invalid token payload")
-        
-#         user = db.query(models.User).filter(models.User.id == int(user_id)).first()
-#         if not user:
-#             raise HTTPException(status_code=401, detail="User not found")
-        
-#         tokens = await auth.create_tokens(user)
-        
-#         response = JSONResponse(content={
-#             "access_token": tokens["access_token"],
-#             "refresh_token": tokens["refresh_token"],
-#             "token_type": "bearer"
-#         })
-        
-#         response.set_cookie(
-#             key="access_token",
-#             value=tokens["access_token"], 
-#             httponly=True,
-#             secure=False,
-#             samesite="lax",
-#             max_age=60*60*24*7,
-#             path="/",
-#         )
-        
-#         response.set_cookie(
-#             key="refresh_token",
-#             value=tokens["refresh_token"],
-#             httponly=True,
-#             secure=False,
-#             samesite="lax",
-#             max_age=60*60*24*7,
-#             path="/",
-#         )
-        
-#         return response
-        
-#     except ExpiredSignatureError:
-#         raise HTTPException(status_code=401, detail="Token expired")
-#     except JWTError:
-#         raise HTTPException(status_code=401, detail="Invalid token")
-#     except HTTPException:
-#         raise
-#     except Exception as e:
-#         logger.error(f"Refresh token error: {e}")
-#         raise HTTPException(status_code=401, detail="Invalid refresh token")
-
 
 
 
@@ -298,6 +257,7 @@ async def refresh_token(
         refresh_token_value = None
         
         if req and req.refresh_token:
+            print("this is the refresh token from request body", req.refresh_token)
             refresh_token_value = req.refresh_token
         else:
             # Try to get from cookie
@@ -470,24 +430,49 @@ async def preview_pdf(
         normalized_path = normalize_storage_path(decoded_path)
         logger.info(f"Normalized path for preview: {normalized_path}")
         
-        # Download from Supabase
-        res = supabase.storage.from_(SUPABASE_BUCKET).download(normalized_path)
-        logger.info(f"Successfully downloaded PDF from Supabase, size: {len(res)} bytes")
+        # For testing, try to load from local file first
+        local_path = os.path.join(os.path.dirname(__file__), normalized_path)
+        logger.info(f"Trying local path: {local_path}")
         
-        disposition = "attachment" if download else "inline"
-        filename = os.path.basename(normalized_path)
-        
-        return StreamingResponse(
-            io.BytesIO(res),
-            media_type="application/pdf",
-            headers={
-                "Content-Disposition": f"{disposition}; filename={filename}",
-                "Content-Type": "application/pdf",
-                "Cache-Control": "no-cache, no-store, must-revalidate",
-                "Pragma": "no-cache",
-                "Expires": "0"
-            }
-        )
+        if os.path.exists(local_path):
+            logger.info(f"Found local file: {local_path}")
+            disposition = "attachment" if download else "inline"
+            filename = os.path.basename(normalized_path)
+            
+            with open(local_path, 'rb') as file:
+                file_content = file.read()
+            
+            return StreamingResponse(
+                io.BytesIO(file_content),
+                media_type="application/pdf",
+                headers={
+                    "Content-Disposition": f"{disposition}; filename={filename}",
+                    "Content-Type": "application/pdf",
+                    "Cache-Control": "no-cache, no-store, must-revalidate",
+                    "Pragma": "no-cache",
+                    "Expires": "0"
+                }
+            )
+        else:
+            logger.info(f"Local file not found, trying Supabase: {normalized_path}")
+            # Download from Supabase
+            res = supabase.storage.from_(SUPABASE_BUCKET).download(normalized_path)
+            logger.info(f"Successfully downloaded PDF from Supabase, size: {len(res)} bytes")
+            
+            disposition = "attachment" if download else "inline"
+            filename = os.path.basename(normalized_path)
+            
+            return StreamingResponse(
+                io.BytesIO(res),
+                media_type="application/pdf",
+                headers={
+                    "Content-Disposition": f"{disposition}; filename={filename}",
+                    "Content-Type": "application/pdf",
+                    "Cache-Control": "no-cache, no-store, must-revalidate",
+                    "Pragma": "no-cache",
+                    "Expires": "0"
+                }
+            )
     except Exception as e:
         logger.error(f"PDF preview error for path '{storage_path}': {str(e)}")
         raise HTTPException(status_code=404, detail=f"PDF not found: {str(e)}")
@@ -505,6 +490,8 @@ async def save_report(
             raise HTTPException(status_code=400, detail="Filename is required")
 
         storage_path = f"reports/{filename}"
+        local_path = os.path.join("reports", filename)
+        print(f"Local path for saving report: {local_path}")
         
         logger.info(f"Saving report with storage_path: {storage_path}, filename: {filename}")
 
@@ -514,6 +501,10 @@ async def save_report(
         ).first()
         if existing:
             return {"msg": "Report already saved", "id": existing.id}
+        
+        file_size = None
+        if os.path.exists(local_path):
+            file_size = os.path.getsize(local_path)
 
         report = models.UserReport(
             user_id=user.id,
@@ -564,7 +555,11 @@ async def list_my_reports(
 ):
     reports = db.query(models.UserReport).filter(models.UserReport.user_id == user.id).all()
     return [
-        {"id": r.id, "filename": r.filename, "created_at": r.created_at}
+        {
+            "id": r.id, 
+            "filename": r.filename, 
+            "created_at": r.created_at
+        }
         for r in reports
     ]
 

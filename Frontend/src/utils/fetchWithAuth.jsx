@@ -1,39 +1,3 @@
-// import { useContext } from "react";
-// import { AuthContext } from "../context/AuthContext";
-
-// export const useFetchWithAuth = () => {
-//   const { token, refreshToken, setAuthTokens, logout } = useContext(AuthContext);
-
-//   return async (url, options = {}) => {
-//     options.credentials = "include";
-//     let authToken = token;
-//     options.headers = {
-//       ...options.headers,
-//       Authorization: `Bearer ${authToken}`,
-//     };
-//     let response = await fetch(url, options);
-//     if (response.status === 401 && refreshToken) {
-//       // Try to refresh
-//       const refreshRes = await fetch("http://localhost:8000/refresh", {
-//         method: "POST",
-//         headers: { "Content-Type": "application/json" },
-//         body: JSON.stringify({ refresh_token: refreshToken }),
-//       });
-//       if (refreshRes.ok) {
-//         const data = await refreshRes.json();
-//         setAuthTokens(data.access_token, refreshToken);
-//         options.headers.Authorization = `Bearer ${data.access_token}`;
-//         response = await fetch(url, options);
-//       } else {
-//         logout();
-//         throw new Error("Session expired. Please log in again.");
-//       }
-//     }
-//     return response;
-//   };
-// };
-
-
 import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 
@@ -74,7 +38,7 @@ export const useFetchWithAuth = () => {
           logout();
           throw new Error("Session expired. Please log in again.");
         }
-      } catch (err) {
+      } catch {
         logout();
         throw new Error("Session expired. Please log in again.");
       }

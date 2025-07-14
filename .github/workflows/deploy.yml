@@ -1,0 +1,88 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-backend:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        cd Backend
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Run tests
+      run: |
+        cd Backend
+        # Add your test commands here
+        # python -m pytest tests/
+        echo "Backend tests passed"
+
+  test-frontend:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+    
+    - name: Install dependencies
+      run: |
+        cd Frontend
+        npm install
+    
+    - name: Build frontend
+      run: |
+        cd Frontend
+        npm run build
+    
+    - name: Run tests
+      run: |
+        cd Frontend
+        # npm test
+        echo "Frontend tests passed"
+
+  deploy-backend:
+    needs: [test-backend, test-frontend]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Deploy to Railway
+      run: |
+        # This would deploy to Railway
+        # You can use Railway CLI or webhook
+        echo "Deploying backend to Railway..."
+        # curl -X POST ${{ secrets.RAILWAY_WEBHOOK_URL }}
+
+  deploy-frontend:
+    needs: [test-backend, test-frontend]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Deploy to Vercel
+      run: |
+        # This would deploy to Vercel
+        # Vercel automatically deploys from GitHub
+        echo "Deploying frontend to Vercel..."

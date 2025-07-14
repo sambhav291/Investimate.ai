@@ -54,10 +54,28 @@ class ReportSectionGenerator:
 
             result = response.choices[0].message.content
             if result.startswith('```json'):
-                result = result[7:]  
+                result = result[7:]
             if result.endswith('```'):
-                result = result[:-3]  
-            return result.strip()
+                result = result[:-3]
+            # Remove unwanted placeholder and markdown header lines
+            filtered_lines = []
+            for line in result.splitlines():
+                line_strip = line.strip()
+                # Remove lines that look like placeholders or markdown headers
+                if (line_strip.startswith('Executive Summary:') or
+                    line_strip.startswith('Investment Thesis:') or
+                    line_strip.startswith('Financial Analysis:') or
+                    line_strip.startswith('Business Analysis:') or
+                    line_strip.startswith('Risk Assessment:') or
+                    line_strip.startswith('Valuation & Recommendation:') or
+                    '[Company Name]' in line_strip or
+                    '[Date]' in line_strip or
+                    '[Your Name' in line_strip or
+                    line_strip.startswith('---') or
+                    line_strip == ''):
+                    continue
+                filtered_lines.append(line)
+            return '\n'.join(filtered_lines).strip()
 
         except Exception as e:
             return f"Error processing sections: {e}"
@@ -404,281 +422,3 @@ class ReportSectionGenerator:
 
 
 
-
-
-
-# import json
-# import os
-# import sys
-# import traceback
-# from google.generativeai import GenerativeModel
-# import google.generativeai as genai
-
-# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-# from secdat import gemini_key  
-
-# # Configure Gemini
-# os.environ["GOOGLE_API_KEY"] = gemini_key
-# genai.configure(api_key=gemini_key)
-
-# model = GenerativeModel("gemini-1.5-pro")
-
-# class ReportSectionGenerator:
-#     def __init__(self, enhanced_concall, enhanced_forum, enhanced_annual):
-#         self.concall = enhanced_concall
-#         self.forum = enhanced_forum
-#         self.annual = enhanced_annual
-
-#     def _call_gemini(self, prompt):
-#         try:
-#             response = model.generate_content(
-#                 contents=[prompt],
-#                 generation_config={
-#                     "temperature": 0.7,
-#                     "top_p": 0.95,
-#                     "top_k": 40,
-#                     "max_output_tokens": 4096
-#                 }
-#             )
-#             return response.text.strip()
-#         except Exception as e:
-#             traceback.print_exc()
-#             return f"Error processing section: {e}"
-
-#     def generate_executive_summary(self):
-#         prompt = f"""
-#         You are a senior equity research analyst writing an executive summary for a brokerage report.
-
-#         DATA SOURCES:
-#         Concall Analysis: {json.dumps(self.concall, indent=2)}
-#         Forum Sentiment: {json.dumps(self.forum, indent=2)}
-#         Annual Report: {json.dumps(self.annual, indent=2)}
-
-#         Write a comprehensive 1-page executive summary that includes:
-
-#         1. INVESTMENT RECOMMENDATION (Buy/Hold/Sell) with clear rationale
-#         2. TARGET PRICE with timeframe (if data available)
-#         3. KEY INVESTMENT HIGHLIGHTS (3-4 points)
-#         4. MAJOR RISKS (2-3 points)
-#         5. FINANCIAL SNAPSHOT (key metrics)
-
-#         Format professionally with clear sections and bullet points.
-#         Make it compelling and actionable for investors.
-#         """
-#         return self._call_gemini(prompt)
-
-#     def generate_investment_thesis(self):
-#         prompt = f"""
-#         Develop a comprehensive investment thesis (2-3 pages) based on the data:
-
-#         DATA: 
-#         Concall: {json.dumps(self.concall, indent=2)}
-#         Forum: {json.dumps(self.forum, indent=2)}
-#         Annual: {json.dumps(self.annual, indent=2)}
-
-#         Structure:
-
-#         ## BULL CASE
-#         - Growth drivers and catalysts
-#         - Competitive advantages
-#         - Market opportunities
-#         - Management execution capability
-#         - Financial strengths
-
-#         ## BEAR CASE  
-#         - Key risks and challenges
-#         - Market headwinds
-#         - Execution risks
-#         - Valuation concerns
-#         - Competitive threats
-
-#         ## BALANCED VIEW
-#         - Most likely scenario
-#         - Key variables to watch
-#         - Investment timeline
-
-#         Provide detailed analysis with specific evidence from the data sources.
-#         """
-#         return self._call_gemini(prompt)
-
-#     def generate_financial_analysis(self):
-#         prompt = f"""
-#         Create a detailed financial analysis (2-3 pages) covering:
-
-#         DATA:
-#         Annual Report: {json.dumps(self.annual, indent=2)}
-#         Concall Updates: {json.dumps(self.concall, indent=2)}
-
-#         SECTIONS:
-
-#         ## REVENUE ANALYSIS
-#         - Historical trends and growth rates
-#         - Segment-wise performance
-#         - Market share and competitive position
-#         - Future growth drivers
-
-#         ## PROFITABILITY ANALYSIS
-#         - Margin trends and drivers
-#         - Cost structure analysis
-#         - Operational efficiency metrics
-#         - Peer comparison
-
-#         ## BALANCE SHEET ANALYSIS
-#         - Asset quality and composition
-#         - Debt levels and structure
-#         - Liquidity position
-#         - Capital efficiency
-
-#         ## CASH FLOW ANALYSIS
-#         - Operating cash flow trends
-#         - Free cash flow generation
-#         - Capital allocation strategy
-#         - Cash conversion efficiency
-
-#         ## KEY RATIOS
-#         - Profitability ratios
-#         - Leverage ratios
-#         - Efficiency ratios
-#         - Market ratios
-
-#         Include specific numbers, percentages, and comparisons where available.
-#         """
-#         return self._call_gemini(prompt)
-
-#     def generate_business_analysis(self):
-#         prompt = f"""
-#         Analyze the business fundamentals and industry dynamics:
-
-#         DATA:
-#         Concall: {json.dumps(self.concall, indent=2)}
-#         Annual: {json.dumps(self.annual, indent=2)}
-#         Forum: {json.dumps(self.forum, indent=2)}
-
-#         COVER:
-
-#         ## BUSINESS MODEL
-#         - Revenue streams and mix
-#         - Value proposition
-#         - Customer base and relationships
-#         - Competitive moat
-
-#         ## INDUSTRY DYNAMICS
-#         - Market size and growth
-#         - Competitive landscape
-#         - Industry trends and drivers
-#         - Regulatory environment
-
-#         ## OPERATIONAL PERFORMANCE
-#         - Capacity utilization
-#         - Operational efficiency
-#         - Quality metrics
-#         - Innovation pipeline
-
-#         ## STRATEGIC POSITIONING
-#         - Market position
-#         - Competitive advantages
-#         - Strategic initiatives
-#         - Future growth plans
-
-#         Provide in-depth analysis with industry context.
-#         """
-#         return self._call_gemini(prompt)
-
-#     def generate_risk_assessment(self):
-#         prompt = f"""
-#         Conduct thorough risk assessment for investment decision:
-
-#         DATA:
-#         Concall: {json.dumps(self.concall, indent=2)}
-#         Annual: {json.dumps(self.annual, indent=2)}
-#         Forum: {json.dumps(self.forum, indent=2)}
-
-#         ANALYZE:
-
-#         ## BUSINESS RISKS
-#         - Operational risks
-#         - Market risks
-#         - Competitive risks
-#         - Technology risks
-
-#         ## FINANCIAL RISKS
-#         - Liquidity risks
-#         - Credit risks
-#         - Currency risks
-#         - Interest rate risks
-
-#         ## REGULATORY RISKS
-#         - Policy changes
-#         - Compliance risks
-#         - Environmental regulations
-#         - Tax implications
-
-#         ## MANAGEMENT RISKS
-#         - Key person risk
-#         - Execution capability
-#         - Corporate governance
-#         - Strategic direction
-
-#         ## RISK MITIGATION
-#         - Management's risk management
-#         - Insurance coverage
-#         - Diversification strategies
-#         - Contingency plans
-
-#         Rate each risk category as High/Medium/Low and provide mitigation assessment.
-#         """
-#         return self._call_gemini(prompt)
-
-#     def generate_valuation_analysis(self):
-#         prompt = f"""
-#         Provide comprehensive valuation analysis and investment recommendation:
-
-#         DATA:
-#         Annual: {json.dumps(self.annual, indent=2)}
-#         Concall: {json.dumps(self.concall, indent=2)}
-#         Forum: {json.dumps(self.forum, indent=2)}
-
-#         INCLUDE:
-
-#         ## VALUATION METHODOLOGIES
-#         - P/E ratio analysis
-#         - EV/EBITDA multiples
-#         - Price-to-Book ratio
-#         - Dividend yield analysis
-#         - DCF model (if data sufficient)
-
-#         ## PEER COMPARISON
-#         - Industry multiples
-#         - Relative valuation
-#         - Premium/discount analysis
-
-#         ## PRICE TARGET
-#         - Target price calculation
-#         - Methodology used
-#         - Time horizon
-#         - Upside/downside scenarios
-
-#         ## INVESTMENT RECOMMENDATION
-#         - Clear Buy/Hold/Sell recommendation
-#         - Rationale for recommendation
-#         - Risk-reward assessment
-#         - Portfolio suitability
-
-#         ## CATALYSTS & TRIGGERS
-#         - Positive catalysts
-#         - Negative triggers
-#         - Key events to watch
-
-#         Provide specific price targets and timeframes where data permits.
-#         """
-#         return self._call_gemini(prompt)
-
-#     def generate_all_sections(self):
-#         return {
-#             'executive_summary': self.generate_executive_summary(),
-#             'investment_thesis': self.generate_investment_thesis(),
-#             'financial_analysis': self.generate_financial_analysis(),
-#             'business_analysis': self.generate_business_analysis(),
-#             'risk_assessment': self.generate_risk_assessment(),
-#             'valuation_analysis': self.generate_valuation_analysis(),
-#         }

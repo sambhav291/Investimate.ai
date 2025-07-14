@@ -40,3 +40,9 @@ target/
 *.flv
 *.mov
 *.wmv
+
+# Scraped data files
+Backend/Scraper/files/
+Backend/reports/
+Backend/stock_data/
+Backend/transcripts/
