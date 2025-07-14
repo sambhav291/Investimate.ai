@@ -1,45 +1,103 @@
-**Edit a file, create a new file, and clone from Bitbucket in under 2 minutes**
+# 🚀 Investimate.ai - Brokerage Report Automation AI
 
-When you're done, you can delete the content in this README and update the file with details for others getting started with your repository.
+## 📋 Project Overview
 
-*We recommend that you open this README in another tab as you perform the tasks below. You can [watch our video](https://youtu.be/0ocf7u76WSo) for a full demo of all the steps in this tutorial. Open the video in a new tab to avoid leaving Bitbucket.*
+Investimate.ai is an AI-powered brokerage report automation platform that generates comprehensive stock analysis reports using advanced machine learning and natural language processing.
+
+## ✨ Features
+
+- **AI-Powered Analysis**: Generate detailed stock reports using OpenAI GPT and Google Gemini
+- **Multi-Source Data**: Scrapes annual reports, conference calls, and forum discussions
+- **PDF Report Generation**: Creates professional PDF reports with charts and analysis
+- **User Authentication**: Secure login with Google OAuth and email/password
+- **Report Library**: Save and manage generated reports
+- **Real-time Preview**: Interactive PDF preview with download capabilities
+
+## 🛠 Tech Stack
+
+### Backend
+- **FastAPI** - Modern Python web framework
+- **PostgreSQL** - Database with Supabase
+- **OpenAI GPT** - AI text generation
+- **Google Gemini** - Additional AI capabilities
+- **Supabase** - Backend-as-a-Service for storage and auth
+
+### Frontend
+- **React** - Modern JavaScript library
+- **Vite** - Fast build tool
+- **Tailwind CSS** - Utility-first CSS framework
+- **Framer Motion** - Animation library
+- **React PDF** - PDF viewing component
+
+## 🚀 Deployment
+
+This project is configured for easy deployment on modern platforms:
+
+- **Frontend**: Vercel
+- **Backend**: Railway
+- **Database**: Supabase
+- **Storage**: Supabase Storage
+
+See `DEPLOYMENT.md` for detailed deployment instructions.
+
+## 📁 Project Structure
+
+```
+├── Backend/           # FastAPI backend
+│   ├── main.py       # Main application
+│   ├── Ai_engine/    # AI processing modules
+│   ├── Auth/         # Authentication system
+│   ├── Generator/    # Report generation
+│   └── Scraper/      # Data scraping
+├── Frontend/         # React frontend
+│   ├── src/
+│   │   ├── components/
+│   │   ├── context/
+│   │   └── utils/
+│   └── public/
+└── docs/            # Documentation
+```
+
+## 🔧 Local Development
+
+### Prerequisites
+- Python 3.11+
+- Node.js 18+
+- PostgreSQL or Supabase account
+
+### Backend Setup
+```bash
+cd Backend
+pip install -r requirements.txt
+cp .env.example .env
+# Edit .env with your API keys
+uvicorn main:app --reload
+```
+
+### Frontend Setup
+```bash
+cd Frontend
+npm install
+cp .env.example .env
+# Edit .env with your API URL
+npm run dev
+```
+
+## 🌟 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+## 🤝 Support
+
+For support, email sambhav291@gmail.com or create an issue on GitHub.
 
 ---
 
-## Edit a file
-
-You’ll start by editing this README file to learn how to edit a file in Bitbucket.
-
-1. Click **Source** on the left side.
-2. Click the README.md link from the list of files.
-3. Click the **Edit** button.
-4. Delete the following text: *Delete this line to make a change to the README from Bitbucket.*
-5. After making your change, click **Commit** and then **Commit** again in the dialog. The commit page will open and you’ll see the change you just made.
-6. Go back to the **Source** page.
-
----
-
-## Create a file
-
-Next, you’ll add a new file to this repository.
-
-1. Click the **New file** button at the top of the **Source** page.
-2. Give the file a filename of **contributors.txt**.
-3. Enter your name in the empty file space.
-4. Click **Commit** and then **Commit** again in the dialog.
-5. Go back to the **Source** page.
-
-Before you move on, go ahead and explore the repository. You've already seen the **Source** page, but check out the **Commits**, **Branches**, and **Settings** pages.
-
----
-
-## Clone a repository
-
-Use these steps to clone from SourceTree, our client for using the repository command-line free. Cloning allows you to work on your files locally. If you don't yet have SourceTree, [download and install first](https://www.sourcetreeapp.com/). If you prefer to clone from the command line, see [Clone a repository](https://confluence.atlassian.com/x/4whODQ).
-
-1. You’ll see the clone button under the **Source** heading. Click that button.
-2. Now click **Check out in SourceTree**. You may need to create a SourceTree account or log in.
-3. When you see the **Clone New** dialog in SourceTree, update the destination path and name if you’d like to and then click **Clone**.
-4. Open the directory you just created to see your repository’s files.
-
-Now that you're more familiar with your Bitbucket repository, go ahead and add a new file locally. You can [push your change back to Bitbucket with SourceTree](https://confluence.atlassian.com/x/iqyBMg), or you can [add, commit,](https://confluence.atlassian.com/x/8QhODQ) and [push from the command line](https://confluence.atlassian.com/x/NQ0zDQ).
+**Built with ❤️ by Sambhav**
