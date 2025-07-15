@@ -36,6 +36,8 @@ class ReportSectionGenerator:
         
         Format professionally with clear sections and bullet points.
         Make it compelling and actionable for investors.
+
+        Please do not include placeholders like [insert date], [stock name], or [analyzer name] etc. If the data is not available, leave it out or write the report without referencing it.
         """
         
         try:
@@ -92,26 +94,28 @@ class ReportSectionGenerator:
         
         Structure:
         
-        ## BULL CASE
+         BULL CASE
         - Growth drivers and catalysts
         - Competitive advantages
         - Market opportunities
         - Management execution capability
         - Financial strengths
         
-        ## BEAR CASE  
+         BEAR CASE  
         - Key risks and challenges
         - Market headwinds
         - Execution risks
         - Valuation concerns
         - Competitive threats
         
-        ## BALANCED VIEW
+         BALANCED VIEW
         - Most likely scenario
         - Key variables to watch
         - Investment timeline
         
         Provide detailed analysis with specific evidence from the data sources.
+
+        Please do not include placeholders like [insert date], [stock name], or [analyzer name] etc. If the data is not available, leave it out or write the report without referencing it.
         """
         
         try:
@@ -149,37 +153,39 @@ class ReportSectionGenerator:
         
         SECTIONS:
         
-        ## REVENUE ANALYSIS
+         REVENUE ANALYSIS
         - Historical trends and growth rates
         - Segment-wise performance
         - Market share and competitive position
         - Future growth drivers
         
-        ## PROFITABILITY ANALYSIS
+         PROFITABILITY ANALYSIS
         - Margin trends and drivers
         - Cost structure analysis
         - Operational efficiency metrics
         - Peer comparison
         
-        ## BALANCE SHEET ANALYSIS
+         BALANCE SHEET ANALYSIS
         - Asset quality and composition
         - Debt levels and structure
         - Liquidity position
         - Capital efficiency
         
-        ## CASH FLOW ANALYSIS
+         CASH FLOW ANALYSIS
         - Operating cash flow trends
         - Free cash flow generation
         - Capital allocation strategy
         - Cash conversion efficiency
         
-        ## KEY RATIOS
+         KEY RATIOS
         - Profitability ratios
         - Leverage ratios
         - Efficiency ratios
         - Market ratios
         
         Include specific numbers, percentages, and comparisons where available.
+
+        Please do not include placeholders like [insert date], [stock name], or [analyzer name] etc. If the data is not available, leave it out or write the report without referencing it.
         """
         
         try:
@@ -218,31 +224,33 @@ class ReportSectionGenerator:
         
         COVER:
         
-        ## BUSINESS MODEL
+         BUSINESS MODEL
         - Revenue streams and mix
         - Value proposition
         - Customer base and relationships
         - Competitive moat
         
-        ## INDUSTRY DYNAMICS
+         INDUSTRY DYNAMICS
         - Market size and growth
         - Competitive landscape
         - Industry trends and drivers
         - Regulatory environment
         
-        ## OPERATIONAL PERFORMANCE
+         OPERATIONAL PERFORMANCE
         - Capacity utilization
         - Operational efficiency
         - Quality metrics
         - Innovation pipeline
         
-        ## STRATEGIC POSITIONING
+         STRATEGIC POSITIONING
         - Market position
         - Competitive advantages
         - Strategic initiatives
         - Future growth plans
         
         Provide in-depth analysis with industry context.
+
+        Please do not include placeholders like [insert date], [stock name], or [analyzer name] etc. If the data is not available, leave it out or write the report without referencing it.
         """
         
         try:
@@ -281,37 +289,39 @@ class ReportSectionGenerator:
         
         ANALYZE:
         
-        ## BUSINESS RISKS
+         BUSINESS RISKS
         - Operational risks
         - Market risks
         - Competitive risks
         - Technology risks
         
-        ## FINANCIAL RISKS
+         FINANCIAL RISKS
         - Liquidity risks
         - Credit risks
         - Currency risks
         - Interest rate risks
         
-        ## REGULATORY RISKS
+         REGULATORY RISKS
         - Policy changes
         - Compliance risks
         - Environmental regulations
         - Tax implications
         
-        ## MANAGEMENT RISKS
+         MANAGEMENT RISKS
         - Key person risk
         - Execution capability
         - Corporate governance
         - Strategic direction
         
-        ## RISK MITIGATION
+         RISK MITIGATION
         - Management's risk management
         - Insurance coverage
         - Diversification strategies
         - Contingency plans
         
         Rate each risk category as High/Medium/Low and provide mitigation assessment.
+
+        Please do not include placeholders like [insert date], [stock name], or [analyzer name] etc. If the data is not available, leave it out or write the report without referencing it.
         """
         
         try:
@@ -350,36 +360,38 @@ class ReportSectionGenerator:
         
         INCLUDE:
         
-        ## VALUATION METHODOLOGIES
+         VALUATION METHODOLOGIES
         - P/E ratio analysis
         - EV/EBITDA multiples
         - Price-to-Book ratio
         - Dividend yield analysis
         - DCF model (if data sufficient)
         
-        ## PEER COMPARISON
+         PEER COMPARISON
         - Industry multiples
         - Relative valuation
         - Premium/discount analysis
         
-        ## PRICE TARGET
+         PRICE TARGET
         - Target price calculation
         - Methodology used
         - Time horizon
         - Upside/downside scenarios
         
-        ## INVESTMENT RECOMMENDATION
+         INVESTMENT RECOMMENDATION
         - Clear Buy/Hold/Sell recommendation
         - Rationale for recommendation
         - Risk-reward assessment
         - Portfolio suitability
         
-        ## CATALYSTS & TRIGGERS
+         CATALYSTS & TRIGGERS
         - Positive catalysts
         - Negative triggers
         - Key events to watch
         
         Provide specific price targets and timeframes where data permits.
+
+        Please do not include placeholders like [insert date], [stock name], or [analyzer name] etc. If the data is not available, leave it out or write the report without referencing it.
         """
         
         try:

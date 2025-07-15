@@ -422,7 +422,7 @@ def scrape_concall_transcripts(company_name):
     logger.info(f"🔍 Scraping concall transcripts for {company_name}...")
     
     try:
-        with ConcallTranscriptScraper(headless=False) as scraper:
+        with ConcallTranscriptScraper(headless=True) as scraper:
             transcripts = scraper.scrape_concall_transcripts(company_name)
             
             if transcripts:

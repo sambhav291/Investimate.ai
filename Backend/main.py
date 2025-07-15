@@ -128,7 +128,8 @@ class RefreshRequest(BaseModel):
 # Authentication endpoints
 @app.get("/auth/google/login")
 async def google_login(request: Request):
-    redirect_uri = "http://localhost:8000/auth/google/callback"
+    # Use environment variable for redirect URI in production
+    redirect_uri = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:8000/auth/google/callback")
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 @app.get("/auth/google/callback")
@@ -148,12 +149,14 @@ async def google_callback(request: Request, db: Session = Depends(services.get_d
             db.refresh(user)
 
     jwt_token = await auth.create_tokens(user)
-    response = RedirectResponse("http://localhost:5173/")
+    # Use environment variable for frontend URL in production
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+    response = RedirectResponse(frontend_url)
     response.set_cookie(
         key="access_token",
         value=jwt_token["access_token"],
         httponly=True,
-        secure=False,
+        secure=True,  # Enable for HTTPS in production
         samesite="lax",
         max_age=60*60*24*7,
         path="/"
@@ -162,7 +165,7 @@ async def google_callback(request: Request, db: Session = Depends(services.get_d
         key="refresh_token",
         value=jwt_token["refresh_token"],
         httponly=True,
-        secure=False,
+        secure=True,  # Enable for HTTPS in production
         samesite="lax",
         max_age=60*60*24*7,
         path="/"
@@ -216,7 +219,7 @@ async def login(
             key="access_token",
             value=tokens["access_token"],
             httponly=True,
-            secure=False,
+            secure=True,  # Enable for HTTPS in production
             samesite="lax",
             max_age=60*60*24*7,
             path="/",
@@ -226,7 +229,7 @@ async def login(
             key="refresh_token",
             value=tokens["refresh_token"],
             httponly=True,
-            secure=False,
+            secure=True,  # Enable for HTTPS in production
             samesite="lax",
             max_age=60*60*24*7,
             path="/",
@@ -298,7 +301,7 @@ async def refresh_token(
             key="access_token",
             value=tokens["access_token"], 
             httponly=True,
-            secure=False, # true in production with HTTPS
+            secure=True,  # Enable for HTTPS in production
             samesite="lax",
             max_age=60*60*24*7,
             path="/",
@@ -308,7 +311,7 @@ async def refresh_token(
             key="refresh_token",
             value=tokens["refresh_token"],
             httponly=True,
-            secure=False,
+            secure=True,  # Enable for HTTPS in production
             samesite="lax",
             max_age=60*60*24*7,
             path="/",
@@ -345,7 +348,7 @@ async def logout():
             key="access_token",
             value="",
             httponly=True,
-            secure=False,  # Set to True in production with HTTPS
+            secure=True,  # Enable for HTTPS in production
             samesite="lax",
             expires=datetime.now(timezone.utc),
             path="/"
@@ -355,7 +358,7 @@ async def logout():
             key="refresh_token",
             value="",
             httponly=True,
-            secure=False,  # Set to True in production with HTTPS
+            secure=True,  # Enable for HTTPS in production
             samesite="lax",
             expires=datetime.now(timezone.utc),
             path="/"

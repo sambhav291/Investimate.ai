@@ -338,7 +338,7 @@ def scrape_annual_report_text(company):
     logger.info(f"🔍 Scraping stock data for {company}...")
     
     try:
-        with StockDataScraper(headless=False) as scraper:
+        with StockDataScraper(headless=True) as scraper:
             data = scraper.get_stock_data(company)
             
             if data:
