@@ -3,6 +3,10 @@ set -e
 
 echo "Starting build process..."
 
+# Check Python version
+python --version
+echo "Python version check completed"
+
 # Update system packages
 apt-get update
 
@@ -37,8 +41,17 @@ apt-get install -y google-chrome-stable
 # Upgrade pip and install dependencies
 pip install --upgrade pip wheel setuptools
 
-# Install Python dependencies
-echo "Installing Python dependencies..."
+# Install essential packages first
+echo "Installing essential packages..."
+pip install fastapi uvicorn python-dotenv requests selenium webdriver-manager
+
+# Install ML packages with flexible versioning
+echo "Installing ML packages..."
+pip install torch --index-url https://download.pytorch.org/whl/cpu
+pip install transformers huggingface-hub
+
+# Install remaining dependencies
+echo "Installing remaining dependencies..."
 pip install -r requirements.txt
 
 # Create database tables
