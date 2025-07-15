@@ -41,8 +41,34 @@ apt-get install -y google-chrome-stable
 # Upgrade pip and install dependencies
 pip install --upgrade pip wheel setuptools
 
+# Install PyTorch CPU-only first to avoid large download
+echo "Installing PyTorch CPU-only..."
+pip install torch --index-url https://download.pytorch.org/whl/cpu
+
 # Install minimal dependencies to avoid conflicts
 echo "Installing minimal dependencies..."
 pip install -r requirements_minimal.txt
+
+# Create database tables
+echo "Setting up database..."
+python -c "
+import os
+import sys
+try:
+    from sqlalchemy import create_engine
+    from Auth.models import Base
+    
+    # Create database tables
+    database_url = os.getenv('DATABASE_URL')
+    if database_url:
+        engine = create_engine(database_url)
+        Base.metadata.create_all(engine)
+        print('Database tables created successfully!')
+    else:
+        print('DATABASE_URL not found, skipping database setup')
+except Exception as e:
+    print(f'Database setup error: {e}')
+    # Don't fail the build for database issues
+"
 
 echo "Build completed successfully!"

@@ -1,49 +1,44 @@
 # Essential FastAPI and web framework packages
-fastapi>=0.115.0
-uvicorn>=0.34.0
-starlette>=0.46.0
-pydantic>=2.11.0
+fastapi
+uvicorn
+pydantic
 
 # Database packages
-sqlalchemy>=2.0.0
-alembic>=1.14.0
-psycopg2-binary>=2.9.0
+sqlalchemy
+alembic
+psycopg2-binary
 
 # Authentication packages
-python-multipart>=0.0.20
-python-jose[cryptography]>=3.3.0
-passlib[bcrypt]>=1.7.4
-authlib>=1.4.0
+python-multipart
+python-jose[cryptography]
+passlib[bcrypt]
+authlib
 
 # Environment and utilities
-python-dotenv>=1.1.0
-requests>=2.32.0
+python-dotenv
+requests
 
 # Google packages
-google-generativeai>=0.8.5
-google-api-python-client>=2.168.0
-google-auth>=2.39.0
+google-generativeai
+google-api-python-client
+google-auth
 
 # AI and ML packages
-openai>=1.76.0
-torch>=2.5.0
-transformers>=4.51.0
-huggingface-hub>=0.30.0
+openai
+torch
+transformers
+huggingface-hub
 
 # Web scraping packages
-selenium>=4.31.0
-webdriver-manager>=4.0.0
+selenium
+webdriver-manager
 
 # Data processing packages
-pandas>=2.2.0
-numpy>=2.1.0
-nltk>=3.9.0
-pypdf>=4.0.0
+pandas
+numpy
+nltk
+pypdf
 
 # Supabase packages
-supabase>=2.10.0
-storage3>=0.8.0
-
-# Other utilities
-Jinja2>=3.1.0
-pycparser>=2.22
+supabase
+storage3
