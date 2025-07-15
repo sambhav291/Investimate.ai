@@ -2,7 +2,7 @@ services:
   - type: web
     name: investimate-backend
     env: python
-    buildCommand: pip install -r requirements.txt
+    buildCommand: chmod +x build.sh && ./build.sh
     startCommand: python -m uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: ENVIRONMENT
@@ -10,9 +10,8 @@ services:
       - key: DEBUG
         value: false
       - key: PYTHON_VERSION
-        value: 3.10.12
-
-databases:
-  - name: investimate-db
-    databaseName: investimate
-    user: investimate_user
+        value: 3.11.9
+      - key: PIP_NO_CACHE_DIR
+        value: "1"
+      - key: PIP_DISABLE_PIP_VERSION_CHECK
+        value: "1"
