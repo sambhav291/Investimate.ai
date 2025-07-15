@@ -43,11 +43,11 @@ pip install --upgrade pip wheel setuptools
 
 # Install PyTorch CPU-only first to avoid large download
 echo "Installing PyTorch CPU-only..."
-pip install torch --index-url https://download.pytorch.org/whl/cpu
+pip install torch --index-url https://download.pytorch.org/whl/cpu --no-cache-dir --force-reinstall
 
 # Install minimal dependencies to avoid conflicts
 echo "Installing minimal dependencies..."
-pip install -r requirements_minimal.txt
+pip install -r requirements.txt --no-cache-dir --force-reinstall
 
 # Create database tables
 echo "Setting up database..."

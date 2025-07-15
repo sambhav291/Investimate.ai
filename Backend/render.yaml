@@ -15,3 +15,5 @@ services:
         value: "1"
       - key: PIP_DISABLE_PIP_VERSION_CHECK
         value: "1"
+      - key: PIP_FORCE_REINSTALL
+        value: "1"
