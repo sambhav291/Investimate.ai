@@ -6,29 +6,39 @@ echo "Starting build process..."
 # Update system packages
 apt-get update
 
-# Install system dependencies for PyMuPDF
+# Install system dependencies for Chrome (for Selenium)
 apt-get install -y \
-    build-essential \
-    libmupdf-dev \
-    libfreetype6-dev \
-    libjpeg-dev \
-    libopenjp2-7-dev \
-    libffi-dev \
-    pkg-config
+    wget \
+    gnupg \
+    ca-certificates \
+    fonts-liberation \
+    libappindicator3-1 \
+    libasound2 \
+    libatk-bridge2.0-0 \
+    libatk1.0-0 \
+    libcups2 \
+    libdbus-1-3 \
+    libdrm2 \
+    libgbm1 \
+    libgtk-3-0 \
+    libnspr4 \
+    libnss3 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxrandr2 \
+    xdg-utils
 
-# Upgrade pip and install wheel
+# Install Chrome
+wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add -
+echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list
+apt-get update
+apt-get install -y google-chrome-stable
+
+# Upgrade pip and install dependencies
 pip install --upgrade pip wheel setuptools
 
-# Try to install PyMuPDF with pre-compiled wheel first
-echo "Installing PyMuPDF..."
-pip install --no-cache-dir --only-binary=all PyMuPDF==1.23.8 PyMuPDFb==1.23.8 || {
-    echo "Pre-compiled wheel failed, trying alternative approach..."
-    # If that fails, try without compiling from source
-    pip install --no-cache-dir --prefer-binary PyMuPDF==1.23.8 PyMuPDFb==1.23.8
-}
-
-# Install other dependencies
-echo "Installing other dependencies..."
+# Install Python dependencies
+echo "Installing Python dependencies..."
 pip install -r requirements.txt
 
 # Create database tables

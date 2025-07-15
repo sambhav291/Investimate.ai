@@ -2,7 +2,7 @@ import logging
 import os
 import tempfile
 import time
-import fitz  # PyMuPDF
+from pypdf import PdfReader
 import requests
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -330,11 +330,10 @@ class ConcallTranscriptScraper:
                 logger.info(f"✅ Successfully downloaded PDF directly: {filename}")
    
                 try:
-                    doc = fitz.open(filepath)
+                    reader = PdfReader(filepath)
                     text = ""
-                    for page in doc:
-                        text += page.get_text()
-                    doc.close()
+                    for page in reader.pages:
+                        text += page.extract_text()
                     
                     # Only add if we extracted meaningful text
                     if len(text.strip()) > 100:
