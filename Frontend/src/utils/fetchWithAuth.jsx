@@ -1,5 +1,6 @@
 import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
+import { API_ENDPOINTS } from "./apiConfig";
 
 export const useFetchWithAuth = () => {
   const { refreshToken, setAuthTokens, logout } = useContext(AuthContext);
@@ -19,7 +20,7 @@ export const useFetchWithAuth = () => {
 
     if (response.status === 401 && currentRefreshToken) {
       try {
-        const refreshRes = await fetch("http://localhost:8000/refresh", {
+        const refreshRes = await fetch(API_ENDPOINTS.REFRESH, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ refresh_token: currentRefreshToken }),
