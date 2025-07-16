@@ -49,8 +49,11 @@ if os.getenv("CORS_ORIGINS"):
         # Fallback: single origin as string
         CORS_ORIGINS.append(os.getenv("CORS_ORIGINS"))
 
-# Configure minimal logging
-logging.basicConfig(level=logging.WARNING)
+# Configure logging for production debugging
+if ENVIRONMENT == "production":
+    logging.basicConfig(level=logging.INFO)
+else:
+    logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
 # Environment variables
