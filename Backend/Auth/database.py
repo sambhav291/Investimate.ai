@@ -22,22 +22,35 @@ else:
 
 # Production database configuration with connection pooling
 try:
-    engine = create_engine(
-        SQLALCHEMY_DATABASE_URL,
-        pool_size=10,
-        max_overflow=20,
-        pool_pre_ping=True,
-        pool_recycle=3600,  # Recycle connections after 1 hour
-        connect_args={
-            "sslmode": "require",
-            "options": "-c timezone=utc"
-        } if "postgres" in SQLALCHEMY_DATABASE_URL else {}
-    )
+    # Check if the URL already contains connection parameters
+    if SQLALCHEMY_DATABASE_URL and "?" in SQLALCHEMY_DATABASE_URL:
+        # URL already has parameters, don't add connect_args
+        engine = create_engine(
+            SQLALCHEMY_DATABASE_URL,
+            pool_size=10,
+            max_overflow=20,
+            pool_pre_ping=True,
+            pool_recycle=3600,  # Recycle connections after 1 hour
+        )
+    else:
+        # URL doesn't have parameters, add them via connect_args
+        engine = create_engine(
+            SQLALCHEMY_DATABASE_URL,
+            pool_size=10,
+            max_overflow=20,
+            pool_pre_ping=True,
+            pool_recycle=3600,  # Recycle connections after 1 hour
+            connect_args={
+                "sslmode": "require",
+                "options": "-c timezone=utc"
+            } if "postgres" in SQLALCHEMY_DATABASE_URL else {}
+        )
     print("Database engine created successfully")
 except Exception as e:
     print(f"ERROR creating database engine: {e}")
-    # Create a dummy engine that will fail gracefully
+    # Create a fallback SQLite engine
     engine = create_engine("sqlite:///./fallback.db")
+    print("Using fallback SQLite database")
 
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 Base = declarative_base()
