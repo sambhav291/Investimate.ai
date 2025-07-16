@@ -164,43 +164,87 @@ async def google_login(request: Request):
 
 @app.get("/auth/google/callback")
 async def google_callback(request: Request, db: Session = Depends(services.get_db)):
-    token = await oauth.google.authorize_access_token(request)
-    user_info = token.get("userinfo")
-    if not user_info:
-        user_info = jwt.get_unverified_claims(token["id_token"])
+    try:
+        logger.info("Starting Google OAuth callback")
+        logger.info(f"Request query params: {request.query_params}")
+        
+        # Check for error in query parameters
+        if "error" in request.query_params:
+            error_msg = request.query_params.get("error", "unknown_error")
+            logger.error(f"OAuth error in callback: {error_msg}")
+            raise HTTPException(status_code=400, detail=f"OAuth error: {error_msg}")
+        
+        logger.info("Attempting to get access token from Google")
+        token = await oauth.google.authorize_access_token(request)
+        logger.info(f"Token received: {token is not None}")
+        
+        if not token:
+            logger.error("No token received from Google")
+            raise HTTPException(status_code=400, detail="No token received from Google")
+        
+        user_info = token.get("userinfo")
+        logger.info(f"User info from token: {user_info is not None}")
+        
+        if not user_info:
+            logger.info("No userinfo in token, extracting from id_token")
+            user_info = jwt.get_unverified_claims(token["id_token"])
+            logger.info(f"User info from id_token: {user_info is not None}")
+        
+        if not user_info or not user_info.get('email'):
+            logger.error("No user info or email found in token")
+            raise HTTPException(status_code=400, detail="No user information found in token")
+        
+        logger.info(f"Processing user with email: {user_info['email']}")
+        
+        user = await services.get_user_by_email(user_info['email'], db)
+        if not user:
+            logger.info("Creating new user")
+            user = await services.create_user_google(user_info, db)
+        else:
+            logger.info("User exists, checking profile picture")
+            if user.profile_pic != user_info.get('picture', ''):
+                user.profile_pic = user_info.get('picture', '')
+                db.commit()
+                db.refresh(user)
 
-    user = await services.get_user_by_email(user_info['email'], db)
-    if not user:
-        user = await services.create_user_google(user_info, db)
-    else:
-        if user.profile_pic != user_info.get('picture', ''):
-            user.profile_pic = user_info.get('picture', '')
-            db.commit()
-            db.refresh(user)
-
-    jwt_token = await auth.create_tokens(user)
-    # Use environment variable for frontend URL in production
-    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
-    response = RedirectResponse(frontend_url)
-    response.set_cookie(
-        key="access_token",
-        value=jwt_token["access_token"],
-        httponly=True,
-        secure=True,  # Enable for HTTPS in production
-        samesite="lax",
-        max_age=60*60*24*7,
-        path="/"
-    )
-    response.set_cookie(
-        key="refresh_token",
-        value=jwt_token["refresh_token"],
-        httponly=True,
-        secure=True,  # Enable for HTTPS in production
-        samesite="lax",
-        max_age=60*60*24*7,
-        path="/"
-    )
-    return response
+        logger.info("Creating JWT tokens")
+        jwt_token = await auth.create_tokens(user)
+        
+        # Use environment variable for frontend URL in production
+        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+        logger.info(f"Redirecting to frontend: {frontend_url}")
+        
+        response = RedirectResponse(frontend_url)
+        response.set_cookie(
+            key="access_token",
+            value=jwt_token["access_token"],
+            httponly=True,
+            secure=True,  # Enable for HTTPS in production
+            samesite="lax",
+            max_age=60*60*24*7,
+            path="/"
+        )
+        response.set_cookie(
+            key="refresh_token",
+            value=jwt_token["refresh_token"],
+            httponly=True,
+            secure=True,  # Enable for HTTPS in production
+            samesite="lax",
+            max_age=60*60*24*7,
+            path="/"
+        )
+        logger.info("OAuth callback completed successfully")
+        return response
+    
+    except Exception as e:
+        logger.error(f"OAuth callback error: {str(e)}")
+        logger.error(f"Error type: {type(e).__name__}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        
+        # Return user to frontend with error parameter
+        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+        return RedirectResponse(f"{frontend_url}?error=oauth_failed&message={str(e)}")
 
 @app.post("/token/from-cookie")
 async def token_from_cookie(request: Request, db: Session = Depends(services.get_db)):
