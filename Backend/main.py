@@ -16,8 +16,9 @@ from datetime import datetime, timedelta, timezone
 from urllib.parse import unquote
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from Generator.summary_generator import generate_stock_summary
-from Generator.report_generator import generate_stock_report
+# Lazy imports to reduce memory usage
+# from Generator.summary_generator import generate_stock_summary
+# from Generator.report_generator import generate_stock_report
 from Auth.database import engine, Base
 from Auth import schemas, auth, services, models
 from fastapi.security import OAuth2PasswordRequestForm
@@ -374,12 +375,17 @@ async def logout():
 # Stock analysis endpoints
 @app.post("/generate-summary")
 def generate_summary(req: StockRequest):
+    # Lazy import to reduce memory usage
+    from Generator.summary_generator import generate_stock_summary
     return generate_stock_summary(req.stock_name)
 
 @app.post("/generate-report")
 async def generate_report(req: StockRequest):
     try:
         logger.info(f"Generating report for stock: {req.stock_name}")
+        
+        # Lazy import to reduce memory usage
+        from Generator.report_generator import generate_stock_report
         
         # Generate the report (this should return a local file path or the storage path)
         raw_storage_path, actual_filename = generate_stock_report(req.stock_name)
@@ -638,3 +644,9 @@ async def health_check():
 
 
 
+
+# For local development
+if __name__ == '__main__':
+    import uvicorn
+    port = int(os.getenv('PORT', 8000))
+    uvicorn.run(app, host='0.0.0.0', port=port)
