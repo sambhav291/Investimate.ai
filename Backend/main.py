@@ -57,6 +57,12 @@ logger = logging.getLogger(__name__)
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 
+# Debug: Check if OAuth credentials are loaded
+if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
+    logger.error(f"Missing OAuth credentials: CLIENT_ID={bool(GOOGLE_CLIENT_ID)}, CLIENT_SECRET={bool(GOOGLE_CLIENT_SECRET)}")
+else:
+    logger.info("OAuth credentials loaded successfully")
+
 # Database setup
 try:
     Base.metadata.create_all(bind=engine)
@@ -134,17 +140,27 @@ class RefreshRequest(BaseModel):
 # Authentication endpoints
 @app.get("/auth/google/login")
 async def google_login(request: Request):
-    # Use environment variable for redirect URI in production
-    redirect_uri = os.getenv("GOOGLE_REDIRECT_URI")
-    
-    # If no redirect URI is set, try to construct it from the request
-    if not redirect_uri:
-        # Get the host from the request
-        host = request.headers.get("host", "localhost:8000")
-        scheme = "https" if "onrender.com" in host else "http"
-        redirect_uri = f"{scheme}://{host}/auth/google/callback"
-    
-    return await oauth.google.authorize_redirect(request, redirect_uri)
+    try:
+        # Check if OAuth credentials are available
+        if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
+            logger.error("Google OAuth credentials not configured")
+            raise HTTPException(status_code=500, detail="OAuth configuration missing")
+        
+        # Use environment variable for redirect URI in production
+        redirect_uri = os.getenv("GOOGLE_REDIRECT_URI")
+        
+        # If no redirect URI is set, try to construct it from the request
+        if not redirect_uri:
+            # Get the host from the request
+            host = request.headers.get("host", "localhost:8000")
+            scheme = "https" if "onrender.com" in host else "http"
+            redirect_uri = f"{scheme}://{host}/auth/google/callback"
+        
+        logger.info(f"Using redirect URI: {redirect_uri}")
+        return await oauth.google.authorize_redirect(request, redirect_uri)
+    except Exception as e:
+        logger.error(f"OAuth login error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"OAuth login failed: {str(e)}")
 
 @app.get("/auth/google/callback")
 async def google_callback(request: Request, db: Session = Depends(services.get_db)):
