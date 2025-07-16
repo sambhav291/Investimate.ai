@@ -71,11 +71,24 @@ try:
     logger.info(f"Attempting to connect to database...")
     logger.info(f"Environment: {ENVIRONMENT}")
     
-    # Test database connection
+    # Test database connection with retry logic
     from sqlalchemy import text
-    with engine.connect() as conn:
-        result = conn.execute(text("SELECT 1"))
-        logger.info("Database connection test successful")
+    import time
+    
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            with engine.connect() as conn:
+                result = conn.execute(text("SELECT 1"))
+                logger.info("Database connection test successful")
+                break
+        except Exception as db_error:
+            logger.warning(f"Database connection attempt {attempt + 1} failed: {db_error}")
+            if attempt < max_retries - 1:
+                time.sleep(2)  # Wait 2 seconds before retry
+            else:
+                logger.error("All database connection attempts failed")
+                raise db_error
     
     Base.metadata.create_all(bind=engine)
     logger.info("Database tables created successfully")
@@ -717,7 +730,11 @@ async def delete_report(
         db.commit()
         return {"msg": "Report deleted from database (storage deletion may have failed)"}
 
-# Health check
+# Health check and root endpoint
+@app.get("/")
+async def root():
+    return {"message": "Investimate AI Backend API", "status": "running", "version": "1.0.0"}
+
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}

@@ -38,13 +38,17 @@ try:
             SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres.fryuuxrvtkijmxsrmytt:", "postgres:")
             print(f"Fixed URL format: {SQLALCHEMY_DATABASE_URL}")
         
-        # Create the engine
+        # Create the engine with more robust settings
         engine = create_engine(
             SQLALCHEMY_DATABASE_URL,
-            pool_size=10,
-            max_overflow=20,
+            pool_size=5,  # Reduced pool size for better reliability
+            max_overflow=10,  # Reduced overflow
             pool_pre_ping=True,
-            pool_recycle=3600,  # Recycle connections after 1 hour
+            pool_recycle=1800,  # Recycle connections after 30 minutes
+            connect_args={
+                "connect_timeout": 30,
+                "application_name": "investimate-backend"
+            }
         )
     else:
         # For missing URL, use SQLite fallback
