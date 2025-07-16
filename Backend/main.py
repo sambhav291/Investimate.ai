@@ -68,11 +68,30 @@ else:
 
 # Database setup
 try:
+    logger.info(f"Attempting to connect to database...")
+    logger.info(f"Environment: {ENVIRONMENT}")
+    
+    # Test database connection
+    from sqlalchemy import text
+    with engine.connect() as conn:
+        result = conn.execute(text("SELECT 1"))
+        logger.info("Database connection test successful")
+    
     Base.metadata.create_all(bind=engine)
     logger.info("Database tables created successfully")
 except Exception as e:
     logger.error(f"Database connection failed: {e}")
+    logger.error(f"Database URL present: {bool(os.getenv('DATABASE_URL'))}")
     logger.warning("Application will start without database connection")
+    
+    # Try to get more specific error info
+    db_url = os.getenv("DATABASE_URL")
+    if db_url:
+        # Hide password for logging
+        safe_url = db_url.replace(":Investimate_291@", ":****@") if "Investimate_291" in db_url else db_url
+        logger.error(f"Database URL format: {safe_url}")
+    else:
+        logger.error("DATABASE_URL environment variable is not set!")
 
 # FastAPI app initialization
 app = FastAPI()
