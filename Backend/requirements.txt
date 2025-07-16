@@ -14,6 +14,7 @@ python-jose[cryptography]
 passlib[bcrypt]
 authlib
 itsdangerous
+email-validator
 
 # Environment and utilities
 python-dotenv
