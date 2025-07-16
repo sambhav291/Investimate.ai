@@ -18,6 +18,7 @@ itsdangerous
 # Environment and utilities
 python-dotenv
 requests
+certifi
 
 # Google packages
 google-generativeai
@@ -33,6 +34,8 @@ huggingface-hub
 # Web scraping packages
 selenium
 webdriver-manager
+beautifulsoup4
+lxml
 
 # Data processing packages
 pandas
