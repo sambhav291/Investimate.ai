@@ -13,6 +13,7 @@ python-multipart
 python-jose[cryptography]
 passlib[bcrypt]
 authlib
+itsdangerous
 
 # Environment and utilities
 python-dotenv
