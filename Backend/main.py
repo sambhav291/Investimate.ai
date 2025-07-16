@@ -58,7 +58,12 @@ GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 
 # Database setup
-Base.metadata.create_all(bind=engine)
+try:
+    Base.metadata.create_all(bind=engine)
+    logger.info("Database tables created successfully")
+except Exception as e:
+    logger.error(f"Database connection failed: {e}")
+    logger.warning("Application will start without database connection")
 
 # FastAPI app initialization
 app = FastAPI()
@@ -130,7 +135,15 @@ class RefreshRequest(BaseModel):
 @app.get("/auth/google/login")
 async def google_login(request: Request):
     # Use environment variable for redirect URI in production
-    redirect_uri = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:8000/auth/google/callback")
+    redirect_uri = os.getenv("GOOGLE_REDIRECT_URI")
+    
+    # If no redirect URI is set, try to construct it from the request
+    if not redirect_uri:
+        # Get the host from the request
+        host = request.headers.get("host", "localhost:8000")
+        scheme = "https" if "onrender.com" in host else "http"
+        redirect_uri = f"{scheme}://{host}/auth/google/callback"
+    
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 @app.get("/auth/google/callback")
