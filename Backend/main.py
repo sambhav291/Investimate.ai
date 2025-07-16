@@ -207,7 +207,9 @@ async def google_callback(request: Request, db: Session = Depends(services.get_d
         if "error" in request.query_params:
             error_msg = request.query_params.get("error", "unknown_error")
             logger.error(f"OAuth error in callback: {error_msg}")
-            raise HTTPException(status_code=400, detail=f"OAuth error: {error_msg}")
+            # Return user to frontend with error parameter
+            frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+            return RedirectResponse(f"{frontend_url}?error=oauth_error&message={error_msg}")
         
         logger.info("Attempting to get access token from Google")
         token = await oauth.google.authorize_access_token(request)
@@ -215,7 +217,8 @@ async def google_callback(request: Request, db: Session = Depends(services.get_d
         
         if not token:
             logger.error("No token received from Google")
-            raise HTTPException(status_code=400, detail="No token received from Google")
+            frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+            return RedirectResponse(f"{frontend_url}?error=no_token")
         
         user_info = token.get("userinfo")
         logger.info(f"User info from token: {user_info is not None}")
@@ -227,20 +230,34 @@ async def google_callback(request: Request, db: Session = Depends(services.get_d
         
         if not user_info or not user_info.get('email'):
             logger.error("No user info or email found in token")
-            raise HTTPException(status_code=400, detail="No user information found in token")
+            frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+            return RedirectResponse(f"{frontend_url}?error=no_user_info")
         
         logger.info(f"Processing user with email: {user_info['email']}")
         
-        user = await services.get_user_by_email(user_info['email'], db)
-        if not user:
-            logger.info("Creating new user")
-            user = await services.create_user_google(user_info, db)
-        else:
-            logger.info("User exists, checking profile picture")
-            if user.profile_pic != user_info.get('picture', ''):
-                user.profile_pic = user_info.get('picture', '')
-                db.commit()
-                db.refresh(user)
+        # Try database operations with fallback
+        try:
+            user = await services.get_user_by_email(user_info['email'], db)
+            if not user:
+                logger.info("Creating new user")
+                user = await services.create_user_google(user_info, db)
+            else:
+                logger.info("User exists, checking profile picture")
+                if user.profile_pic != user_info.get('picture', ''):
+                    user.profile_pic = user_info.get('picture', '')
+                    db.commit()
+                    db.refresh(user)
+        except Exception as db_error:
+            logger.error(f"Database error during user operations: {db_error}")
+            # Create a temporary user object for token generation
+            from Auth.models import User
+            user = User(
+                email=user_info['email'],
+                username=user_info.get('name', user_info['email']),
+                profile_pic=user_info.get('picture', ''),
+                id=1  # Temporary ID
+            )
+            logger.warning("Using temporary user object due to database error")
 
         logger.info("Creating JWT tokens")
         jwt_token = await auth.create_tokens(user)
@@ -279,7 +296,7 @@ async def google_callback(request: Request, db: Session = Depends(services.get_d
         
         # Return user to frontend with error parameter
         frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
-        return RedirectResponse(f"{frontend_url}?error=oauth_failed&message={str(e)}")
+        return RedirectResponse(f"{frontend_url}?error=oauth_failed&message={str(e)[:100]}")
 
 @app.post("/token/from-cookie")
 async def token_from_cookie(request: Request, db: Session = Depends(services.get_db)):

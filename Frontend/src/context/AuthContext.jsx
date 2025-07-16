@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
+import { fetchWithAuth } from '../utils/fetchWithAuth';
 
 export const AuthContext = createContext();
 
@@ -23,7 +24,7 @@ export const AuthProvider = ({ children }) => {
       try {
         // CASE 1: No token → Try Google login (cookie-based)
         if (!token && !refreshToken) {
-          const res = await fetch("http://localhost:8000/signup/me", {
+          const res = await fetchWithAuth("/signup/me", {
             method: "GET",
             credentials: "include",
           });
@@ -34,7 +35,7 @@ export const AuthProvider = ({ children }) => {
             setAuthMethod('google');
             setAuthStatus('authenticated');
 
-            const tokenRes = await fetch("http://localhost:8000/token/from-cookie", {
+            const tokenRes = await fetchWithAuth("/token/from-cookie", {
               method: "POST",
               credentials: "include",
             });
@@ -55,7 +56,7 @@ export const AuthProvider = ({ children }) => {
 
         // CASE 2: Token exists → validate it
         if (token) {
-          const res = await fetch("http://localhost:8000/signup/me", {
+          const res = await fetchWithAuth("/signup/me", {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
@@ -65,7 +66,7 @@ export const AuthProvider = ({ children }) => {
 
           // If expired, try refresh
           if (res.status === 401 && refreshToken) {
-            const refreshRes = await fetch("http://localhost:8000/refresh", {
+            const refreshRes = await fetchWithAuth("/refresh", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ refresh_token: refreshToken }),
@@ -78,7 +79,7 @@ export const AuthProvider = ({ children }) => {
               localStorage.setItem("token", data.access_token);
               localStorage.setItem("refresh_token", data.refresh_token);
 
-              const retryRes = await fetch("http://localhost:8000/signup/me", {
+              const retryRes = await fetchWithAuth("/signup/me", {
                 method: 'GET',
                 headers: {
                   'Content-Type': 'application/json',
@@ -125,7 +126,7 @@ export const AuthProvider = ({ children }) => {
         const exp = payload.exp * 1000;
 
         if (Date.now() > exp - 30000) {
-          const res = await fetch("http://localhost:8000/refresh", {
+          const res = await fetchWithAuth("/refresh", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ refresh_token: refreshToken }),
@@ -156,7 +157,7 @@ export const AuthProvider = ({ children }) => {
   // Update fetchUser to always set user with username or name
   const fetchUser = async (accessToken = token) => {
     try {
-      const res = await fetch("http://localhost:8000/signup/me", {
+      const res = await fetchWithAuth("/signup/me", {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -186,7 +187,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await fetch("http://localhost:8000/logout", {
+      await fetchWithAuth("/logout", {
         method: "POST",
         credentials: "include",
       });

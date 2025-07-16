@@ -38,29 +38,31 @@ try:
             SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres.fryuuxrvtkijmxsrmytt:", "postgres:")
             print(f"Fixed URL format: {SQLALCHEMY_DATABASE_URL}")
         
-        # Create the engine with more robust settings
+        # Create the engine with minimal settings for reliability
         engine = create_engine(
             SQLALCHEMY_DATABASE_URL,
-            pool_size=5,  # Reduced pool size for better reliability
-            max_overflow=10,  # Reduced overflow
+            pool_size=3,  # Minimal pool size
+            max_overflow=5,  # Minimal overflow
             pool_pre_ping=True,
             pool_recycle=1800,  # Recycle connections after 30 minutes
+            echo=False,  # Disable SQL logging
             connect_args={
-                "connect_timeout": 30,
+                "connect_timeout": 10,
                 "application_name": "investimate-backend"
             }
         )
     else:
         # For missing URL, use SQLite fallback
-        engine = create_engine("sqlite:///./fallback.db")
+        print("Using SQLite fallback database")
+        engine = create_engine("sqlite:///./fallback.db", echo=False)
     
     print("Database engine created successfully")
 except Exception as e:
     print(f"ERROR creating database engine: {e}")
     print(f"Problematic URL: {SQLALCHEMY_DATABASE_URL}")
     # Create a fallback SQLite engine
-    engine = create_engine("sqlite:///./fallback.db")
-    print("Using fallback SQLite database")
+    print("Using fallback SQLite database due to error")
+    engine = create_engine("sqlite:///./fallback.db", echo=False)
 
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 Base = declarative_base()
