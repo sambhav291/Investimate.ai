@@ -37,17 +37,24 @@ CORS_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:5173",
     "http://127.0.0.1:3000",
+    "https://investimate-ai-eight.vercel.app",  # Add production frontend explicitly
 ]
 
-# Add production origins if specified
+# Add production origins if specified in environment
 if os.getenv("CORS_ORIGINS"):
     try:
         import json
         prod_origins = json.loads(os.getenv("CORS_ORIGINS"))
-        CORS_ORIGINS.extend(prod_origins)
-    except:
+        # Add to origins if not already present
+        for origin in prod_origins:
+            if origin not in CORS_ORIGINS:
+                CORS_ORIGINS.append(origin)
+    except Exception as e:
+        logger.warning(f"Failed to parse CORS_ORIGINS from environment: {e}")
         # Fallback: single origin as string
-        CORS_ORIGINS.append(os.getenv("CORS_ORIGINS"))
+        fallback_origin = os.getenv("CORS_ORIGINS")
+        if fallback_origin and fallback_origin not in CORS_ORIGINS:
+            CORS_ORIGINS.append(fallback_origin)
 
 # Configure logging for production debugging
 if ENVIRONMENT == "production":
@@ -152,7 +159,7 @@ async def startup_event():
     logger.info(f"  - SECRET_KEY: {bool(os.getenv('SECRET_KEY'))}")
     logger.info(f"  - FRONTEND_URL: {os.getenv('FRONTEND_URL', 'NOT SET')}")
     logger.info(f"  - GOOGLE_REDIRECT_URI: {os.getenv('GOOGLE_REDIRECT_URI', 'NOT SET')}")
-    logger.info(f"CORS Origins: {CORS_ORIGINS}")
+    logger.info(f"CORS Origins configured: {CORS_ORIGINS}")
     
     # Test basic functionality
     try:
