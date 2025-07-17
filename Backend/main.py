@@ -59,12 +59,24 @@ logger = logging.getLogger(__name__)
 # Environment variables
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = os.getenv("ALGORITHM", "HS256")
 
-# Debug: Check if OAuth credentials are loaded
-if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
-    logger.error(f"Missing OAuth credentials: CLIENT_ID={bool(GOOGLE_CLIENT_ID)}, CLIENT_SECRET={bool(GOOGLE_CLIENT_SECRET)}")
+# Debug: Check if all required environment variables are loaded
+missing_vars = []
+if not GOOGLE_CLIENT_ID:
+    missing_vars.append("GOOGLE_CLIENT_ID")
+if not GOOGLE_CLIENT_SECRET:
+    missing_vars.append("GOOGLE_CLIENT_SECRET")
+if not SECRET_KEY:
+    missing_vars.append("SECRET_KEY")
+
+if missing_vars:
+    logger.error(f"Missing required environment variables: {', '.join(missing_vars)}")
+    for var in missing_vars:
+        logger.error(f"{var} = {os.getenv(var)}")
 else:
-    logger.info("OAuth credentials loaded successfully")
+    logger.info("All required OAuth and auth environment variables loaded successfully")
 
 # Database setup
 try:
@@ -352,12 +364,26 @@ async def token_from_cookie(request: Request, db: Session = Depends(services.get
 async def register(
     user: schemas.UserCreate, db: Session = Depends(services.get_db)
 ):
-    existing = await services.get_user_by_email(user.email, db)
-    if existing:
-        raise HTTPException(status_code=400, detail="User already exists")
-    
-    new_user = await services.create_user(user, db)
-    return await auth.create_tokens(new_user)
+    try:
+        logger.info(f"Signup attempt for user: {user.email}")
+        existing = await services.get_user_by_email(user.email, db)
+        if existing:
+            logger.warning(f"User already exists: {user.email}")
+            raise HTTPException(status_code=400, detail="User already exists")
+        
+        logger.info(f"Creating new user: {user.email}")
+        new_user = await services.create_user(user, db)
+        logger.info(f"User created successfully: {user.email}")
+        
+        tokens = await auth.create_tokens(new_user)
+        logger.info(f"Tokens created for user: {user.email}")
+        
+        return tokens
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Signup error for user {user.email}: {e}")
+        raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
 
 @app.post("/login")
 async def login(
@@ -365,10 +391,13 @@ async def login(
     db: Session = Depends(services.get_db)
 ):
     try:
+        logger.info(f"Login attempt for user: {form_data.username}")
         db_user = await auth.authenticate_user(form_data.username, form_data.password, db)
         if not db_user:
+            logger.warning(f"Authentication failed for user: {form_data.username}")
             raise HTTPException(status_code=401, detail="Invalid credentials")
         
+        logger.info(f"User authenticated successfully: {form_data.username}")
         tokens = await auth.create_tokens(db_user)
         
         response = JSONResponse(content={
@@ -397,12 +426,13 @@ async def login(
             path="/",
         )
         
+        logger.info(f"Login successful for user: {form_data.username}")
         return response
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Login error: {e}")
+        logger.error(f"Login error for user {form_data.username}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
