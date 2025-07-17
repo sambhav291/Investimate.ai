@@ -92,7 +92,7 @@ async def create_tokens(user: models.User):
 
 def get_current_user(
     request: Request,
-    db: Session = Depends(services.get_db)
+    db: Session  # Remove the dependency here to avoid circular import
 ):
     logger.debug("Extracting token from request...")
     token = None
