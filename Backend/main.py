@@ -11,6 +11,8 @@ from dotenv import load_dotenv
 import os
 import sys
 import io
+import time
+import traceback
 import logging
 from datetime import datetime, timedelta, timezone
 from urllib.parse import unquote
@@ -31,6 +33,13 @@ load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 DEBUG = os.getenv("DEBUG", "true").lower() == "true"
 
+# Configure logging for production debugging
+if ENVIRONMENT == "production":
+    logging.basicConfig(level=logging.INFO)
+else:
+    logging.basicConfig(level=logging.WARNING)
+logger = logging.getLogger(__name__)
+
 # CORS origins - update for production
 CORS_ORIGINS = [
     "http://localhost:5173",
@@ -44,24 +53,29 @@ CORS_ORIGINS = [
 if os.getenv("CORS_ORIGINS"):
     try:
         import json
-        prod_origins = json.loads(os.getenv("CORS_ORIGINS"))
+        cors_origins_env = os.getenv("CORS_ORIGINS")
+        logger.info(f"CORS_ORIGINS from environment: {cors_origins_env}")
+        
+        # Handle both JSON string and single string formats
+        if cors_origins_env.startswith('[') and cors_origins_env.endswith(']'):
+            # JSON array format
+            prod_origins = json.loads(cors_origins_env)
+        else:
+            # Single string format
+            prod_origins = [cors_origins_env]
+            
         # Add to origins if not already present
         for origin in prod_origins:
             if origin not in CORS_ORIGINS:
                 CORS_ORIGINS.append(origin)
+                logger.info(f"Added CORS origin: {origin}")
     except Exception as e:
         logger.warning(f"Failed to parse CORS_ORIGINS from environment: {e}")
         # Fallback: single origin as string
         fallback_origin = os.getenv("CORS_ORIGINS")
         if fallback_origin and fallback_origin not in CORS_ORIGINS:
             CORS_ORIGINS.append(fallback_origin)
-
-# Configure logging for production debugging
-if ENVIRONMENT == "production":
-    logging.basicConfig(level=logging.INFO)
-else:
-    logging.basicConfig(level=logging.WARNING)
-logger = logging.getLogger(__name__)
+            logger.info(f"Added fallback CORS origin: {fallback_origin}")
 
 # Environment variables
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
