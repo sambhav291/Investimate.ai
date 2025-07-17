@@ -38,21 +38,43 @@ try:
             SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres.fryuuxrvtkijmxsrmytt:", "postgres:")
             print(f"Fixed URL format: {SQLALCHEMY_DATABASE_URL}")
         
-        # Create the engine with robust settings for production
-        engine = create_engine(
-            SQLALCHEMY_DATABASE_URL,
-            pool_size=1,  # Minimal pool size for free tier
-            max_overflow=0,  # No overflow
-            pool_pre_ping=True,
-            pool_recycle=3600,  # Recycle connections after 1 hour
-            echo=False,  # Disable SQL logging
-            connect_args={
-                "connect_timeout": 30,
-                "application_name": "investimate-backend",
-                "options": "-c default_transaction_isolation=read_committed"
-            },
-            pool_reset_on_return='commit'  # Reset connection state
-        )
+        # Detect if this is a Render internal database URL
+        is_render_internal = "dpg-" in SQLALCHEMY_DATABASE_URL and "-a" in SQLALCHEMY_DATABASE_URL
+        
+        if is_render_internal:
+            print("Detected Render internal database - using optimized settings")
+            # Optimized settings for Render internal database
+            engine = create_engine(
+                SQLALCHEMY_DATABASE_URL,
+                pool_size=2,  # Small pool for internal connection
+                max_overflow=3,  # Limited overflow
+                pool_pre_ping=True,
+                pool_recycle=3600,  # Recycle connections after 1 hour
+                echo=False,
+                connect_args={
+                    "connect_timeout": 10,
+                    "application_name": "investimate-backend"
+                },
+                pool_reset_on_return='commit'
+            )
+        else:
+            print("Using external database connection settings")
+            # Settings for external databases (like Supabase)
+            engine = create_engine(
+                SQLALCHEMY_DATABASE_URL,
+                pool_size=1,  # Minimal pool size for external connections
+                max_overflow=0,  # No overflow
+                pool_pre_ping=True,
+                pool_recycle=3600,  # Recycle connections after 1 hour
+                echo=False,
+                connect_args={
+                    "connect_timeout": 30,
+                    "application_name": "investimate-backend",
+                    "options": "-c default_transaction_isolation=read_committed"
+                },
+                pool_reset_on_return='commit'
+            )
+        
         print("Database engine created successfully")
     else:
         # For missing/invalid URL, use SQLite fallback
