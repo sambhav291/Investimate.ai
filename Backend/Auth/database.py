@@ -48,7 +48,8 @@ try:
             echo=False,  # Disable SQL logging
             connect_args={
                 "connect_timeout": 10,
-                "application_name": "investimate-backend"
+                "application_name": "investimate-backend",
+                "options": "-c default_transaction_isolation=read_committed"
             }
         )
     else:

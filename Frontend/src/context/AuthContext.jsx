@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
-import { fetchWithAuth } from '../utils/fetchWithAuth';
+import { API_BASE_URL } from '../utils/apiConfig';
 
 export const AuthContext = createContext();
 
@@ -24,7 +24,7 @@ export const AuthProvider = ({ children }) => {
       try {
         // CASE 1: No token → Try Google login (cookie-based)
         if (!token && !refreshToken) {
-          const res = await fetchWithAuth("/signup/me", {
+          const res = await fetch(`${API_BASE_URL}/signup/me`, {
             method: "GET",
             credentials: "include",
           });
@@ -35,7 +35,7 @@ export const AuthProvider = ({ children }) => {
             setAuthMethod('google');
             setAuthStatus('authenticated');
 
-            const tokenRes = await fetchWithAuth("/token/from-cookie", {
+            const tokenRes = await fetch(`${API_BASE_URL}/token/from-cookie`, {
               method: "POST",
               credentials: "include",
             });
@@ -56,7 +56,7 @@ export const AuthProvider = ({ children }) => {
 
         // CASE 2: Token exists → validate it
         if (token) {
-          const res = await fetchWithAuth("/signup/me", {
+          const res = await fetch(`${API_BASE_URL}/signup/me`, {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
@@ -66,7 +66,7 @@ export const AuthProvider = ({ children }) => {
 
           // If expired, try refresh
           if (res.status === 401 && refreshToken) {
-            const refreshRes = await fetchWithAuth("/refresh", {
+            const refreshRes = await fetch(`${API_BASE_URL}/refresh`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ refresh_token: refreshToken }),
@@ -79,7 +79,7 @@ export const AuthProvider = ({ children }) => {
               localStorage.setItem("token", data.access_token);
               localStorage.setItem("refresh_token", data.refresh_token);
 
-              const retryRes = await fetchWithAuth("/signup/me", {
+              const retryRes = await fetch(`${API_BASE_URL}/signup/me`, {
                 method: 'GET',
                 headers: {
                   'Content-Type': 'application/json',
@@ -126,7 +126,7 @@ export const AuthProvider = ({ children }) => {
         const exp = payload.exp * 1000;
 
         if (Date.now() > exp - 30000) {
-          const res = await fetchWithAuth("/refresh", {
+          const res = await fetch(`${API_BASE_URL}/refresh`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ refresh_token: refreshToken }),
@@ -157,7 +157,7 @@ export const AuthProvider = ({ children }) => {
   // Update fetchUser to always set user with username or name
   const fetchUser = async (accessToken = token) => {
     try {
-      const res = await fetchWithAuth("/signup/me", {
+      const res = await fetch(`${API_BASE_URL}/signup/me`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -187,7 +187,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await fetchWithAuth("/logout", {
+      await fetch(`${API_BASE_URL}/logout`, {
         method: "POST",
         credentials: "include",
       });
