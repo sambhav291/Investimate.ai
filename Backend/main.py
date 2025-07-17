@@ -100,16 +100,15 @@ else:
     logger.info("All required OAuth and auth environment variables loaded successfully")
 
 # Database setup
+database_connected = False
 try:
     logger.info(f"Attempting to connect to database...")
     logger.info(f"Environment: {ENVIRONMENT}")
     
     # Test database connection with retry logic
     from sqlalchemy import text
-    import time
     
-    max_retries = 3
-    database_connected = False
+    max_retries = 2 if ENVIRONMENT == "production" else 1  # Reduce retries in production
     
     for attempt in range(max_retries):
         try:
@@ -121,10 +120,9 @@ try:
         except Exception as db_error:
             logger.warning(f"Database connection attempt {attempt + 1} failed: {db_error}")
             if attempt < max_retries - 1:
-                time.sleep(2)  # Wait 2 seconds before retry
+                time.sleep(1)  # Reduce wait time in production
             else:
                 logger.error("All database connection attempts failed")
-                # Don't raise the error, just log it
                 logger.warning("Continuing without database connection")
     
     if database_connected:
@@ -138,14 +136,15 @@ except Exception as e:
     logger.error(f"Database URL present: {bool(os.getenv('DATABASE_URL'))}")
     logger.warning("Application will start without database connection")
     
-    # Try to get more specific error info
-    db_url = os.getenv("DATABASE_URL")
-    if db_url:
-        # Hide password for logging
-        safe_url = db_url.replace(":Investimate_291@", ":****@") if "Investimate_291" in db_url else db_url
-        logger.error(f"Database URL format: {safe_url}")
-    else:
-        logger.error("DATABASE_URL environment variable is not set!")
+    # Only log URL details in development
+    if ENVIRONMENT != "production":
+        db_url = os.getenv("DATABASE_URL")
+        if db_url:
+            # Hide password for logging
+            safe_url = db_url.replace(":Investimate_291@", ":****@") if "Investimate_291" in db_url else db_url
+            logger.error(f"Database URL format: {safe_url}")
+        else:
+            logger.error("DATABASE_URL environment variable is not set!")
 
 # Always continue with app initialization
 logger.info("Starting FastAPI application...")
@@ -858,11 +857,22 @@ async def delete_report(
 # Health check and root endpoint
 @app.get("/")
 async def root():
-    return {"message": "Investimate AI Backend API", "status": "running", "version": "1.0.0"}
+    return {
+        "message": "Investimate AI Backend API", 
+        "status": "running", 
+        "version": "1.0.0",
+        "environment": ENVIRONMENT,
+        "database_connected": database_connected
+    }
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy"}
+    return {
+        "status": "healthy",
+        "environment": ENVIRONMENT,
+        "database_connected": database_connected,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
 
 
 
