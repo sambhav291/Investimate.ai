@@ -30,7 +30,10 @@ async def  create_user(user: schemas.UserCreate, db: Session):
         new_user = models.User(
             username = user.username,
             email = user.email,
-            hashed_password = hashed)
+            name = user.username,  # Set name field to username
+            hashed_password = hashed,
+            is_google_account = False
+        )
         db.add(new_user)
         db.commit()
         db.refresh(new_user)
@@ -45,7 +48,9 @@ async def create_user_google(user_info, db: Session):
         new_user = models.User(
             username = user_info.get('name', user_info.get('email', 'Unknown')),
             email = user_info['email'],
-            profile_pic = user_info.get('picture', '')
+            name = user_info.get('name', user_info.get('email', 'Unknown')),  # Set name field
+            profile_pic = user_info.get('picture', ''),
+            is_google_account = True
         )
         db.add(new_user)
         db.commit()

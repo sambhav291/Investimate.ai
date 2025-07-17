@@ -15,6 +15,11 @@ class User(Base):
     is_google_account = Column(Boolean, default=False)  # Optional
 
     reports = relationship("UserReport", back_populates="user")
+    
+    @property
+    def display_name(self):
+        """Return the display name, fallback to username or email"""
+        return self.name or self.username or self.email
 
 class UserReport(Base):
     __tablename__ = "user_reports"

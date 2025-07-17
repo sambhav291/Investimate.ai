@@ -140,7 +140,10 @@ async def shutdown_event():
 # Middleware setup
 app.add_middleware( 
     SessionMiddleware,
-    secret_key="md384503mr4rm59*r89x#mim@m9"
+    secret_key=os.getenv("SECRET_KEY", "md384503mr4rm59*r89x#mim@m9"),
+    max_age=60*60*24*7,  # 7 days
+    same_site="lax",
+    https_only=ENVIRONMENT == "production"
 )
 
 app.add_middleware(
@@ -273,6 +276,11 @@ async def google_callback(request: Request, db: Session = Depends(services.get_d
                 logger.info("User exists, checking profile picture")
                 if user.profile_pic != user_info.get('picture', ''):
                     user.profile_pic = user_info.get('picture', '')
+                    db.commit()
+                    db.refresh(user)
+                # Also update name if it changed
+                if user.name != user_info.get('name', ''):
+                    user.name = user_info.get('name', user_info.get('email', ''))
                     db.commit()
                     db.refresh(user)
         except Exception as db_error:

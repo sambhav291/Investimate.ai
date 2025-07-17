@@ -64,7 +64,7 @@ async def create_tokens(user: models.User):
 
         access_payload = {
             "sub": str(user.id),
-            "name": user.name,
+            "name": user.display_name,  # Use display name property
             "profile_pic": user.profile_pic,
             "email": user.email,
             "exp": access_expire
