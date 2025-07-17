@@ -76,11 +76,14 @@ try:
     import time
     
     max_retries = 3
+    database_connected = False
+    
     for attempt in range(max_retries):
         try:
             with engine.connect() as conn:
                 result = conn.execute(text("SELECT 1"))
                 logger.info("Database connection test successful")
+                database_connected = True
                 break
         except Exception as db_error:
             logger.warning(f"Database connection attempt {attempt + 1} failed: {db_error}")
@@ -88,12 +91,17 @@ try:
                 time.sleep(2)  # Wait 2 seconds before retry
             else:
                 logger.error("All database connection attempts failed")
-                raise db_error
+                # Don't raise the error, just log it
+                logger.warning("Continuing without database connection")
     
-    Base.metadata.create_all(bind=engine)
-    logger.info("Database tables created successfully")
+    if database_connected:
+        Base.metadata.create_all(bind=engine)
+        logger.info("Database tables created successfully")
+    else:
+        logger.warning("Database tables not created - no connection")
+        
 except Exception as e:
-    logger.error(f"Database connection failed: {e}")
+    logger.error(f"Database setup failed: {e}")
     logger.error(f"Database URL present: {bool(os.getenv('DATABASE_URL'))}")
     logger.warning("Application will start without database connection")
     
@@ -106,8 +114,28 @@ except Exception as e:
     else:
         logger.error("DATABASE_URL environment variable is not set!")
 
+# Always continue with app initialization
+logger.info("Starting FastAPI application...")
+
 # FastAPI app initialization
-app = FastAPI()
+app = FastAPI(
+    title="Investimate AI Backend",
+    description="Backend API for Investimate AI",
+    version="1.0.0"
+)
+
+# Add startup event
+@app.on_event("startup")
+async def startup_event():
+    logger.info("Application startup completed")
+    logger.info(f"Python version: {sys.version}")
+    logger.info(f"Working directory: {os.getcwd()}")
+    logger.info(f"Environment variables loaded: DATABASE_URL={bool(os.getenv('DATABASE_URL'))}")
+
+# Add shutdown event
+@app.on_event("shutdown")
+async def shutdown_event():
+    logger.info("Application shutdown")
 
 # Middleware setup
 app.add_middleware( 

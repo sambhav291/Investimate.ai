@@ -23,7 +23,7 @@ else:
 # Production database configuration with connection pooling
 try:
     # Fix the database URL format for SQLAlchemy
-    if SQLALCHEMY_DATABASE_URL:
+    if SQLALCHEMY_DATABASE_URL and SQLALCHEMY_DATABASE_URL != "postgresql://user:pass@localhost:5432/db":
         # Debug: Show the exact URL structure
         print(f"Original URL: {SQLALCHEMY_DATABASE_URL}")
         
@@ -38,32 +38,41 @@ try:
             SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres.fryuuxrvtkijmxsrmytt:", "postgres:")
             print(f"Fixed URL format: {SQLALCHEMY_DATABASE_URL}")
         
-        # Create the engine with minimal settings for reliability
+        # Create the engine with robust settings for production
         engine = create_engine(
             SQLALCHEMY_DATABASE_URL,
-            pool_size=3,  # Minimal pool size
-            max_overflow=5,  # Minimal overflow
+            pool_size=1,  # Minimal pool size for free tier
+            max_overflow=0,  # No overflow
             pool_pre_ping=True,
-            pool_recycle=1800,  # Recycle connections after 30 minutes
+            pool_recycle=3600,  # Recycle connections after 1 hour
             echo=False,  # Disable SQL logging
             connect_args={
-                "connect_timeout": 10,
+                "connect_timeout": 30,
                 "application_name": "investimate-backend",
                 "options": "-c default_transaction_isolation=read_committed"
-            }
+            },
+            pool_reset_on_return='commit'  # Reset connection state
         )
+        print("Database engine created successfully")
     else:
-        # For missing URL, use SQLite fallback
+        # For missing/invalid URL, use SQLite fallback
         print("Using SQLite fallback database")
-        engine = create_engine("sqlite:///./fallback.db", echo=False)
+        engine = create_engine(
+            "sqlite:///./fallback.db", 
+            echo=False,
+            connect_args={"check_same_thread": False}
+        )
     
-    print("Database engine created successfully")
 except Exception as e:
     print(f"ERROR creating database engine: {e}")
     print(f"Problematic URL: {SQLALCHEMY_DATABASE_URL}")
     # Create a fallback SQLite engine
     print("Using fallback SQLite database due to error")
-    engine = create_engine("sqlite:///./fallback.db", echo=False)
+    engine = create_engine(
+        "sqlite:///./fallback.db", 
+        echo=False,
+        connect_args={"check_same_thread": False}
+    )
 
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 Base = declarative_base()
