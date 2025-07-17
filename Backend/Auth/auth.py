@@ -90,6 +90,13 @@ async def create_tokens(user: models.User):
         logger.error(f"Error creating tokens: {e}", exc_info=True)
         raise
 
+def get_current_user_dependency():
+    """FastAPI dependency wrapper for get_current_user"""
+    from . import services
+    def dependency(request: Request, db: Session = Depends(services.get_db)):
+        return get_current_user(request, db)
+    return dependency
+
 def get_current_user(
     request: Request,
     db: Session  # Remove the dependency here to avoid circular import

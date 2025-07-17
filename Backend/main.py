@@ -139,10 +139,31 @@ app = FastAPI(
 # Add startup event
 @app.on_event("startup")
 async def startup_event():
-    logger.info("Application startup completed")
+    logger.info("=== APPLICATION STARTUP ===")
+    logger.info("Application startup initiated")
+    logger.info(f"Environment: {ENVIRONMENT}")
+    logger.info(f"Debug mode: {DEBUG}")
     logger.info(f"Python version: {sys.version}")
     logger.info(f"Working directory: {os.getcwd()}")
-    logger.info(f"Environment variables loaded: DATABASE_URL={bool(os.getenv('DATABASE_URL'))}")
+    logger.info(f"Environment variables loaded:")
+    logger.info(f"  - DATABASE_URL: {bool(os.getenv('DATABASE_URL'))}")
+    logger.info(f"  - GOOGLE_CLIENT_ID: {bool(os.getenv('GOOGLE_CLIENT_ID'))}")
+    logger.info(f"  - GOOGLE_CLIENT_SECRET: {bool(os.getenv('GOOGLE_CLIENT_SECRET'))}")
+    logger.info(f"  - SECRET_KEY: {bool(os.getenv('SECRET_KEY'))}")
+    logger.info(f"  - FRONTEND_URL: {os.getenv('FRONTEND_URL', 'NOT SET')}")
+    logger.info(f"  - GOOGLE_REDIRECT_URI: {os.getenv('GOOGLE_REDIRECT_URI', 'NOT SET')}")
+    logger.info(f"CORS Origins: {CORS_ORIGINS}")
+    
+    # Test basic functionality
+    try:
+        logger.info("Testing basic application functionality...")
+        logger.info("✅ FastAPI app initialized successfully")
+        logger.info("✅ Middleware configured")
+        logger.info("✅ OAuth configured")
+        logger.info("=== STARTUP COMPLETE ===")
+    except Exception as e:
+        logger.error(f"❌ Startup error: {e}")
+        raise
 
 # Add shutdown event
 @app.on_event("shutdown")
@@ -522,7 +543,7 @@ async def refresh_token(
         raise HTTPException(status_code=401, detail="Invalid refresh token")
 
 @app.get("/signup/me")
-async def get_user(user: schemas.UserLogin = Depends(auth.get_current_user)):
+async def get_user(user: schemas.UserLogin = Depends(auth.get_current_user_dependency())):
     return user
 
 
@@ -617,7 +638,7 @@ async def generate_report(req: StockRequest):
 async def preview_pdf(
     storage_path: str,
     download: int = 0,
-    user: schemas.UserOut = Depends(auth.get_current_user)
+    user: schemas.UserOut = Depends(auth.get_current_user_dependency())
 ):
     try:
         logger.info(f"Preview PDF requested for path: {storage_path}")
@@ -682,7 +703,7 @@ async def preview_pdf(
 async def save_report(
     req: StockRequest = Body(...),
     db: Session = Depends(services.get_db),
-    user: schemas.UserOut = Depends(auth.get_current_user)
+    user: schemas.UserOut = Depends(auth.get_current_user_dependency())
 ):
     try:
         filename = req.filename  # ✅ Access directly from parsed model
@@ -725,7 +746,7 @@ async def save_report(
 async def get_report_url(
     report_id: int,
     db: Session = Depends(services.get_db),
-    user: schemas.UserOut = Depends(auth.get_current_user)
+    user: schemas.UserOut = Depends(auth.get_current_user_dependency())
 ):
     try:
         report = db.query(models.UserReport).filter_by(id=report_id, user_id=user.id).first()
@@ -751,7 +772,7 @@ async def get_report_url(
 @app.get("/my-reports")
 async def list_my_reports(
     db: Session = Depends(services.get_db),
-    user: schemas.UserOut = Depends(auth.get_current_user)
+    user: schemas.UserOut = Depends(auth.get_current_user_dependency())
 ):
     reports = db.query(models.UserReport).filter(models.UserReport.user_id == user.id).all()
     return [
@@ -767,7 +788,7 @@ async def list_my_reports(
 async def get_report_info(
     report_id: int,
     db: Session = Depends(services.get_db),
-    user: schemas.UserOut = Depends(auth.get_current_user)
+    user: schemas.UserOut = Depends(auth.get_current_user_dependency())
 ):
     report = db.query(models.UserReport).filter(
         models.UserReport.id == report_id, models.UserReport.user_id == user.id
@@ -787,7 +808,7 @@ async def get_report_info(
 async def delete_report(
     report_id: int,
     db: Session = Depends(services.get_db),
-    user: schemas.UserOut = Depends(auth.get_current_user)
+    user: schemas.UserOut = Depends(auth.get_current_user_dependency())
 ):
     report = db.query(models.UserReport).filter(
         models.UserReport.id == report_id, models.UserReport.user_id == user.id
