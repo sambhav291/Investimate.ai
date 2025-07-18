@@ -272,7 +272,8 @@ async def google_login(request: Request):
         if not redirect_uri:
             # Get the host from the request
             host = request.headers.get("host", "localhost:8000")
-            scheme = "https" if "onrender.com" in host else "http"
+            # Azure App Service uses HTTPS by default
+            scheme = "https" if ("azurewebsites.net" in host or "onrender.com" in host) else "http"
             redirect_uri = f"{scheme}://{host}/auth/google/callback"
         
         logger.info(f"Using redirect URI: {redirect_uri}")
