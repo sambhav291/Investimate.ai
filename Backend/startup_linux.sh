@@ -57,6 +57,33 @@ else
     find . -name "*.py" | head -5
 fi
 
+# Add database connectivity diagnostics
+echo "=== Database Connection Diagnostics ==="
+if [ -n "$DATABASE_URL" ]; then
+    echo "Database URL configured: ${DATABASE_URL:0:30}..."
+    # Extract host and port for connectivity test
+    DB_HOST=$(echo "$DATABASE_URL" | sed -n 's/.*@\([^:]*\):.*/\1/p')
+    DB_PORT=$(echo "$DATABASE_URL" | sed -n 's/.*:\([0-9]*\)\/.*/\1/p')
+    
+    echo "Testing network connectivity to database..."
+    echo "Host: $DB_HOST"
+    echo "Port: $DB_PORT"
+    
+    # Test basic connectivity
+    if command -v nc >/dev/null 2>&1; then
+        if nc -z "$DB_HOST" "$DB_PORT" 2>/dev/null; then
+            echo "✅ Network connectivity to database: OK"
+        else
+            echo "❌ Network connectivity to database: FAILED"
+            echo "This may be due to firewall or network restrictions"
+        fi
+    else
+        echo "⚠️ netcat not available for connectivity test"
+    fi
+else
+    echo "❌ DATABASE_URL environment variable not set"
+fi
+
 # Set default port if not provided
 export PORT=${PORT:-8000}
 echo "Starting application on port $PORT"
