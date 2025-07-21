@@ -1,0 +1,15 @@
+# Azure CLI commands to set app settings for investimate-backend
+
+# Run these commands after deployment if you're still experiencing issues:
+
+# Set Python dependencies to be installed during deployment
+az webapp config appsettings set --name investimate-backend --resource-group YOUR_RESOURCE_GROUP --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true
+
+# Set Python version explicitly
+az webapp config set --name investimate-backend --resource-group YOUR_RESOURCE_GROUP --linux-fx-version "PYTHON|3.11"
+
+# Set startup command to use your custom script
+az webapp config set --name investimate-backend --resource-group YOUR_RESOURCE_GROUP --startup-file "azure_startup.sh"
+
+# View deployment logs
+az webapp log tail --name investimate-backend --resource-group YOUR_RESOURCE_GROUP

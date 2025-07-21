@@ -1,0 +1,48 @@
+# Node.js
+node_modules/
+dist/
+package-lock.json
+
+# Python
+*.py[cod]
+__pycache__/
+venv/
+.env
+
+# Logs
+*.log
+
+# IDEs
+.idea/
+.vscode/
+
+# Test reports
+TEST*.xml
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Java
+*.class
+*.jar
+target/
+
+# Apps/Binaries
+*.app
+*.exe
+*.war
+
+# Media (optional)
+*.mp4
+*.tiff
+*.avi
+*.flv
+*.mov
+*.wmv
+
+# Scraped data files
+Backend/Scraper/files/
+Backend/reports/
+Backend/stock_data/
+Backend/transcripts/

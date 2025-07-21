@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+
+[project]
+name = "investimate-backend"
+version = "1.0.0"
+description = "Investimate AI Backend"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "pydantic",
+    "sqlalchemy",
+    "alembic",
+    "psycopg2-binary",
+    "python-multipart",
+    "python-jose[cryptography]",
+    "passlib[bcrypt]",
+    "authlib",
+    "itsdangerous",
+    "email-validator",
+    "python-dotenv",
+    "requests",
+    "certifi",
+    "google-generativeai",
+    "google-api-python-client",
+    "google-auth",
+    "openai",
+    "torch",
+    "transformers",
+    "huggingface-hub",
+    "selenium",
+    "webdriver-manager",
+    "beautifulsoup4",
+    "lxml",
+    "pandas",
+    "numpy",
+    "nltk",
+    "pypdf",
+    "supabase",
+    "storage3"
+]
+
+[project.urls]
+Homepage = "https://github.com/sambhav291/Investimate.ai"

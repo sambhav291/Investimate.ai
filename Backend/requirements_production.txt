@@ -1,0 +1,7 @@
+# Minimal requirements for Azure App Service
+fastapi>=0.100.0
+uvicorn>=0.22.0
+pydantic>=2.0.0
+gunicorn>=23.0.0
+python-dotenv>=1.0.0
+httptools>=0.5.0

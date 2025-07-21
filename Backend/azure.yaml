@@ -1,0 +1,40 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+
+name: investimate-backend
+metadata:
+  template: investimate-backend@0.0.1-beta
+
+# Deployment configuration
+infra:
+  provider: bicep
+  path: ./infra
+
+# Service definitions
+services:
+  investimate-backend:
+    project: .
+    language: python
+    host: appservice
+
+# Environment configuration
+pipeline:
+  # GitHub Actions configuration
+  providers:
+    github:
+      remote:
+        auth: GitHub
+      
+# Azure resource configuration
+resourceGroup: investimate-rg
+
+# Service binding configuration  
+bindings:
+  # Application Insights binding
+  monitoring:
+    type: applicationInsights
+    connectionStringEnvVar: REDACTED-GOOGLE-CLIENT-SECRETECRETECTION_STRING
+    
+  # Key Vault binding for secrets management
+  secrets:
+    type: keyVault
+    keyVaultName: "${AZURE_KEY_VAULT_NAME}"

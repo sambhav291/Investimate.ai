@@ -1,0 +1,49 @@
+# Essential FastAPI and web framework packages
+fastapi
+uvicorn
+pydantic
+
+# Database packages
+sqlalchemy
+alembic
+psycopg2-binary
+
+# Authentication packages
+python-multipart
+python-jose[cryptography]
+passlib[bcrypt]
+authlib
+itsdangerous
+email-validator
+
+# Environment and utilities
+python-dotenv
+requests
+certifi
+
+# Google packages
+google-generativeai
+google-api-python-client
+google-auth
+
+# AI and ML packages (lightweight)
+openai
+
+# Web scraping packages
+selenium
+webdriver-manager
+beautifulsoup4
+lxml
+
+# Data processing packages
+pandas
+numpy
+nltk
+pypdf
+
+# Supabase packages
+supabase
+storage3
+
+# NOTE: torch, transformers, huggingface-hub REMOVED for faster Azure startup
+# These are only needed for preprocessing modules which are lazy-loaded

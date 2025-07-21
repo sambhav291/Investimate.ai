@@ -1,0 +1,45 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "environmentName": {
+      "value": "${AZURE_ENV_NAME}"
+    },
+    "location": {
+      "value": "${AZURE_LOCATION}"
+    },
+    "resourceGroupName": {
+      "value": "${AZURE_RESOURCE_GROUP}"
+    },
+    "environment": {
+      "value": "production"
+    },
+    "debug": {
+      "value": "false"
+    },
+    "corsOrigins": {
+      "value": "https://investimate-ai-eight.vercel.app,http://localhost:5173,http://localhost:3000"
+    },
+    "secretKey": {
+      "value": "**SECRET-KEY-PLACEHOLDER**"
+    },
+    "googleClientId": {
+      "value": "**REDACTED-GOOGLE-CLIENT-SECRETLDER**"
+    },
+    "googleClientSecret": {
+      "value": "**REDACTED-GOOGLE-CLIENT-SECRETCEHOLDER**"
+    },
+    "databaseUrl": {
+      "value": "postgresql://postgres:**DB-PASSWORD-PLACEHOLDER**@db.fryuuxrvtkijmxsrmytt.supabase.co:5432/postgres?sslmode=require"
+    },
+    "supabaseUrl": {
+      "value": "https://fryuuxrvtkijmxsrmytt.supabase.co"
+    },
+    "supabaseKey": {
+      "value": "REDACTED-GOOGLE-CLIENT-SECRETcCI6IkpXVCJ9.REDACTED-GOOGLE-CLIENT-SECRETREDACTED-GOOGLE-CLIENT-SECRETREDACTED-GOOGLE-CLIENT-SECRETREDACTED-GOOGLE-CLIENT-SECRETREDACTED-GOOGLE-CLIENT-SECRETIjoyMDY1NzQyODc4fQ.REDACTED-GOOGLE-CLIENT-SECRETHdmfCEQyHi-34lU7JWs"
+    },
+    "supabaseBucket": {
+      "value": "reports-investimate"
+    }
+  }
+}
