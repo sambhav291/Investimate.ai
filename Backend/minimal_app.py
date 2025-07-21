@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
-Emergency minimal FastAPI app for Azure startup
-This ensures port 8000 responds immediately while full app loads
+Minimal FastAPI app for Azure Windows App Service
 """
 
 from fastapi import FastAPI
@@ -13,11 +12,13 @@ import json
 import logging
 from datetime import datetime
 
-# Configure logging
+# Configure logging for Windows
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler(sys.stdout)]
 )
+logger = logging.getLogger("investimate-minimal")
 
 app = FastAPI(title="Investimate Backend", version="1.0.0")
 
