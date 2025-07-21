@@ -24,8 +24,8 @@ logger.addHandler(handler)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM")
-REDACTED-GOOGLE-CLIENT-SECRETTES = int(os.getenv("REDACTED-GOOGLE-CLIENT-SECRETTES"))
-REDACTED-GOOGLE-CLIENT-SECRETS = int(os.getenv("REDACTED-GOOGLE-CLIENT-SECRETS", 7))
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
+REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", 7))
 
 def hash_password(password: str):
     logger.debug("Hashing password...")
@@ -56,8 +56,8 @@ async def create_tokens(user: models.User):
     try:
         user_obj = schemas.UserOut.model_validate(user)
 
-        access_expire = datetime.now(timezone.utc) + timedelta(minutes=REDACTED-GOOGLE-CLIENT-SECRETTES)
-        refresh_expire = datetime.now(timezone.utc) + timedelta(days=REDACTED-GOOGLE-CLIENT-SECRETS)
+        access_expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        refresh_expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
 
         logger.debug(f"Access token will expire at: {access_expire}")
         logger.debug(f"Refresh token will expire at: {refresh_expire}")
@@ -90,7 +90,7 @@ async def create_tokens(user: models.User):
         logger.error(f"Error creating tokens: {e}", exc_info=True)
         raise
 
-def REDACTED-GOOGLE-CLIENT-SECRETncy():
+def get_current_user_dependency():
     """FastAPI dependency wrapper for get_current_user"""
     from . import services
     def dependency(request: Request, db: Session = Depends(services.get_db)):

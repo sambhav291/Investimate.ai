@@ -43,7 +43,7 @@ logger.info(f"Python Path: {sys.path}")
 # from Generator.report_generator import generate_stock_report
 from Auth.database import engine, Base
 from Auth import schemas, auth, services, models
-from fastapi.security import REDACTED-GOOGLE-CLIENT-SECRETECRETECRETm
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from Auth.supabase_utils import upload_pdf_to_supabase, get_signed_url, supabase, SUPABASE_BUCKET
 
 # Load environment variables
@@ -449,7 +449,7 @@ async def register(
 
 @app.post("/login")
 async def login(
-    form_data: REDACTED-GOOGLE-CLIENT-SECRETECRETECRETm = Depends(),
+    form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(services.get_db)
 ):
     try:
@@ -584,7 +584,7 @@ async def refresh_token(
         raise HTTPException(status_code=401, detail="Invalid refresh token")
 
 @app.get("/signup/me")
-async def get_user(user: schemas.UserLogin = Depends(auth.REDACTED-GOOGLE-CLIENT-SECRETECRETECRETncy())):
+async def get_user(user: schemas.UserLogin = Depends(auth.get_current_user_dependency())):
     return user
 
 
@@ -679,7 +679,7 @@ async def generate_report(req: StockRequest):
 async def preview_pdf(
     storage_path: str,
     download: int = 0,
-    user: schemas.UserOut = Depends(auth.REDACTED-GOOGLE-CLIENT-SECRETECRETECRETncy())
+    user: schemas.UserOut = Depends(auth.get_current_user_dependency())
 ):
     try:
         logger.info(f"Preview PDF requested for path: {storage_path}")
@@ -744,7 +744,7 @@ async def preview_pdf(
 async def save_report(
     req: StockRequest = Body(...),
     db: Session = Depends(services.get_db),
-    user: schemas.UserOut = Depends(auth.REDACTED-GOOGLE-CLIENT-SECRETECRETECRETncy())
+    user: schemas.UserOut = Depends(auth.get_current_user_dependency())
 ):
     try:
         filename = req.filename  # ✅ Access directly from parsed model
@@ -787,7 +787,7 @@ async def save_report(
 async def get_report_url(
     report_id: int,
     db: Session = Depends(services.get_db),
-    user: schemas.UserOut = Depends(auth.REDACTED-GOOGLE-CLIENT-SECRETECRETECRETncy())
+    user: schemas.UserOut = Depends(auth.get_current_user_dependency())
 ):
     try:
         report = db.query(models.UserReport).filter_by(id=report_id, user_id=user.id).first()
@@ -813,7 +813,7 @@ async def get_report_url(
 @app.get("/my-reports")
 async def list_my_reports(
     db: Session = Depends(services.get_db),
-    user: schemas.UserOut = Depends(auth.REDACTED-GOOGLE-CLIENT-SECRETECRETECRETncy())
+    user: schemas.UserOut = Depends(auth.get_current_user_dependency())
 ):
     reports = db.query(models.UserReport).filter(models.UserReport.user_id == user.id).all()
     return [
@@ -829,7 +829,7 @@ async def list_my_reports(
 async def get_report_info(
     report_id: int,
     db: Session = Depends(services.get_db),
-    user: schemas.UserOut = Depends(auth.REDACTED-GOOGLE-CLIENT-SECRETECRETECRETncy())
+    user: schemas.UserOut = Depends(auth.get_current_user_dependency())
 ):
     report = db.query(models.UserReport).filter(
         models.UserReport.id == report_id, models.UserReport.user_id == user.id
@@ -849,7 +849,7 @@ async def get_report_info(
 async def delete_report(
     report_id: int,
     db: Session = Depends(services.get_db),
-    user: schemas.UserOut = Depends(auth.REDACTED-GOOGLE-CLIENT-SECRETECRETECRETncy())
+    user: schemas.UserOut = Depends(auth.get_current_user_dependency())
 ):
     report = db.query(models.UserReport).filter(
         models.UserReport.id == report_id, models.UserReport.user_id == user.id
