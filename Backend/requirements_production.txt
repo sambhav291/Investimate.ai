@@ -1,7 +1,17 @@
-# Minimal requirements for Azure App Service
+# Production requirements for Azure App Service
 fastapi>=0.100.0
 uvicorn>=0.22.0
 pydantic>=2.0.0
 gunicorn>=23.0.0
 python-dotenv>=1.0.0
 httptools>=0.5.0
+sqlalchemy>=2.0.0
+python-jose>=3.3.0
+python-multipart>=0.0.6
+authlib>=1.2.0
+requests>=2.30.0
+jinja2>=3.1.2
+aiofiles>=23.1.0
+itsdangerous>=2.1.2
+starlette>=0.27.0
+python-jose[cryptography]>=3.3.0

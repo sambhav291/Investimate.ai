@@ -10,7 +10,14 @@ import uvicorn
 import os
 import sys
 import json
+import logging
 from datetime import datetime
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 
 app = FastAPI(title="Investimate Backend", version="1.0.0")
 
@@ -32,6 +39,26 @@ async def root():
         "environment": os.getenv("ENVIRONMENT", "production"),
         "version": "1.0.0"
     }
+        
+@app.get("/system")
+async def system_info():
+    """System information endpoint"""
+    import platform
+    
+    # Get environment variables (excluding sensitive ones)
+    env_vars = {}
+    for key in os.environ:
+        if not any(sensitive in key.lower() for sensitive in ["key", "secret", "password", "token", "pwd"]):
+            env_vars[key] = os.environ[key]
+    
+    return {
+        "python_version": sys.version,
+        "platform": platform.platform(),
+        "directory": os.getcwd(),
+        "contents": os.listdir("."),
+        "environment_variables": env_vars,
+        "sys_path": sys.path
+    }
 
 @app.get("/health")
 async def health():
@@ -51,16 +78,26 @@ async def status():
     """Detailed status endpoint"""
     try:
         import importlib.util
+        import pkg_resources
+        import platform
         
         # Check what packages are available
         packages = {}
-        test_packages = ['fastapi', 'uvicorn', 'pydantic', 'sqlalchemy', 'supabase']
+        test_packages = ['fastapi', 'uvicorn', 'pydantic', 'sqlalchemy', 'supabase', 
+                          'authlib', 'python-jose', 'python-dotenv', 'httptools']
         
         for pkg in test_packages:
             try:
                 spec = importlib.util.find_spec(pkg)
-                packages[pkg] = "available" if spec is not None else "missing"
-            except:
+                if spec is not None:
+                    try:
+                        version = pkg_resources.get_distribution(pkg).version
+                        packages[pkg] = f"v{version}"
+                    except:
+                        packages[pkg] = "available (version unknown)"
+                else:
+                    packages[pkg] = "missing"
+            except Exception as e:
                 packages[pkg] = "error"
         
         return {
