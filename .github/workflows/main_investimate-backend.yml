@@ -1,5 +1,5 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy 
-# More GitHub Actions for Azure: https://github.com/Azure/actions 
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
 # More info on Python, GitHub Actions, and Azure App Service: https://aka.ms/python-webapps-actions
 
 name: Build and deploy Python app to Azure Web App - investimate-backend
@@ -66,13 +66,6 @@ jobs:
         run: |
           unzip release.zip
           rm release.zip
-          
-      - name: Prepare deployment
-        run: |
-          chmod +x deploy.sh
-          ls -la
-          echo "Contents of current directory:"
-          find . -name "*.py" | head -10
 
       - name: Log in to Azure
         uses: azure/login@v1

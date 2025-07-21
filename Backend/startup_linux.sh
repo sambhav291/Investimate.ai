@@ -22,15 +22,19 @@ python -m pip install --upgrade pip
 if [ -f "requirements.txt" ]; then
     echo "Found requirements.txt, installing..."
     cat requirements.txt
-    python -m pip install -r requirements.txt --no-cache-dir
+    python -m pip install -r requirements.txt --no-cache-dir --user
     if [ $? -eq 0 ]; then
         echo "✅ Requirements installation completed successfully"
     else
-        echo "❌ Requirements installation failed"
+        echo "❌ Requirements installation failed, trying without --user flag..."
+        python -m pip install -r requirements.txt --no-cache-dir
     fi
+elif [ -f "requirements_frozen.txt" ]; then
+    echo "Found requirements_frozen.txt, installing..."
+    python -m pip install -r requirements_frozen.txt --no-cache-dir --user || python -m pip install -r requirements_frozen.txt --no-cache-dir
 else
-    echo "No requirements.txt found, installing essential packages..."
-    python -m pip install fastapi uvicorn pydantic python-multipart python-jose passlib bcrypt python-dotenv sqlalchemy
+    echo "No requirements file found, installing essential packages..."
+    python -m pip install fastapi uvicorn pydantic python-multipart python-jose passlib bcrypt python-dotenv sqlalchemy --user
 fi
 
 # Verify FastAPI installation
