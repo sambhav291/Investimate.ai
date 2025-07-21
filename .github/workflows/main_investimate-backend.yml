@@ -71,7 +71,9 @@ jobs:
       - name: Prepare deployment
         run: |
           chmod +x deploy.sh
-          ./deploy.sh
+          ls -la
+          echo "Contents of current directory:"
+          find . -name "*.py" | head -10
 
       - name: Log in to Azure
         uses: azure/login@v1
@@ -85,3 +87,4 @@ jobs:
           app-name: 'investimate-backend'
           slot-name: 'Production'
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          startup-command: 'bash startup.sh'

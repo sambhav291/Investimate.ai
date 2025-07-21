@@ -17,7 +17,27 @@ import logging
 from datetime import datetime, timedelta, timezone
 from urllib.parse import unquote
 
+# Enhanced logging setup for Azure deployment
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler()]
+)
+logger = logging.getLogger("investimate-backend")
+logger.info("Starting Investimate Backend API - Azure Deployment")
+
+# Log Python and environment information
+logger.info(f"Python Version: {sys.version}")
+logger.info(f"Current Working Directory: {os.getcwd()}")
+logger.info(f"Directory Contents: {os.listdir('.')}")
+try:
+    import fastapi
+    logger.info(f"FastAPI Version: {fastapi.__version__}")
+except Exception as e:
+    logger.error(f"Error importing FastAPI: {str(e)}")
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+logger.info(f"Python Path: {sys.path}")
 # Lazy imports to reduce memory usage
 # from Generator.summary_generator import generate_stock_summary
 # from Generator.report_generator import generate_stock_report
