@@ -22,62 +22,22 @@ else:
 
 # Production database configuration with connection pooling
 try:
-    # Fix the database URL format for SQLAlchemy
     if SQLALCHEMY_DATABASE_URL and SQLALCHEMY_DATABASE_URL != "postgresql://user:pass@localhost:5432/db":
-        # Debug: Show the exact URL structure
-        print(f"Original URL: {SQLALCHEMY_DATABASE_URL}")
-        
-        # Convert postgres:// to postgresql:// if needed
-        if SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
-            SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql://", 1)
-            print(f"Converted URL: {SQLALCHEMY_DATABASE_URL}")
-        
-        # Handle the specific format: postgresql://postgres.user:pass@host:port/db
-        if "postgres.fryuuxrvtkijmxsrmytt:" in SQLALCHEMY_DATABASE_URL:
-            # Convert to standard format
-            SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres.fryuuxrvtkijmxsrmytt:", "postgres:")
-            print(f"Fixed URL format: {SQLALCHEMY_DATABASE_URL}")
-        
-        # Detect if this is a Render internal database URL
-        is_render_internal = "dpg-" in SQLALCHEMY_DATABASE_URL and "-a" in SQLALCHEMY_DATABASE_URL
-        
-        if is_render_internal:
-            print("Detected Render internal database - using optimized settings")
-            # Optimized settings for Render internal database
-            engine = create_engine(
-                SQLALCHEMY_DATABASE_URL,
-                pool_size=2,  # Small pool for internal connection
-                max_overflow=3,  # Limited overflow
-                pool_pre_ping=True,
-                pool_recycle=3600,  # Recycle connections after 1 hour
-                echo=False,
-                connect_args={
-                    "connect_timeout": 10,
-                    "application_name": "investimate-backend"
-                },
-                pool_reset_on_return='commit'
-            )
-        else:
-            print("Using external database connection settings")
-            # Settings for external databases (like Supabase)
-            engine = create_engine(
-                SQLALCHEMY_DATABASE_URL,
-                pool_size=1,  # Minimal pool size for external connections
-                max_overflow=0,  # No overflow
-                pool_pre_ping=True,
-                pool_recycle=3600,  # Recycle connections after 1 hour
-                echo=False,
-                connect_args={
-                    "connect_timeout": 30,
-                    "application_name": "investimate-backend",
-                    "options": "-c REDACTED-GOOGLE-CLIENT-SECRETation=read_committed"
-                },
-                pool_reset_on_return='commit'
-            )
-        
+        engine = create_engine(
+            SQLALCHEMY_DATABASE_URL,
+            pool_size=1,
+            max_overflow=0,
+            pool_pre_ping=True,
+            pool_recycle=3600,
+            echo=False,
+            connect_args={
+                "connect_timeout": 30,
+                "application_name": "investimate-backend"
+            },
+            pool_reset_on_return='commit'
+        )
         print("Database engine created successfully")
     else:
-        # For missing/invalid URL, use SQLite fallback
         print("Using SQLite fallback database")
         engine = create_engine(
             "sqlite:///./fallback.db", 
