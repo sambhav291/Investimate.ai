@@ -30,8 +30,8 @@ export default function Signup({ isOpen, onClose }) {
     };
 
     try {
-      const response = await fetchWithAuth("http://localhost:8000/signup", requestOptions);
-      // const response = await fetchWithAuth(API_ENDPOINTS.SIGNUP, requestOptions);
+      // const response = await fetchWithAuth("http://localhost:8000/signup", requestOptions);
+      const response = await fetchWithAuth(API_ENDPOINTS.SIGNUP, requestOptions);
       const data = await response.json();
       
       if (!response.ok) {

@@ -25,8 +25,8 @@ export default function Login({ isOpen, onClose }) {
     params.append('password', password);
 
     try {
-      const response = await fetchWithAuth("http://localhost:8000/login", {
-      // const response = await fetchWithAuth(API_ENDPOINTS.login, {
+      // const response = await fetchWithAuth("http://localhost:8000/signup", {
+      const response = await fetchWithAuth(API_ENDPOINTS.login, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: params,
