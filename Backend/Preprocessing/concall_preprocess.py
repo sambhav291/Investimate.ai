@@ -1,3 +1,4 @@
+
 import re
 from collections import defaultdict
 import torch
@@ -7,9 +8,9 @@ import warnings
 # Load FinBERT in a more robust way
 def get_finbert_model():
     try:
-        from transformers import AutoTokenizer, REDACTED-GOOGLE-CLIENT-SECRETsification
+        from transformers import AutoTokenizer, AutoModelForSequenceClassification
         tokenizer = AutoTokenizer.from_pretrained("yiyanghkust/finbert-tone")
-        model = REDACTED-GOOGLE-CLIENT-SECRETsification.from_pretrained("yiyanghkust/finbert-tone")
+        model = AutoModelForSequenceClassification.from_pretrained("yiyanghkust/finbert-tone")
         return tokenizer, model
     except Exception as e:
         warnings.warn(f"Could not load FinBERT model: {e}")
@@ -26,7 +27,7 @@ DEFAULT_KEYWORDS = [
     "investment", "order book", "sustainability", "patent", "innovation", "regulatory"
 ]
 
-def REDACTED-GOOGLE-CLIENT-SECRETt(text):
+def analyze_sentiment_finbert(text):
     # Fall back to neutral if no models are available
     if tokenizer is None or model is None:
         return "Neutral"
@@ -46,7 +47,7 @@ def REDACTED-GOOGLE-CLIENT-SECRETt(text):
         warnings.warn(f"Error in sentiment analysis: {e}")
         return "Neutral"  # Default to neutral on error
 
-def REDACTED-GOOGLE-CLIENT-SECRET(text):
+def detect_transcript_format(text):
     """
     Detects the format of the transcript to apply appropriate extraction strategy
     """
@@ -113,7 +114,7 @@ def extract_speaker_names(text):
     
     return potential_speakers
 
-def REDACTED-GOOGLE-CLIENT-SECRETcripts(transcript_text, keyword_list=None):
+def preprocess_concall_transcripts(transcript_text, keyword_list=None):
     """
     Enhanced transcript preprocessor that adapts to different transcript formats with token management
     """
@@ -146,7 +147,7 @@ def REDACTED-GOOGLE-CLIENT-SECRETcripts(transcript_text, keyword_list=None):
                         text, flags=re.IGNORECASE)
     
     # Detect format and extract potential speakers
-    format_type = REDACTED-GOOGLE-CLIENT-SECRET(text)
+    format_type = detect_transcript_format(text)
     potential_speakers = extract_speaker_names(text)
     
     # Build speaker detection patterns based on format and potential speakers
@@ -254,7 +255,7 @@ def REDACTED-GOOGLE-CLIENT-SECRETcripts(transcript_text, keyword_list=None):
                 matched = [k for k in keyword_list if k in search_text]
                 
                 # Analyze sentiment (on limited text for efficiency)
-                sentiment = REDACTED-GOOGLE-CLIENT-SECRETt(cleaned[:400])
+                sentiment = analyze_sentiment_finbert(cleaned[:400])
                 
                 # Only add if there's substantial content
                 if len(cleaned.split()) > 5:
@@ -291,7 +292,7 @@ def REDACTED-GOOGLE-CLIENT-SECRETcripts(transcript_text, keyword_list=None):
     return full_cleaned_text, speaker_dict, cleaned_dialogues
 
 
-def REDACTED-GOOGLE-CLIENT-SECRETons(text):
+def extract_transcript_sections(text):
     """
     Extracts and classifies different sections of a transcript
     (e.g., introduction, presentation, Q&A)
@@ -330,5 +331,7 @@ def REDACTED-GOOGLE-CLIENT-SECRETons(text):
         sections['qa'] = qa_match.group(0)
     
     return sections
+
+
 
 

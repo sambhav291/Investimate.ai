@@ -1,3 +1,4 @@
+
 import time
 import requests
 from bs4 import BeautifulSoup
@@ -9,7 +10,7 @@ from webdriver_manager.chrome import ChromeDriverManager  # Added this import
 import certifi
 import json
 
-def REDACTED-GOOGLE-CLIENT-SECRETl(company_name):
+def get_valuepickr_thread_url(company_name):
     # Replace the hardcoded path with webdriver-manager
     service = Service(ChromeDriverManager().install())  # This will auto-download correct version
     
@@ -107,7 +108,7 @@ def scrape_forum_data(company_name):
     """Main function to scrape forum data for a company"""
     print(f"🔍 Starting forum data scraping for: {company_name}")
     
-    thread_url = REDACTED-GOOGLE-CLIENT-SECRETl(company_name)
+    thread_url = get_valuepickr_thread_url(company_name)
     if not thread_url:
         print(f"❌ Could not find a thread for {company_name}")
         return []
@@ -121,6 +122,14 @@ def scrape_forum_data(company_name):
         print(f"⚠️ No posts found for {company_name}")
         
     return posts
+
+
+
+
+
+
+
+
 
 
 

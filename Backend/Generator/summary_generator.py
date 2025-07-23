@@ -6,15 +6,15 @@ from fastapi import HTTPException
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from Scraper.forum_scraper import scrape_forum_data
-from Scraper.annual_report_scraper import REDACTED-GOOGLE-CLIENT-SECRETt
-from Scraper.concall_scraper import REDACTED-GOOGLE-CLIENT-SECRETts
+from Scraper.annual_report_scraper import scrape_annual_report_text
+from Scraper.concall_scraper import scrape_concall_transcripts
 from Preprocessing.forum_preprocess import preprocess_forum_data
-from Preprocessing.annual_preprocess import REDACTED-GOOGLE-CLIENT-SECRET
-from Preprocessing.concall_preprocess import REDACTED-GOOGLE-CLIENT-SECRETcripts
+from Preprocessing.annual_preprocess import preprocess_annual_report
+from Preprocessing.concall_preprocess import preprocess_concall_transcripts
 from Ai_engine.forum_summarizer import summarize_forum_data
-from Ai_engine.REDACTED-GOOGLE-CLIENT-SECRET import REDACTED-GOOGLE-CLIENT-SECRETsections
-from Ai_engine.concall_summarizer import REDACTED-GOOGLE-CLIENT-SECRETripts
-from Ai_engine.combine_summaries import REDACTED-GOOGLE-CLIENT-SECRETy
+from Ai_engine.annual_report_summarizer import summarize_annual_report_sections
+from Ai_engine.concall_summarizer import summarize_concall_transcripts
+from Ai_engine.combine_summaries import generate_combined_summary
 
 
 def generate_stock_summary(stock_name: str):
@@ -53,16 +53,18 @@ def generate_stock_summary(stock_name: str):
         # Step 3: Concall Summary - with proper error handling
         try:
             print(f"🔍 Scraping concall transcripts for {stock_name}...")
-            concall_raw = REDACTED-GOOGLE-CLIENT-SECRETts(stock_name)
+            concall_raw = scrape_concall_transcripts(stock_name)
             
             if concall_raw and len(concall_raw) > 0:
                 print(f"✅ Concall transcripts scraped successfully: {len(concall_raw)} transcripts")
                 # Extract text from the concall data
                 concall_text = " ".join([transcript.get("text", "") for transcript in concall_raw])
-                _, _, concall_preprocessed = REDACTED-GOOGLE-CLIENT-SECRETcripts(concall_text)
+                _, _, concall_preprocessed = preprocess_concall_transcripts(concall_text)
+                print("#################################################################################")
+                print(f"{concall_preprocessed}")
                 
                 if concall_preprocessed and len(concall_preprocessed) > 0:
-                    concall_summary = REDACTED-GOOGLE-CLIENT-SECRETripts(concall_preprocessed) or "Concall transcript processed but no summary generated."
+                    concall_summary = summarize_concall_transcripts(concall_preprocessed) or "Concall transcript processed but no summary generated."
                 else:
                     concall_summary = "No relevant content found in concall transcript after preprocessing."
             else:
@@ -75,16 +77,16 @@ def generate_stock_summary(stock_name: str):
         # Step 2: Annual Report Summary - with proper error handling
         try:
             print(f"🔍 Scraping annual report for {stock_name}...")
-            annual_raw = REDACTED-GOOGLE-CLIENT-SECRETt(stock_name)
+            annual_raw = scrape_annual_report_text(stock_name)
             
             if annual_raw and len(annual_raw) > 0:
                 print(f"✅ Annual report scraped successfully: {len(annual_raw)} sections")
                 # Extract text from the tuple format (filename, text)
                 annual_text = " ".join([text for _, text in annual_raw])
-                annual_preprocessed = REDACTED-GOOGLE-CLIENT-SECRET(annual_text)
+                annual_preprocessed = preprocess_annual_report(annual_text)
                 
                 if annual_preprocessed:
-                    annual_summary = REDACTED-GOOGLE-CLIENT-SECRETsections(stock_name, annual_preprocessed) or "Annual report processed but no summary generated."
+                    annual_summary = summarize_annual_report_sections(stock_name, annual_preprocessed) or "Annual report processed but no summary generated."
                 else:
                     annual_summary = "No relevant content found in annual report after preprocessing."
             else:
@@ -97,7 +99,7 @@ def generate_stock_summary(stock_name: str):
         # Step 4: Combined Summary - with proper error handling
         try:
             print("🔄 Generating combined summary...")
-            combined_summary = REDACTED-GOOGLE-CLIENT-SECRETy(
+            combined_summary = generate_combined_summary(
                 forum_summary,
                 annual_summary,
                 concall_summary,

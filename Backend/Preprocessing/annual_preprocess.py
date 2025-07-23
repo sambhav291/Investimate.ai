@@ -1,8 +1,10 @@
+
+
 import re
 import logging
 import hashlib
 from collections import Counter
-from transformers import AutoTokenizer, REDACTED-GOOGLE-CLIENT-SECRETsification
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
 import torch.nn.functional as F
 
@@ -14,7 +16,7 @@ logger = logging.getLogger(__name__)
 # Load FinBERT model
 logger.info("Loading FinBERT tokenizer and model...")
 tokenizer = AutoTokenizer.from_pretrained("yiyanghkust/finbert-tone")
-model = REDACTED-GOOGLE-CLIENT-SECRETsification.from_pretrained("yiyanghkust/finbert-tone")
+model = AutoModelForSequenceClassification.from_pretrained("yiyanghkust/finbert-tone")
 logger.info("Model and tokenizer loaded successfully.")
 
 DEFAULT_KEYWORDS = [
@@ -30,9 +32,9 @@ LABELS = ["Negative", "Neutral", "Positive"]
 def chunk_text(text, max_tokens=512):
     tokens = tokenizer.tokenize(text)
     chunks = [' '.join(tokens[i:i+max_tokens]) for i in range(0, len(tokens), max_tokens)]
-    return [tokenizer.REDACTED-GOOGLE-CLIENT-SECRET(tokenizer.tokenize(chunk)) for chunk in chunks]
+    return [tokenizer.convert_tokens_to_string(tokenizer.tokenize(chunk)) for chunk in chunks]
 
-def REDACTED-GOOGLE-CLIENT-SECRETt(text):
+def analyze_sentiment_finbert(text):
     """Analyze sentiment with better error handling and length limits"""
     try:
         # Limit text length for sentiment analysis
@@ -63,7 +65,7 @@ def REDACTED-GOOGLE-CLIENT-SECRETt(text):
         logger.warning(f"Sentiment analysis failed: {e}")
         return "Neutral"
 
-def REDACTED-GOOGLE-CLIENT-SECRET(text, keyword_list=None):
+def preprocess_annual_report(text, keyword_list=None):
     logger.info("Starting preprocessing of the annual report.")
     
     keyword_list = keyword_list or DEFAULT_KEYWORDS
@@ -119,7 +121,7 @@ def REDACTED-GOOGLE-CLIENT-SECRET(text, keyword_list=None):
             logger.warning("Single section too large, truncated to 5000 chars")
             
         matched = [k for k in keyword_list if k in content.lower()]
-        sentiment = REDACTED-GOOGLE-CLIENT-SECRETt(content)
+        sentiment = analyze_sentiment_finbert(content)
         return {'Full Report': {'content': content, 'matched_keywords': matched, 'sentiment': sentiment}}
 
     sections = {}
@@ -150,7 +152,7 @@ def REDACTED-GOOGLE-CLIENT-SECRET(text, keyword_list=None):
         seen_hashes.add(section_id)
 
         matched = [k for k in keyword_list if k in content.lower()]
-        sentiment = REDACTED-GOOGLE-CLIENT-SECRETt(content)
+        sentiment = analyze_sentiment_finbert(content)
 
         logger.info(f"Processed section: {title} | Sentiment: {sentiment} | Matched keywords: {len(matched)} | Size: {len(content)} chars")
 

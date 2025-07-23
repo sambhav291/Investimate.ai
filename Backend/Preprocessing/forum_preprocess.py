@@ -9,13 +9,13 @@ os.environ.pop('CURL_CA_BUNDLE', None)
 
 import json
 import re
-from transformers import AutoTokenizer, REDACTED-GOOGLE-CLIENT-SECRETsification
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
 import torch.nn.functional as F
 
 # Load FinBERT pretrained model
 tokenizer = AutoTokenizer.from_pretrained("yiyanghkust/finbert-tone")
-model = REDACTED-GOOGLE-CLIENT-SECRETsification.from_pretrained("yiyanghkust/finbert-tone")
+model = AutoModelForSequenceClassification.from_pretrained("yiyanghkust/finbert-tone")
 
 DEFAULT_KEYWORDS = [
     "valuation", "management", "risk", "moat", "market", "revenue", "profit", "loss",
@@ -25,7 +25,7 @@ DEFAULT_KEYWORDS = [
     "investment", "order book", "sustainability", "patent", "innovation", "regulatory"
 ]
 
-def REDACTED-GOOGLE-CLIENT-SECRETt(text):
+def analyze_sentiment_finbert(text):
     inputs = tokenizer(text, return_tensors="pt", truncation=True, max_length = 512)
     outputs = model(**inputs)
     probs = F.softmax(outputs.logits, dim=1)
@@ -63,7 +63,7 @@ def preprocess_forum_data(data, keyword_list=None):
             cleaned = clean_text(post)
             matched = [k for k in keyword_list if k in cleaned]
             if matched:
-                sentiment = REDACTED-GOOGLE-CLIENT-SECRETt(cleaned)
+                sentiment = analyze_sentiment_finbert(cleaned)
                 filtered_cleaned.append({
                     "stock_name": stock_name,
                     "post_text": cleaned,
@@ -77,6 +77,8 @@ def main():
         content = json.load(f)
         return( preprocess_forum_data(content) )
         
+
+       
 
 
     

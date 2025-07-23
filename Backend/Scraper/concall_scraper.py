@@ -2,7 +2,7 @@ import logging
 import os
 import tempfile
 import time
-from pypdf import PdfReader
+import fitz  # PyMuPDF
 import requests
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -10,7 +10,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, REDACTED-GOOGLE-CLIENT-SECRETception, NoSuchElementException
+from selenium.common.exceptions import TimeoutException, ElementNotInteractableException, NoSuchElementException
 from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
@@ -19,7 +19,7 @@ logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-class REDACTED-GOOGLE-CLIENT-SECRET:
+class ConcallTranscriptScraper:
     def __init__(self, headless=True):
         self.temp_dir = tempfile.mkdtemp()
         logger.info(f"Created temporary directory: {self.temp_dir}")
@@ -36,7 +36,7 @@ class REDACTED-GOOGLE-CLIENT-SECRET:
         self.chrome_options.add_argument("--start-maximized")
         self.chrome_options.add_argument("--disable-gpu")
         self.chrome_options.add_argument("--no-sandbox")
-        self.chrome_options.add_argument("REDACTED-GOOGLE-CLIENT-SECRET=AutomationControlled")
+        self.chrome_options.add_argument("--disable-blink-features=AutomationControlled")
         self.chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36")
         self.chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
         self.chrome_options.add_experimental_option("useAutomationExtension", False)
@@ -44,7 +44,7 @@ class REDACTED-GOOGLE-CLIENT-SECRET:
             "download.default_directory": self.temp_dir,
             "download.prompt_for_download": False,
             "download.directory_upgrade": True,
-            "plugins.REDACTED-GOOGLE-CLIENT-SECRETly": True,  
+            "plugins.always_open_pdf_externally": True,  
             "browser.helperApps.neverAsk.saveToDisk": "application/pdf"
         })
         
@@ -67,11 +67,11 @@ class REDACTED-GOOGLE-CLIENT-SECRET:
             logger.info("Closing browser")
             self.driver.quit()
     
-    def REDACTED-GOOGLE-CLIENT-SECRETrch(self, company_name):
+    def get_company_data_via_search(self, company_name):
         try:
             self.driver.get("https://www.screener.in/")
             WebDriverWait(self.driver, 5).until(
-                EC.REDACTED-GOOGLE-CLIENT-SECRETted((By.TAG_NAME, "body"))
+                EC.presence_of_element_located((By.TAG_NAME, "body"))
             )
             time.sleep(2)
             search_box = self._find_search_box()
@@ -134,7 +134,7 @@ class REDACTED-GOOGLE-CLIENT-SECRET:
     def _click_search_result(self, company_name):
         try:
             WebDriverWait(self.driver, 2).until(
-                EC.REDACTED-GOOGLE-CLIENT-SECRETted((By.CSS_SELECTOR, "ul.dropdown-content li"))
+                EC.presence_of_element_located((By.CSS_SELECTOR, "ul.dropdown-content li"))
             )
 
             suggestions = WebDriverWait(self.driver, 2).until(
@@ -171,17 +171,17 @@ class REDACTED-GOOGLE-CLIENT-SECRET:
             logger.error(f"Error during dropdown suggestion click: {e}")
             return False
     
-    def REDACTED-GOOGLE-CLIENT-SECRETts(self, company_name):
-        if not self.REDACTED-GOOGLE-CLIENT-SECRETrch(company_name):
+    def scrape_concall_transcripts(self, company_name):
+        if not self.get_company_data_via_search(company_name):
             logger.error(f"Failed to navigate to company page for {company_name}")
             return []
         
-        return self.REDACTED-GOOGLE-CLIENT-SECRETpts(company_name)
+        return self.extract_concall_transcripts(company_name)
     
-    def REDACTED-GOOGLE-CLIENT-SECRETpts(self, company_name):
+    def extract_concall_transcripts(self, company_name):
         try:
             WebDriverWait(self.driver, 10).until(
-                EC.REDACTED-GOOGLE-CLIENT-SECRETted((By.TAG_NAME, "body"))
+                EC.presence_of_element_located((By.TAG_NAME, "body"))
             )
             time.sleep(2)
             try:
@@ -290,7 +290,7 @@ class REDACTED-GOOGLE-CLIENT-SECRET:
                     
                     if not success:
                         logger.info(f"Direct download failed, trying browser-based approach for link {i+1}")
-                        self.REDACTED-GOOGLE-CLIENT-SECREToad(full_url, i)
+                        self._browser_based_pdf_download(full_url, i)
             
             if self._all_transcripts:
                 logger.info(f"Found {len(self._all_transcripts)} transcripts with text content")
@@ -330,10 +330,11 @@ class REDACTED-GOOGLE-CLIENT-SECRET:
                 logger.info(f"✅ Successfully downloaded PDF directly: {filename}")
    
                 try:
-                    reader = PdfReader(filepath)
+                    doc = fitz.open(filepath)
                     text = ""
-                    for page in reader.pages:
-                        text += page.extract_text()
+                    for page in doc:
+                        text += page.get_text()
+                    doc.close()
                     
                     # Only add if we extracted meaningful text
                     if len(text.strip()) > 100:
@@ -363,7 +364,7 @@ class REDACTED-GOOGLE-CLIENT-SECRET:
             logger.error(f"Error during direct PDF download: {e}")
             return False
     
-    def REDACTED-GOOGLE-CLIENT-SECREToad(self, url, transcript_index):
+    def _browser_based_pdf_download(self, url, transcript_index):
         """Try to download PDF using browser approach"""
         try:
             original_window = self.driver.current_window_handle
@@ -378,7 +379,7 @@ class REDACTED-GOOGLE-CLIENT-SECRET:
                     break
             
             WebDriverWait(self.driver, 10).until(
-                EC.REDACTED-GOOGLE-CLIENT-SECRETted((By.TAG_NAME, "body"))
+                EC.presence_of_element_located((By.TAG_NAME, "body"))
             )
             
             # Check if current URL is PDF
@@ -417,12 +418,12 @@ class REDACTED-GOOGLE-CLIENT-SECRET:
                 pass
             return False
 
-def REDACTED-GOOGLE-CLIENT-SECRETts(company_name): 
+def scrape_concall_transcripts(company_name): 
     logger.info(f"🔍 Scraping concall transcripts for {company_name}...")
     
     try:
-        with REDACTED-GOOGLE-CLIENT-SECRET(headless=True) as scraper:
-            transcripts = scraper.REDACTED-GOOGLE-CLIENT-SECRETts(company_name)
+        with ConcallTranscriptScraper(headless=False) as scraper:
+            transcripts = scraper.scrape_concall_transcripts(company_name)
             
             if transcripts:
                 logger.info(f"✅ Successfully extracted {len(transcripts)} transcripts for {company_name}")
@@ -434,3 +435,4 @@ def REDACTED-GOOGLE-CLIENT-SECRETts(company_name):
     except Exception as e:
         logger.error(f"❌ Error during scraping: {e}")
         return []
+

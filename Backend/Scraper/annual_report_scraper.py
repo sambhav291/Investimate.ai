@@ -4,7 +4,7 @@ import tempfile
 import time
 import json
 import re
-from pypdf import PdfReader
+import fitz 
 import requests
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -12,7 +12,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, REDACTED-GOOGLE-CLIENT-SECRETception, NoSuchElementException
+from selenium.common.exceptions import TimeoutException, ElementNotInteractableException, NoSuchElementException
 from webdriver_manager.chrome import ChromeDriverManager
 
 logging.basicConfig(level=logging.INFO, 
@@ -29,7 +29,7 @@ class StockDataScraper:
         self.chrome_options.add_argument("--start-maximized")
         self.chrome_options.add_argument("--disable-gpu")
         self.chrome_options.add_argument("--no-sandbox")
-        self.chrome_options.add_argument("REDACTED-GOOGLE-CLIENT-SECRET=AutomationControlled")
+        self.chrome_options.add_argument("--disable-blink-features=AutomationControlled")
         self.chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36")
         self.chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
         self.chrome_options.add_experimental_option("useAutomationExtension", False)
@@ -37,7 +37,7 @@ class StockDataScraper:
             "download.default_directory": self.temp_dir,
             "download.prompt_for_download": False,
             "download.directory_upgrade": True,
-            "plugins.REDACTED-GOOGLE-CLIENT-SECRETly": True,  
+            "plugins.always_open_pdf_externally": True,  
             "browser.helperApps.neverAsk.saveToDisk": "application/pdf"
         })
         
@@ -63,11 +63,11 @@ class StockDataScraper:
             logger.info("Closing browser")
             self.driver.quit()
     
-    def REDACTED-GOOGLE-CLIENT-SECRETrch(self, company_name):
+    def get_company_data_via_search(self, company_name):
         try:
             self.driver.get("https://www.screener.in/")
             WebDriverWait(self.driver, 5).until(
-                EC.REDACTED-GOOGLE-CLIENT-SECRETted((By.TAG_NAME, "body"))
+                EC.presence_of_element_located((By.TAG_NAME, "body"))
             )
             time.sleep(2)
             search_box = self._find_search_box()
@@ -84,7 +84,6 @@ class StockDataScraper:
             return False
     
     def _find_search_box(self):
-        
         logger.info("Trying to find any input field that looks like a search box")
         try:
             all_inputs = self.driver.find_elements(By.TAG_NAME, "input")
@@ -131,7 +130,7 @@ class StockDataScraper:
     def _click_search_result(self, company_name):
         try:
             WebDriverWait(self.driver, 2).until(
-                EC.REDACTED-GOOGLE-CLIENT-SECRETted((By.CSS_SELECTOR, "ul.dropdown-content li"))
+                EC.presence_of_element_located((By.CSS_SELECTOR, "ul.dropdown-content li"))
             )
 
             suggestions = WebDriverWait(self.driver, 2).until(
@@ -161,7 +160,7 @@ class StockDataScraper:
             return False
     
     def get_stock_data(self, company_identifier):
-        if self.REDACTED-GOOGLE-CLIENT-SECRETrch(company_identifier):
+        if self.get_company_data_via_search(company_identifier):
             return self.extract_company_data(company_identifier)
         return []
     
@@ -170,7 +169,7 @@ class StockDataScraper:
             self._all_texts = []
 
             report_links = WebDriverWait(self.driver, 5).until(
-                EC.REDACTED-GOOGLE-CLIENT-SECRET_located((By.PARTIAL_LINK_TEXT, "Financial Year"))
+                EC.presence_of_all_elements_located((By.PARTIAL_LINK_TEXT, "Financial Year"))
             )
             logger.info(f"📄 Found {len(report_links)} annual reports")
     
@@ -178,7 +177,7 @@ class StockDataScraper:
                 logger.info("Trying alternative methods to find annual reports")
                 try:
                     report_links = WebDriverWait(self.driver, 3).until(
-                        EC.REDACTED-GOOGLE-CLIENT-SECRET_located((By.PARTIAL_LINK_TEXT, "Annual Report"))
+                        EC.presence_of_all_elements_located((By.PARTIAL_LINK_TEXT, "Annual Report"))
                     )
                     logger.info(f"📄 Found {len(report_links)} reports with 'Annual Report' text")
                 except TimeoutException:
@@ -227,7 +226,7 @@ class StockDataScraper:
                         
                         try:
                             WebDriverWait(self.driver, 10).until(
-                                EC.REDACTED-GOOGLE-CLIENT-SECRETted((By.TAG_NAME, "body"))
+                                EC.presence_of_element_located((By.TAG_NAME, "body"))
                             )
   
                             current_url = self.driver.current_url
@@ -306,10 +305,11 @@ class StockDataScraper:
                 logger.info(f"✅ Successfully downloaded PDF directly: {filename}")
    
                 try:
-                    reader = PdfReader(filepath)
+                    doc = fitz.open(filepath)
                     text = ""
-                    for page in reader.pages:
-                        text += page.extract_text()
+                    for page in doc:
+                        text += page.get_text()
+                    doc.close()
                     
                     report_file = os.path.join(self.output_dir, f"{report_index+1}_{filename.replace('.pdf', '.txt')}")
                     with open(report_file, 'w', encoding='utf-8') as f:
@@ -333,11 +333,11 @@ class StockDataScraper:
             logger.error(f"Error during direct PDF download: {e}")
             return False
 
-def REDACTED-GOOGLE-CLIENT-SECRETt(company):
+def scrape_annual_report_text(company):
     logger.info(f"🔍 Scraping stock data for {company}...")
     
     try:
-        with StockDataScraper(headless=True) as scraper:
+        with StockDataScraper(headless=False) as scraper:
             data = scraper.get_stock_data(company)
             
             if data:
