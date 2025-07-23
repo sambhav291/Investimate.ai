@@ -5,6 +5,6 @@
   "installCommand": "npm install",
   "devCommand": "npm run dev",
   "env": {
-    "VITE_API_URL": "https://your-backend-url.com"
+    "VITE_API_URL": "https://investimate-backend-cedqfyhyhsfpdbg4.centralindia-01.azurewebsites.net"
   }
 }
