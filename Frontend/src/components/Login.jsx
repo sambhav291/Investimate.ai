@@ -58,9 +58,9 @@ export default function Login({ isOpen, onClose }) {
         <div className="absolute top-1/2 right-1/3 w-48 h-48 bg-emerald-500/20 rounded-full blur-3xl animate-pulse delay-500"></div>
       </div>
 
-      <div className="relative bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl p-8 w-full max-w-md mx-4 shadow-2xl">
+      <div className="relative bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl p-8 w-full max-w-md mx-4 shadow-2xl min-h-[400px] overflow-y-auto flex flex-col">
         {/* Gradient border effect */}
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-emerald-500/20 rounded-3xl blur-sm -z-10"></div>
+        <div className="absolute inset-0 h-full w-full bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-emerald-500/20 rounded-3xl blur-sm -z-10"></div>
         
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
