@@ -49,7 +49,6 @@ def verify_password(plain_password: str, hashed_password: str):
     return pwd_context.verify(plain_password, hashed_password)
 
 def authenticate_user(email: str, password: str, db: Session):
-    # ✅ FIX: Removed 'await'
     user = services.get_user_by_email(email, db)
     if not user or not user.hashed_password or not verify_password(password, user.hashed_password):
         return None
@@ -87,27 +86,33 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
 
 @router.post("/signup", response_model=schemas.Token)
 async def signup_user(user_data: schemas.UserCreate, db: Session = Depends(get_db)):
-    # ✅ FIX: Removed 'await'
     existing_user = services.get_user_by_email(email=user_data.email, db=db)
     if existing_user:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
     
     hashed_pass = hash_password(user_data.password)
-    # ✅ FIX: Removed 'await'
     new_user = services.create_user(db=db, user=user_data, hashed_password=hashed_pass)
     
     return await create_access_and_refresh_tokens(new_user)
 
 @router.post("/login", response_model=schemas.Token)
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    # ✅ FIX: Removed 'await'
-    user = authenticate_user(email=form_data.username, password=form_data.password, db=db)
+async def login_for_access_token(
+    # ✅ FIX: Changed from form data to a Pydantic model to accept a JSON body.
+    # This resolves the underlying cause of the CORS error.
+    user_credentials: schemas.UserLogin, 
+    db: Session = Depends(get_db)
+):
+    user = authenticate_user(
+        email=user_credentials.email, 
+        password=user_credentials.password, 
+        db=db
+    )
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
-            headers={"WWW-Authenticate": "Bearer"},
         )
+    # This now returns a simple JSON response, which the frontend can handle.
     return await create_access_and_refresh_tokens(user)
 
 @router.get("/me", response_model=schemas.UserOut)
@@ -132,33 +137,35 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
             raise HTTPException(status_code=400, detail="Could not fetch user info from Google")
 
         email = user_info.get('email')
-        # ✅ FIX: Removed 'await'
         user = services.get_user_by_email(email, db)
 
         if not user:
             new_user_data = schemas.UserCreate(
-                email=email, full_name=user_info.get('name'),
-                profile_pic=user_info.get('picture'), password=""
+                email=email,
+                full_name=user_info.get('name'),
+                profile_pic=user_info.get('picture'),
+                password="" 
             )
-            # ✅ FIX: Removed 'await'
             user = services.create_user(db=db, user=new_user_data, hashed_password=None, is_oauth=True)
 
         jwt_tokens = await create_access_and_refresh_tokens(user)
-        frontend_url = os.getenv("FRONTEND_URL", "/")
-        response = RedirectResponse(url=frontend_url)
+        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
         
-        response.set_cookie(
-            key="access_token", value=jwt_tokens["access_token"],
-            httponly=True, samesite="lax", secure=True, max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60
+        # ✅ FIX: Redirect to a specific frontend route with tokens in the URL.
+        # This is a reliable way to handle cross-domain authentication.
+        # Your frontend will need to read these from the URL.
+        redirect_url = (
+            f"{frontend_url}/auth/callback"
+            f"?access_token={jwt_tokens['access_token']}"
+            f"&refresh_token={jwt_tokens['refresh_token']}"
         )
-        response.set_cookie(
-            key="refresh_token", value=jwt_tokens["refresh_token"],
-            httponly=True, samesite="lax", secure=True, max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
-        )
-        return response
+        
+        return RedirectResponse(url=redirect_url)
+        
     except Exception as e:
         logger.error(f"Error in Google callback: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="An error occurred during Google authentication.")
+        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+        return RedirectResponse(url=f"{frontend_url}/login?error=true")
 
 
 
