@@ -9,15 +9,11 @@ import logging
 from dotenv import load_dotenv
 from authlib.integrations.starlette_client import OAuth
 
-# Import other modules from the 'Auth' package
 from . import models, schemas, services
 
 load_dotenv()
 
-# --- Router Definition ---
 router = APIRouter()
-
-# --- Logging Configuration ---
 logger = logging.getLogger(__name__)
 
 # --- Authentication Configuration ---
@@ -47,18 +43,17 @@ def verify_password(plain_password, hashed_password):
 
 async def authenticate_user(email: str, password: str, db: Session):
     user = await services.get_user_by_email(email, db)
-    if not user or not verify_password(password, user.hashed_password):
+    if not user or not user.hashed_password or not verify_password(password, user.hashed_password):
         return False
     return user
 
 async def create_tokens(user: models.User):
-    """Creates access and refresh JWTs for a given user."""
     access_expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     refresh_expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
 
     access_payload = {
         "sub": str(user.id),
-        "name": user.full_name,
+        "name": user.full_name,  # <<< CRITICAL FIX: Was user.display_name, now matches the model.
         "profile_pic": user.profile_pic,
         "email": user.email,
         "exp": access_expire
@@ -71,10 +66,6 @@ async def create_tokens(user: models.User):
     return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
 
 def get_current_user(request: Request, db: Session):
-    """
-    Extracts user from token in Authorization header or cookie.
-    This is the central function for endpoint protection.
-    """
     token = request.cookies.get("access_token_cookie")
     if not token:
         auth_header = request.headers.get("Authorization")
@@ -94,14 +85,13 @@ def get_current_user(request: Request, db: Session):
         if not user:
             raise HTTPException(status_code=401, detail="User not found")
             
-        return schemas.UserOut.model_validate(user)
+        return schemas.UserOut.from_orm(user)
     except ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token expired")
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
 def get_current_user_dependency():
-    """FastAPI dependency wrapper for get_current_user."""
     def dependency(request: Request, db: Session = Depends(services.get_db)):
         return get_current_user(request, db)
     return dependency
@@ -110,16 +100,11 @@ def get_current_user_dependency():
 
 @router.get('/google/login', include_in_schema=False)
 async def google_login(request: Request):
-    """Redirects the user to Google for authentication."""
     redirect_uri = os.getenv('GOOGLE_REDIRECT_URI')
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 @router.get('/google/callback', include_in_schema=False)
 async def google_callback(request: Request, db: Session = Depends(services.get_db)):
-    """
-    Handles the callback from Google, creates/finds the user, creates JWTs,
-    sets them in secure cookies, and redirects to the frontend.
-    """
     try:
         token = await oauth.google.authorize_access_token(request)
         user_info = token.get('userinfo')
@@ -134,7 +119,7 @@ async def google_callback(request: Request, db: Session = Depends(services.get_d
                 email=email,
                 full_name=user_info.get('name'),
                 profile_pic=user_info.get('picture'),
-                password="" # Password is not needed for OAuth users
+                password="" 
             )
             user = await services.create_user(db=db, user_data=new_user_data, is_oauth=True)
 

@@ -4,9 +4,9 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from . import models, auth, schemas
-from .database import Base, engine, SessionLocal
+from .database import SessionLocal
 
-# --- NEW: Create a router for all user service endpoints ---
+# --- Router Definition ---
 router = APIRouter()
 
 # --- Database Session Management ---
@@ -25,8 +25,6 @@ async def get_user_by_email(email: str, db: Session):
 
 async def create_user(user_data: schemas.UserCreate, db: Session, is_oauth: bool = False):
     """Creates a new user in the database."""
-    # This function now correctly handles both password and OAuth users
-    # based on your original logic.
     hashed_password = None
     if not is_oauth:
         if not user_data.password:
@@ -36,7 +34,7 @@ async def create_user(user_data: schemas.UserCreate, db: Session, is_oauth: bool
     db_user = models.User(
         email=user_data.email,
         full_name=user_data.full_name,
-        username=user_data.username or user_data.email, # Fallback for username
+        username=user_data.username or user_data.email,
         profile_pic=user_data.profile_pic,
         hashed_password=hashed_password,
         is_oauth_user=is_oauth
@@ -47,7 +45,6 @@ async def create_user(user_data: schemas.UserCreate, db: Session, is_oauth: bool
     return db_user
 
 # --- API Endpoints for User Services ---
-# These endpoints are moved from main.py to here for proper structure.
 
 @router.post("/signup", response_model=schemas.Token, tags=["User Services"])
 async def register_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
@@ -102,9 +99,7 @@ async def logout_user():
 
 @router.post("/token/from-cookie", response_model=schemas.Token, tags=["User Services"])
 async def get_token_from_cookie(request: Request, db: Session = Depends(get_db)):
-    """
-    Called by the frontend after Google login to exchange the secure cookie for a JWT.
-    """
+    """Called by the frontend after Google login to exchange the secure cookie for a JWT."""
     user = auth.get_current_user(request, db)
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated via cookie")
@@ -114,9 +109,6 @@ async def get_token_from_cookie(request: Request, db: Session = Depends(get_db))
         raise HTTPException(status_code=404, detail="User not found in database")
 
     return await auth.create_tokens(db_user)
-
-
-
 
 
 

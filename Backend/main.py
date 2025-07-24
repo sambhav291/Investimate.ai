@@ -60,10 +60,8 @@ except Exception as e:
     logger.error(f"Database setup failed: {e}")
 
 # --- API Routers ---
-# This is the key to the new structure. It tells FastAPI to use the endpoints
-# defined in your other files.
-app.include_router(auth_router.router, prefix="/auth", tags=["Authentication"]) # For /auth/google/login etc.
-app.include_router(services_router.router) # For /login, /signup, /me etc.
+app.include_router(auth_router.router, prefix="/auth", tags=["Authentication"])
+app.include_router(services_router.router, tags=["User Services"])
 
 # --- Pydantic Models for Application Logic ---
 class StockRequest(BaseModel):
