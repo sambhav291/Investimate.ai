@@ -1,9 +1,3 @@
-from fastapi import FastAPI, HTTPException, Depends, Body
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
-from sqlalchemy.orm import Session
-from pydantic import BaseModel
-from dotenv import load_dotenv
 import os
 import sys
 import io
@@ -11,26 +5,40 @@ import logging
 from datetime import datetime, timezone
 from urllib.parse import unquote
 
+from fastapi import FastAPI, HTTPException, Depends, Body
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
+from sqlalchemy.orm import Session
+from pydantic import BaseModel
+from dotenv import load_dotenv
+
+# --- Local Module Imports ---
+# Add project root to path to ensure modules are found
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from Auth.database import engine, Base
-from Auth import schemas, models, services
+# Correctly import the necessary components from your modules
+from Auth.database import engine, Base, get_db  # ✅ FIX: Get get_db from its correct location
+from Auth import schemas, models
 from Auth.supabase_utils import upload_pdf_to_supabase, get_signed_url, supabase, SUPABASE_BUCKET
-from Auth import auth as auth_router # This is now the single source for all auth/user routes
+from Auth.auth import router as auth_router # This is the single source for auth routes and dependencies
 
+# --- Load Environment Variables ---
 load_dotenv()
 
+# --- Logging Configuration ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+# --- FastAPI App Initialization ---
 app = FastAPI(title="Investimate AI Backend", version="1.0.0")
 
+# --- CORS (Cross-Origin Resource Sharing) Middleware ---
 origins = {"http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173"}
 cors_origins_env = os.getenv("CORS_ORIGINS")
 if cors_origins_env:
     additional_origins = {origin.strip() for origin in cors_origins_env.split(",")}
     origins.update(additional_origins)
-    logger.info(f"CORS enabled for: {list(origins)}")
+logger.info(f"CORS enabled for: {list(origins)}")
 
 app.add_middleware(
     CORSMiddleware,
@@ -40,6 +48,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# --- Database Initialization ---
 try:
     Base.metadata.create_all(bind=engine)
     logger.info("Database tables created successfully.")
@@ -47,8 +56,8 @@ except Exception as e:
     logger.error(f"Database setup failed: {e}")
 
 # --- API Routers ---
-# We now only need to include the single, consolidated router from auth.py
-app.include_router(auth_router.router)
+# Include the single, consolidated router from auth.py
+app.include_router(auth_router)
 
 # --- Pydantic Models ---
 class StockRequest(BaseModel):
@@ -91,7 +100,11 @@ async def preview_pdf(storage_path: str):
     return StreamingResponse(io.BytesIO(res), media_type="application/pdf", headers={"Content-Disposition": f"inline; filename={filename}"})
 
 @app.post("/save-report", tags=["Reports"])
-async def save_report(req: StockRequest = Body(...), db: Session = Depends(services.get_db), user: schemas.UserOut = Depends(auth_router.get_current_user_dependency())):
+async def save_report(
+    req: StockRequest = Body(...), 
+    db: Session = Depends(get_db), # ✅ FIX: Use get_db from database.py
+    user: schemas.UserOut = Depends(auth_router.get_current_user) # ✅ FIX: Use the correct dependency
+):
     if not req.filename:
         raise HTTPException(status_code=400, detail="Filename is required")
     storage_path = f"reports/{req.filename}"
@@ -105,12 +118,19 @@ async def save_report(req: StockRequest = Body(...), db: Session = Depends(servi
     return {"msg": "Report saved to library", "id": report.id}
 
 @app.get("/my-reports", tags=["Reports"])
-async def list_my_reports(db: Session = Depends(services.get_db), user: schemas.UserOut = Depends(auth_router.get_current_user_dependency())):
+async def list_my_reports(
+    db: Session = Depends(get_db), # ✅ FIX: Use get_db from database.py
+    user: schemas.UserOut = Depends(auth_router.get_current_user) # ✅ FIX: Use the correct dependency
+):
     reports = db.query(models.UserReport).filter(models.UserReport.user_id == user.id).all()
     return [{"id": r.id, "filename": r.filename, "created_at": r.created_at} for r in reports]
 
 @app.delete("/delete-report/{report_id}", tags=["Reports"])
-async def delete_report(report_id: int, db: Session = Depends(services.get_db), user: schemas.UserOut = Depends(auth_router.get_current_user_dependency())):
+async def delete_report(
+    report_id: int, 
+    db: Session = Depends(get_db), # ✅ FIX: Use get_db from database.py
+    user: schemas.UserOut = Depends(auth_router.get_current_user) # ✅ FIX: Use the correct dependency
+):
     report = db.query(models.UserReport).filter_by(id=report_id, user_id=user.id).first()
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
