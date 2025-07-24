@@ -1,24 +1,24 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-from fastapi.security import OAuth2PasswordRequestForm
-from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
-
-from . import models, auth, schemas
 from .database import SessionLocal
+from . import models, schemas, auth
 
-router = APIRouter()
-
+# --- Database Session Management ---
 def get_db():
+    """Dependency to get a database session."""
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
 
+# --- Core Database Functions ---
+
 async def get_user_by_email(email: str, db: Session):
+    """Fetches a user from the database by their email address."""
     return db.query(models.User).filter(models.User.email == email).first()
 
 async def create_user(user_data: schemas.UserCreate, db: Session, is_oauth: bool = False):
+    """Creates a new user in the database."""
     hashed_password = None
     if not is_oauth:
         if not user_data.password:
@@ -38,63 +38,6 @@ async def create_user(user_data: schemas.UserCreate, db: Session, is_oauth: bool
     db.refresh(db_user)
     return db_user
 
-@router.post("/signup", response_model=schemas.Token, tags=["User Services"])
-async def register_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
-    existing_user = await get_user_by_email(user.email, db)
-    if existing_user:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User with this email already exists.")
-    
-    new_user = await create_user(user, db)
-    return await auth.create_tokens(new_user)
-
-@router.post("/login", response_model=schemas.Token, tags=["User Services"])
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = await auth.authenticate_user(form_data.username, form_data.password, db)
-    if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
-    
-    return await auth.create_tokens(user)
-
-@router.post("/refresh", response_model=schemas.Token, tags=["User Services"])
-async def refresh_access_token(req: schemas.RefreshRequest, db: Session = Depends(get_db)):
-    try:
-        payload = auth.jwt.decode(req.refresh_token, auth.SECRET_KEY, algorithms=[auth.ALGORITHM])
-        if payload.get("type") != "refresh":
-            raise HTTPException(status_code=401, detail="Invalid refresh token type")
-        
-        user_id = payload.get("sub")
-        user = db.query(models.User).filter(models.User.id == int(user_id)).first()
-        if not user:
-            raise HTTPException(status_code=401, detail="User not found")
-            
-        return await auth.create_tokens(user)
-    except auth.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Refresh token expired")
-    except auth.JWTError:
-        raise HTTPException(status_code=401, detail="Invalid refresh token")
-
-@router.get("/signup/me", response_model=schemas.UserOut, tags=["User Services"])
-async def get_current_user_endpoint(user: schemas.UserOut = Depends(auth.get_current_user_dependency())):
-    return user
-
-@router.post("/logout", tags=["User Services"])
-async def logout_user():
-    response = JSONResponse(content={"message": "Logged out successfully"})
-    response.delete_cookie(key="access_token_cookie")
-    response.delete_cookie(key="refresh_token_cookie")
-    return response
-
-@router.post("/token/from-cookie", response_model=schemas.Token, tags=["User Services"])
-async def get_token_from_cookie(request: Request, db: Session = Depends(get_db)):
-    user = auth.get_current_user(request, db)
-    if not user:
-        raise HTTPException(status_code=401, detail="Not authenticated via cookie")
-    
-    db_user = await get_user_by_email(user.email, db)
-    if not db_user:
-        raise HTTPException(status_code=404, detail="User not found in database")
-
-    return await auth.create_tokens(db_user)
 
 
 

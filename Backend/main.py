@@ -14,10 +14,9 @@ from urllib.parse import unquote
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from Auth.database import engine, Base
-from Auth import schemas, models
+from Auth import schemas, models, services
 from Auth.supabase_utils import upload_pdf_to_supabase, get_signed_url, supabase, SUPABASE_BUCKET
-from Auth import auth as auth_router
-from Auth import services as services_router
+from Auth import auth as auth_router # This is now the single source for all auth/user routes
 
 load_dotenv()
 
@@ -47,16 +46,21 @@ try:
 except Exception as e:
     logger.error(f"Database setup failed: {e}")
 
-app.include_router(auth_router.router, prefix="/auth", tags=["Authentication"])
-app.include_router(services_router.router, tags=["User Services"])
+# --- API Routers ---
+# We now only need to include the single, consolidated router from auth.py
+app.include_router(auth_router.router)
 
+# --- Pydantic Models ---
 class StockRequest(BaseModel):
     stock_name: str
     filename: str | None = None
 
+# --- Helper Functions ---
 def normalize_storage_path(path: str) -> str:
     if not path: return ""
     return path.replace('\\', '/').lstrip('./').lstrip('/')
+
+# --- Application Endpoints ---
 
 @app.post("/generate-summary", tags=["Analysis"])
 def generate_summary(req: StockRequest):
@@ -65,37 +69,29 @@ def generate_summary(req: StockRequest):
 
 @app.post("/generate-report", tags=["Analysis"])
 async def generate_report(req: StockRequest):
-    try:
-        from Generator.report_generator import generate_stock_report
-        raw_storage_path, actual_filename = generate_stock_report(req.stock_name)
-        if not raw_storage_path:
-            raise HTTPException(status_code=500, detail="PDF file was not generated")
-        
-        storage_path = normalize_storage_path(raw_storage_path)
-        upload_pdf_to_supabase(raw_storage_path)
-        signed_url = get_signed_url(storage_path)
-        if not signed_url:
-            raise HTTPException(status_code=500, detail="Could not generate signed URL")
-        
-        return {"msg": "PDF report generated", "signed_url": signed_url, "storage_path": storage_path, "filename": actual_filename}
-    except Exception as e:
-        logger.error(f"Error in generate_report: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Internal server error: {e}")
+    from Generator.report_generator import generate_stock_report
+    raw_storage_path, actual_filename = generate_stock_report(req.stock_name)
+    if not raw_storage_path:
+        raise HTTPException(status_code=500, detail="PDF file was not generated")
+    
+    storage_path = normalize_storage_path(raw_storage_path)
+    upload_pdf_to_supabase(raw_storage_path)
+    signed_url = get_signed_url(storage_path)
+    if not signed_url:
+        raise HTTPException(status_code=500, detail="Could not generate signed URL")
+    
+    return {"msg": "PDF report generated", "signed_url": signed_url, "storage_path": storage_path, "filename": actual_filename}
 
 @app.get("/preview-pdf", tags=["Reports"])
 async def preview_pdf(storage_path: str):
-    try:
-        decoded_path = unquote(storage_path)
-        normalized_path = normalize_storage_path(decoded_path)
-        res = supabase.storage.from_(SUPABASE_BUCKET).download(normalized_path)
-        filename = os.path.basename(normalized_path)
-        return StreamingResponse(io.BytesIO(res), media_type="application/pdf", headers={"Content-Disposition": f"inline; filename={filename}"})
-    except Exception as e:
-        logger.error(f"PDF preview error for path '{storage_path}': {e}", exc_info=True)
-        raise HTTPException(status_code=404, detail=f"PDF not found: {e}")
+    decoded_path = unquote(storage_path)
+    normalized_path = normalize_storage_path(decoded_path)
+    res = supabase.storage.from_(SUPABASE_BUCKET).download(normalized_path)
+    filename = os.path.basename(normalized_path)
+    return StreamingResponse(io.BytesIO(res), media_type="application/pdf", headers={"Content-Disposition": f"inline; filename={filename}"})
 
 @app.post("/save-report", tags=["Reports"])
-async def save_report(req: StockRequest = Body(...), db: Session = Depends(services_router.get_db), user: schemas.UserOut = Depends(auth_router.get_current_user_dependency())):
+async def save_report(req: StockRequest = Body(...), db: Session = Depends(services.get_db), user: schemas.UserOut = Depends(auth_router.get_current_user_dependency())):
     if not req.filename:
         raise HTTPException(status_code=400, detail="Filename is required")
     storage_path = f"reports/{req.filename}"
@@ -109,12 +105,12 @@ async def save_report(req: StockRequest = Body(...), db: Session = Depends(servi
     return {"msg": "Report saved to library", "id": report.id}
 
 @app.get("/my-reports", tags=["Reports"])
-async def list_my_reports(db: Session = Depends(services_router.get_db), user: schemas.UserOut = Depends(auth_router.get_current_user_dependency())):
+async def list_my_reports(db: Session = Depends(services.get_db), user: schemas.UserOut = Depends(auth_router.get_current_user_dependency())):
     reports = db.query(models.UserReport).filter(models.UserReport.user_id == user.id).all()
     return [{"id": r.id, "filename": r.filename, "created_at": r.created_at} for r in reports]
 
 @app.delete("/delete-report/{report_id}", tags=["Reports"])
-async def delete_report(report_id: int, db: Session = Depends(services_router.get_db), user: schemas.UserOut = Depends(auth_router.get_current_user_dependency())):
+async def delete_report(report_id: int, db: Session = Depends(services.get_db), user: schemas.UserOut = Depends(auth_router.get_current_user_dependency())):
     report = db.query(models.UserReport).filter_by(id=report_id, user_id=user.id).first()
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
@@ -129,6 +125,8 @@ async def root():
 @app.get("/health", tags=["Health"])
 async def health_check():
     return {"status": "healthy", "timestamp": datetime.now(timezone.utc).isoformat()}
+
+
 
 
 

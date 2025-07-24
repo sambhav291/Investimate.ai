@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, Request, HTTPException, status
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, JSONResponse
+from fastapi.security import OAuth2PasswordRequestForm
 from passlib.context import CryptContext
 from jose import jwt, ExpiredSignatureError, JWTError 
 from datetime import datetime, timedelta, timezone
@@ -13,6 +14,7 @@ from . import models, schemas, services
 
 load_dotenv()
 
+# --- Single Router for all Auth and User Services ---
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
@@ -53,7 +55,7 @@ async def create_tokens(user: models.User):
 
     access_payload = {
         "sub": str(user.id),
-        "name": user.full_name,  # <<< CRITICAL FIX: Using the correct attribute from the model
+        "name": user.full_name,
         "profile_pic": user.profile_pic,
         "email": user.email,
         "exp": access_expire
@@ -96,14 +98,68 @@ def get_current_user_dependency():
         return get_current_user(request, db)
     return dependency
 
+# --- API Endpoints (Moved from services.py) ---
+
+@router.post("/signup", response_model=schemas.Token, tags=["User Services"])
+async def register_user(user: schemas.UserCreate, db: Session = Depends(services.get_db)):
+    existing_user = await services.get_user_by_email(user.email, db)
+    if existing_user:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User with this email already exists.")
+    new_user = await services.create_user(user, db)
+    return await create_tokens(new_user)
+
+@router.post("/login", response_model=schemas.Token, tags=["User Services"])
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(services.get_db)):
+    user = await authenticate_user(form_data.username, form_data.password, db)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    return await create_tokens(user)
+
+@router.post("/refresh", response_model=schemas.Token, tags=["User Services"])
+async def refresh_access_token(req: schemas.RefreshRequest, db: Session = Depends(services.get_db)):
+    try:
+        payload = jwt.decode(req.refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
+        if payload.get("type") != "refresh":
+            raise HTTPException(status_code=401, detail="Invalid refresh token type")
+        user_id = payload.get("sub")
+        user = db.query(models.User).filter(models.User.id == int(user_id)).first()
+        if not user:
+            raise HTTPException(status_code=401, detail="User not found")
+        return await create_tokens(user)
+    except ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Refresh token expired")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+@router.get("/signup/me", response_model=schemas.UserOut, tags=["User Services"])
+async def get_current_user_endpoint(user: schemas.UserOut = Depends(get_current_user_dependency())):
+    return user
+
+@router.post("/logout", tags=["User Services"])
+async def logout_user():
+    response = JSONResponse(content={"message": "Logged out successfully"})
+    response.delete_cookie(key="access_token_cookie")
+    response.delete_cookie(key="refresh_token_cookie")
+    return response
+
+@router.post("/token/from-cookie", response_model=schemas.Token, tags=["User Services"])
+async def get_token_from_cookie(request: Request, db: Session = Depends(services.get_db)):
+    user = get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated via cookie")
+    db_user = await services.get_user_by_email(user.email, db)
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found in database")
+    return await create_tokens(db_user)
+
 # --- Google OAuth API Endpoints ---
 
-@router.get('/google/login', include_in_schema=False)
+@router.get('/google/login', include_in_schema=False, tags=["Authentication"])
 async def google_login(request: Request):
     redirect_uri = os.getenv('GOOGLE_REDIRECT_URI')
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
-@router.get('/google/callback', include_in_schema=False)
+@router.get('/google/callback', include_in_schema=False, tags=["Authentication"])
 async def google_callback(request: Request, db: Session = Depends(services.get_db)):
     try:
         token = await oauth.google.authorize_access_token(request)
@@ -139,6 +195,8 @@ async def google_callback(request: Request, db: Session = Depends(services.get_d
     except Exception as e:
         logger.error(f"Error in Google callback: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="An error occurred during Google authentication.")
+
+
 
 
 
