@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, Request, HTTPException, status
 from fastapi.responses import RedirectResponse, JSONResponse
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer # ✅ Import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from jose import jwt, ExpiredSignatureError, JWTError
@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 
 # Correctly import from other modules in the Auth package
 from . import models, schemas, services
-from .database import get_db # ✅ THE FIX: Import get_db from database.py
+from .database import get_db
 
 load_dotenv()
 
@@ -27,6 +27,10 @@ SECRET_KEY = os.getenv("SECRET_KEY", "a_very_secret_key_that_should_be_in_env")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
 REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", 7))
+
+# ✅ THE FIX: Define the OAuth2 scheme here.
+# The `tokenUrl` points to your login endpoint.
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 # --- OAuth Configuration ---
 oauth = OAuth()
@@ -71,8 +75,11 @@ async def create_access_and_refresh_tokens(user: models.User):
     
     return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
 
-async def get_current_user(token: str = Depends(services.oauth2_scheme), db: Session = Depends(get_db)):
-    """Dependency to get the current user from a token."""
+async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    """
+    Dependency to get the current user from a token.
+    It now uses the 'oauth2_scheme' defined locally in this file.
+    """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -100,10 +107,7 @@ async def signup_user(user_data: schemas.UserCreate, db: Session = Depends(get_d
     if existing_user:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
 
-    # Hash the password here in the API layer
     hashed_pass = hash_password(user_data.password)
-    
-    # Call the service layer with the hashed password
     new_user = await services.create_user(db=db, user=user_data, hashed_password=hashed_pass)
     
     return await create_access_and_refresh_tokens(new_user)
@@ -148,12 +152,11 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
         user = await services.get_user_by_email(email, db)
 
         if not user:
-            # Create a new user if they don't exist
             new_user_data = schemas.UserCreate(
                 email=email,
                 full_name=user_info.get('name'),
                 profile_pic=user_info.get('picture'),
-                password="" # No password for OAuth users
+                password="" 
             )
             user = await services.create_user(db=db, user=new_user_data, hashed_password=None, is_oauth=True)
 
@@ -161,7 +164,6 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
         frontend_url = os.getenv("FRONTEND_URL", "/")
         response = RedirectResponse(url=frontend_url)
         
-        # Set tokens in secure, HTTP-only cookies
         response.set_cookie(
             key="access_token", value=jwt_tokens["access_token"],
             httponly=True, samesite="lax", secure=True, max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60
