@@ -7,6 +7,9 @@ from starlette.config import Config
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from jose import jwt, JWTError, ExpiredSignatureError
+
+from Auth import auth as auth_router # Import the corrected auth router
+
 from dotenv import load_dotenv
 import os
 import sys
@@ -60,42 +63,60 @@ else:
     logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
-# CORS origins - update for production
-CORS_ORIGINS = [
+# # CORS origins - update for production
+# CORS_ORIGINS = [
+#     "http://localhost:5173",
+#     "http://localhost:3000",
+#     "http://127.0.0.1:5173",
+#     "http://127.0.0.1:3000",
+#     "https://investimate-ai-eight.vercel.app",  # Add production frontend explicitly
+# ]
+
+
+# # Add production origins if specified in environment
+# if os.getenv("CORS_ORIGINS"):
+#     try:
+#         import json
+#         cors_origins_env = os.getenv("CORS_ORIGINS")
+#         logger.info(f"CORS_ORIGINS from environment: {cors_origins_env}")
+        
+#         # Handle both JSON string and single string formats
+#         if cors_origins_env.startswith('[') and cors_origins_env.endswith(']'):
+#             # JSON array format
+#             prod_origins = json.loads(cors_origins_env)
+#         else:
+#             # Single string format
+#             prod_origins = [cors_origins_env]
+            
+#         # Add to origins if not already present
+#         for origin in prod_origins:
+#             if origin not in CORS_ORIGINS:
+#                 CORS_ORIGINS.append(origin)
+#                 logger.info(f"Added CORS origin: {origin}")
+#     except Exception as e:
+#         logger.warning(f"Failed to parse CORS_ORIGINS from environment: {e}")
+#         # Fallback: single origin as string
+#         fallback_origin = os.getenv("CORS_ORIGINS")
+#         if fallback_origin and fallback_origin not in CORS_ORIGINS:
+#             CORS_ORIGINS.append(fallback_origin)
+#             logger.info(f"Added fallback CORS origin: {fallback_origin}")
+
+# Default origins for local development
+origins = {
     "http://localhost:5173",
     "http://localhost:3000",
     "http://127.0.0.1:5173",
-    "http://127.0.0.1:3000",
-    "https://investimate-ai-eight.vercel.app",  # Add production frontend explicitly
-]
+}
 
-# Add production origins if specified in environment
-if os.getenv("CORS_ORIGINS"):
-    try:
-        import json
-        cors_origins_env = os.getenv("CORS_ORIGINS")
-        logger.info(f"CORS_ORIGINS from environment: {cors_origins_env}")
-        
-        # Handle both JSON string and single string formats
-        if cors_origins_env.startswith('[') and cors_origins_env.endswith(']'):
-            # JSON array format
-            prod_origins = json.loads(cors_origins_env)
-        else:
-            # Single string format
-            prod_origins = [cors_origins_env]
-            
-        # Add to origins if not already present
-        for origin in prod_origins:
-            if origin not in CORS_ORIGINS:
-                CORS_ORIGINS.append(origin)
-                logger.info(f"Added CORS origin: {origin}")
-    except Exception as e:
-        logger.warning(f"Failed to parse CORS_ORIGINS from environment: {e}")
-        # Fallback: single origin as string
-        fallback_origin = os.getenv("CORS_ORIGINS")
-        if fallback_origin and fallback_origin not in CORS_ORIGINS:
-            CORS_ORIGINS.append(fallback_origin)
-            logger.info(f"Added fallback CORS origin: {fallback_origin}")
+# Add production origins if specified in the environment
+cors_origins_env = os.getenv("CORS_ORIGINS")
+if cors_origins_env:
+    # Split the comma-separated string from Azure into a list of origins
+    additional_origins = {origin.strip() for origin in cors_origins_env.split(",")}
+    origins.update(additional_origins)
+    logger.info(f"CORS enabled for: {list(origins)}")
+
+
 
 # Environment variables
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
@@ -176,25 +197,17 @@ app = FastAPI(
     version="1.0.0"
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=list(origins),
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Add startup event
 @app.on_event("startup")
 async def startup_event():
-    logger.info("=== APPLICATION STARTUP ===")
-    logger.info("Application startup initiated")
-    logger.info(f"Environment: {ENVIRONMENT}")
-    logger.info(f"Debug mode: {DEBUG}")
-    logger.info(f"Python version: {sys.version}")
-    logger.info(f"Working directory: {os.getcwd()}")
-    logger.info(f"Environment variables loaded:")
-    logger.info(f"  - DATABASE_URL: {bool(os.getenv('DATABASE_URL'))}")
-    logger.info(f"  - GOOGLE_CLIENT_ID: {bool(os.getenv('GOOGLE_CLIENT_ID'))}")
-    logger.info(f"  - GOOGLE_CLIENT_SECRET: {bool(os.getenv('GOOGLE_CLIENT_SECRET'))}")
-    logger.info(f"  - SECRET_KEY: {bool(os.getenv('SECRET_KEY'))}")
-    logger.info(f"  - FRONTEND_URL: {os.getenv('FRONTEND_URL', 'NOT SET')}")
-    logger.info(f"  - GOOGLE_REDIRECT_URI: {os.getenv('GOOGLE_REDIRECT_URI', 'NOT SET')}")
-    logger.info(f"CORS Origins configured: {CORS_ORIGINS}")
-    
-    # Test basic functionality
     try:
         logger.info("Testing basic application functionality...")
         logger.info("✅ FastAPI app initialized successfully")
@@ -219,13 +232,13 @@ app.add_middleware(
     https_only=ENVIRONMENT == "production"
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=CORS_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=CORS_ORIGINS,
+#     allow_credentials=True,
+#     allow_methods=["*"],
+#     allow_headers=["*"],
+# )
 
 # OAuth configuration
 config = Config(environ={
@@ -277,353 +290,358 @@ class RefreshRequest(BaseModel):
     refresh_token: str
 
 # Authentication endpoints
-@app.get("/auth/google/login")
-async def google_login(request: Request):
-    try:
-        # Check if OAuth credentials are available
-        if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
-            logger.error("Google OAuth credentials not configured")
-            raise HTTPException(status_code=500, detail="OAuth configuration missing")
+# @app.get("/auth/google/login")
+# async def google_login(request: Request):
+#     try:
+#         # Check if OAuth credentials are available
+#         if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
+#             logger.error("Google OAuth credentials not configured")
+#             raise HTTPException(status_code=500, detail="OAuth configuration missing")
         
-        # Use environment variable for redirect URI in production
-        redirect_uri = os.getenv("GOOGLE_REDIRECT_URI")
+#         # Use environment variable for redirect URI in production
+#         redirect_uri = os.getenv("GOOGLE_REDIRECT_URI")
         
-        # If no redirect URI is set, try to construct it from the request
-        if not redirect_uri:
-            # Get the host from the request
-            host = request.headers.get("host", "localhost:8000")
-            # Azure App Service uses HTTPS by default
-            scheme = "https" if ("azurewebsites.net" in host or "onrender.com" in host) else "http"
-            redirect_uri = f"{scheme}://{host}/auth/google/callback"
+#         # If no redirect URI is set, try to construct it from the request
+#         if not redirect_uri:
+#             # Get the host from the request
+#             host = request.headers.get("host", "localhost:8000")
+#             # Azure App Service uses HTTPS by default
+#             scheme = "https" if ("azurewebsites.net" in host or "onrender.com" in host) else "http"
+#             redirect_uri = f"{scheme}://{host}/auth/google/callback"
         
-        logger.info(f"Using redirect URI: {redirect_uri}")
-        return await oauth.google.authorize_redirect(request, redirect_uri)
-    except Exception as e:
-        logger.error(f"OAuth login error: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"OAuth login failed: {str(e)}")
+#         logger.info(f"Using redirect URI: {redirect_uri}")
+#         return await oauth.google.authorize_redirect(request, redirect_uri)
+#     except Exception as e:
+#         logger.error(f"OAuth login error: {str(e)}")
+#         raise HTTPException(status_code=500, detail=f"OAuth login failed: {str(e)}")
 
-@app.get("/auth/google/callback")
-async def google_callback(request: Request, db: Session = Depends(services.get_db)):
-    try:
-        logger.info("Starting Google OAuth callback")
-        logger.info(f"Request query params: {request.query_params}")
+# @app.get("/auth/google/callback")
+# async def google_callback(request: Request, db: Session = Depends(services.get_db)):
+#     try:
+#         logger.info("Starting Google OAuth callback")
+#         logger.info(f"Request query params: {request.query_params}")
         
-        # Check for error in query parameters
-        if "error" in request.query_params:
-            error_msg = request.query_params.get("error", "unknown_error")
-            logger.error(f"OAuth error in callback: {error_msg}")
-            # Return user to frontend with error parameter
-            frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
-            return RedirectResponse(f"{frontend_url}?error=oauth_error&message={error_msg}")
+#         # Check for error in query parameters
+#         if "error" in request.query_params:
+#             error_msg = request.query_params.get("error", "unknown_error")
+#             logger.error(f"OAuth error in callback: {error_msg}")
+#             # Return user to frontend with error parameter
+#             frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+#             return RedirectResponse(f"{frontend_url}?error=oauth_error&message={error_msg}")
         
-        logger.info("Attempting to get access token from Google")
-        token = await oauth.google.authorize_access_token(request)
-        logger.info(f"Token received: {token is not None}")
+#         logger.info("Attempting to get access token from Google")
+#         token = await oauth.google.authorize_access_token(request)
+#         logger.info(f"Token received: {token is not None}")
         
-        if not token:
-            logger.error("No token received from Google")
-            frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
-            return RedirectResponse(f"{frontend_url}?error=no_token")
+#         if not token:
+#             logger.error("No token received from Google")
+#             frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+#             return RedirectResponse(f"{frontend_url}?error=no_token")
         
-        user_info = token.get("userinfo")
-        logger.info(f"User info from token: {user_info is not None}")
+#         user_info = token.get("userinfo")
+#         logger.info(f"User info from token: {user_info is not None}")
         
-        if not user_info:
-            logger.info("No userinfo in token, extracting from id_token")
-            user_info = jwt.get_unverified_claims(token["id_token"])
-            logger.info(f"User info from id_token: {user_info is not None}")
+#         if not user_info:
+#             logger.info("No userinfo in token, extracting from id_token")
+#             user_info = jwt.get_unverified_claims(token["id_token"])
+#             logger.info(f"User info from id_token: {user_info is not None}")
         
-        if not user_info or not user_info.get('email'):
-            logger.error("No user info or email found in token")
-            frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
-            return RedirectResponse(f"{frontend_url}?error=no_user_info")
+#         if not user_info or not user_info.get('email'):
+#             logger.error("No user info or email found in token")
+#             frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+#             return RedirectResponse(f"{frontend_url}?error=no_user_info")
         
-        logger.info(f"Processing user with email: {user_info['email']}")
+#         logger.info(f"Processing user with email: {user_info['email']}")
         
-        # Try database operations with fallback
-        try:
-            user = await services.get_user_by_email(user_info['email'], db)
-            if not user:
-                logger.info("Creating new user")
-                user = await services.create_user_google(user_info, db)
-            else:
-                logger.info("User exists, checking profile picture")
-                if user.profile_pic != user_info.get('picture', ''):
-                    user.profile_pic = user_info.get('picture', '')
-                    db.commit()
-                    db.refresh(user)
-                # Also update name if it changed
-                if user.name != user_info.get('name', ''):
-                    user.name = user_info.get('name', user_info.get('email', ''))
-                    db.commit()
-                    db.refresh(user)
-        except Exception as db_error:
-            logger.error(f"Database error during user operations: {db_error}")
-            # Create a temporary user object for token generation
-            from Auth.models import User
-            user = User(
-                email=user_info['email'],
-                username=user_info.get('name', user_info['email']),
-                profile_pic=user_info.get('picture', ''),
-                id=1  # Temporary ID
-            )
-            logger.warning("Using temporary user object due to database error")
+#         # Try database operations with fallback
+#         try:
+#             user = await services.get_user_by_email(user_info['email'], db)
+#             if not user:
+#                 logger.info("Creating new user")
+#                 user = await services.create_user_google(user_info, db)
+#             else:
+#                 logger.info("User exists, checking profile picture")
+#                 if user.profile_pic != user_info.get('picture', ''):
+#                     user.profile_pic = user_info.get('picture', '')
+#                     db.commit()
+#                     db.refresh(user)
+#                 # Also update name if it changed
+#                 if user.name != user_info.get('name', ''):
+#                     user.name = user_info.get('name', user_info.get('email', ''))
+#                     db.commit()
+#                     db.refresh(user)
+#         except Exception as db_error:
+#             logger.error(f"Database error during user operations: {db_error}")
+#             # Create a temporary user object for token generation
+#             from Auth.models import User
+#             user = User(
+#                 email=user_info['email'],
+#                 username=user_info.get('name', user_info['email']),
+#                 profile_pic=user_info.get('picture', ''),
+#                 id=1  # Temporary ID
+#             )
+#             logger.warning("Using temporary user object due to database error")
 
-        logger.info("Creating JWT tokens")
-        jwt_token = await auth.create_tokens(user)
+#         logger.info("Creating JWT tokens")
+#         jwt_token = await auth.create_tokens(user)
         
-        # Use environment variable for frontend URL in production
-        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
-        logger.info(f"Redirecting to frontend: {frontend_url}")
+#         # Use environment variable for frontend URL in production
+#         frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+#         logger.info(f"Redirecting to frontend: {frontend_url}")
         
-        response = RedirectResponse(frontend_url)
-        response.set_cookie(
-            key="access_token",
-            value=jwt_token["access_token"],
-            httponly=True,
-            secure=True,  # Enable for HTTPS in production
-            samesite="lax",
-            max_age=60*60*24*7,
-            path="/"
-        )
-        response.set_cookie(
-            key="refresh_token",
-            value=jwt_token["refresh_token"],
-            httponly=True,
-            secure=True,  # Enable for HTTPS in production
-            samesite="lax",
-            max_age=60*60*24*7,
-            path="/"
-        )
-        logger.info("OAuth callback completed successfully")
-        return response
+#         response = RedirectResponse(frontend_url)
+#         response.set_cookie(
+#             key="access_token",
+#             value=jwt_token["access_token"],
+#             httponly=True,
+#             secure=True,  # Enable for HTTPS in production
+#             samesite="lax",
+#             max_age=60*60*24*7,
+#             path="/"
+#         )
+#         response.set_cookie(
+#             key="refresh_token",
+#             value=jwt_token["refresh_token"],
+#             httponly=True,
+#             secure=True,  # Enable for HTTPS in production
+#             samesite="lax",
+#             max_age=60*60*24*7,
+#             path="/"
+#         )
+#         logger.info("OAuth callback completed successfully")
+#         return response
     
-    except Exception as e:
-        logger.error(f"OAuth callback error: {str(e)}")
-        logger.error(f"Error type: {type(e).__name__}")
-        import traceback
-        logger.error(f"Traceback: {traceback.format_exc()}")
+#     except Exception as e:
+#         logger.error(f"OAuth callback error: {str(e)}")
+#         logger.error(f"Error type: {type(e).__name__}")
+#         import traceback
+#         logger.error(f"Traceback: {traceback.format_exc()}")
         
-        # Return user to frontend with error parameter
-        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
-        return RedirectResponse(f"{frontend_url}?error=oauth_failed&message={str(e)[:100]}")
+#         # Return user to frontend with error parameter
+#         frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+#         return RedirectResponse(f"{frontend_url}?error=oauth_failed&message={str(e)[:100]}")
 
-@app.post("/token/from-cookie")
-async def token_from_cookie(request: Request, db: Session = Depends(services.get_db)):
-    user = auth.get_current_user(request, db)
-    if not user:
-        raise HTTPException(status_code=401, detail="Not authenticated via cookie")
+# @app.post("/token/from-cookie")
+# async def token_from_cookie(request: Request, db: Session = Depends(services.get_db)):
+#     user = auth.get_current_user(request, db)
+#     if not user:
+#         raise HTTPException(status_code=401, detail="Not authenticated via cookie")
 
-    tokens = await auth.create_tokens(user)
+#     tokens = await auth.create_tokens(user)
 
-    return {
-        "access_token": tokens["access_token"],
-        "refresh_token": tokens["refresh_token"]
-    }
-
-
-@app.post("/signup", response_model=schemas.UserOut)
-async def register(
-    user: schemas.UserCreate, db: Session = Depends(services.get_db)
-):
-    try:
-        logger.info(f"Signup attempt for user: {user.email}")
-        existing = await services.get_user_by_email(user.email, db)
-        if existing:
-            logger.warning(f"User already exists: {user.email}")
-            raise HTTPException(status_code=400, detail="User already exists")
-        
-        logger.info(f"Creating new user: {user.email}")
-        new_user = await services.create_user(user, db)
-        logger.info(f"User created successfully: {user.email}")
-        
-        tokens = await auth.create_tokens(new_user)
-        logger.info(f"Tokens created for user: {user.email}")
-        
-        return tokens
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Signup error for user {user.email}: {e}")
-        raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
-
-@app.post("/login")
-async def login(
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    db: Session = Depends(services.get_db)
-):
-    try:
-        logger.info(f"Login attempt for user: {form_data.username}")
-        db_user = await auth.authenticate_user(form_data.username, form_data.password, db)
-        if not db_user:
-            logger.warning(f"Authentication failed for user: {form_data.username}")
-            raise HTTPException(status_code=401, detail="Invalid credentials")
-        
-        logger.info(f"User authenticated successfully: {form_data.username}")
-        tokens = await auth.create_tokens(db_user)
-        
-        response = JSONResponse(content={
-            "access_token": tokens["access_token"],
-            "refresh_token": tokens["refresh_token"],
-            "token_type": "bearer"
-        })
-        
-        response.set_cookie(
-            key="access_token",
-            value=tokens["access_token"],
-            httponly=True,
-            secure=True,  # Enable for HTTPS in production
-            samesite="lax",
-            max_age=60*60*24*7,
-            path="/",
-        )
-        
-        response.set_cookie(
-            key="refresh_token",
-            value=tokens["refresh_token"],
-            httponly=True,
-            secure=True,  # Enable for HTTPS in production
-            samesite="lax",
-            max_age=60*60*24*7,
-            path="/",
-        )
-        
-        logger.info(f"Login successful for user: {form_data.username}")
-        return response
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Login error for user {form_data.username}: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
+#     return {
+#         "access_token": tokens["access_token"],
+#         "refresh_token": tokens["refresh_token"]
+#     }
 
 
+# @app.post("/signup", response_model=schemas.UserOut)
+# async def register(
+#     user: schemas.UserCreate, db: Session = Depends(services.get_db)
+# ):
+#     try:
+#         logger.info(f"Signup attempt for user: {user.email}")
+#         existing = await services.get_user_by_email(user.email, db)
+#         if existing:
+#             logger.warning(f"User already exists: {user.email}")
+#             raise HTTPException(status_code=400, detail="User already exists")
+        
+#         logger.info(f"Creating new user: {user.email}")
+#         new_user = await services.create_user(user, db)
+#         logger.info(f"User created successfully: {user.email}")
+        
+#         tokens = await auth.create_tokens(new_user)
+#         logger.info(f"Tokens created for user: {user.email}")
+        
+#         return tokens
+#     except HTTPException:
+#         raise
+#     except Exception as e:
+#         logger.error(f"Signup error for user {user.email}: {e}")
+#         raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
 
-
-@app.post("/refresh")
-async def refresh_token(
-    request: Request,
-    req: RefreshRequest = None,
-    db: Session = Depends(services.get_db)
-):
-    """
-    Refresh access token using refresh token from request body or cookie
-    """
-    try:
-        # Try to get refresh token from request body first, then from cookie
-        refresh_token_value = None
+# @app.post("/login")
+# async def login(
+#     form_data: OAuth2PasswordRequestForm = Depends(),
+#     db: Session = Depends(services.get_db)
+# ):
+#     try:
+#         logger.info(f"Login attempt for user: {form_data.username}")
+#         db_user = await auth.authenticate_user(form_data.username, form_data.password, db)
+#         if not db_user:
+#             logger.warning(f"Authentication failed for user: {form_data.username}")
+#             raise HTTPException(status_code=401, detail="Invalid credentials")
         
-        if req and req.refresh_token:
-            print("this is the refresh token from request body", req.refresh_token)
-            refresh_token_value = req.refresh_token
-        else:
-            # Try to get from cookie
-            refresh_token_value = request.cookies.get("refresh_token")
+#         logger.info(f"User authenticated successfully: {form_data.username}")
+#         tokens = await auth.create_tokens(db_user)
         
-        if not refresh_token_value:
-            raise HTTPException(status_code=401, detail="No refresh token provided")
+#         response = JSONResponse(content={
+#             "access_token": tokens["access_token"],
+#             "refresh_token": tokens["refresh_token"],
+#             "token_type": "bearer"
+#         })
         
-        # Verify refresh token
-        payload = jwt.decode(
-            refresh_token_value,
-            os.getenv("SECRET_KEY"),
-            algorithms=[os.getenv("ALGORITHM", "HS256")]
-        )
+#         response.set_cookie(
+#             key="access_token",
+#             value=tokens["access_token"],
+#             httponly=True,
+#             secure=True,  # Enable for HTTPS in production
+#             samesite="lax",
+#             max_age=60*60*24*7,
+#             path="/",
+#         )
         
-        if payload.get("type") != "refresh":
-            raise HTTPException(status_code=401, detail="Invalid refresh token")
+#         response.set_cookie(
+#             key="refresh_token",
+#             value=tokens["refresh_token"],
+#             httponly=True,
+#             secure=True,  # Enable for HTTPS in production
+#             samesite="lax",
+#             max_age=60*60*24*7,
+#             path="/",
+#         )
         
-        user_id = payload.get("sub")
-        if not user_id:
-            raise HTTPException(status_code=401, detail="Invalid token payload")
+#         logger.info(f"Login successful for user: {form_data.username}")
+#         return response
         
-        user = db.query(models.User).filter(models.User.id == int(user_id)).first()
-        if not user:
-            raise HTTPException(status_code=401, detail="User not found")
-        
-        # Generate new tokens
-        tokens = await auth.create_tokens(user)
-        
-        response = JSONResponse(content={
-            "access_token": tokens["access_token"],
-            "refresh_token": tokens["refresh_token"],
-            "token_type": "bearer"
-        })
-        
-        # Set cookies
-        response.set_cookie(
-            key="access_token",
-            value=tokens["access_token"], 
-            httponly=True,
-            secure=True,  # Enable for HTTPS in production
-            samesite="lax",
-            max_age=60*60*24*7,
-            path="/",
-        )
-        
-        response.set_cookie(
-            key="refresh_token",
-            value=tokens["refresh_token"],
-            httponly=True,
-            secure=True,  # Enable for HTTPS in production
-            samesite="lax",
-            max_age=60*60*24*7,
-            path="/",
-        )
-        
-        return response
-        
-    except ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expired")
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Refresh token error: {e}")
-        raise HTTPException(status_code=401, detail="Invalid refresh token")
-
-@app.get("/signup/me")
-async def get_user(user: schemas.UserLogin = Depends(auth.get_current_user_dependency())):
-    return user
+#     except HTTPException:
+#         raise
+#     except Exception as e:
+#         logger.error(f"Login error for user {form_data.username}: {e}")
+#         raise HTTPException(status_code=500, detail="Internal server error")
 
 
 
-@app.post("/logout")
-async def logout():
-    """
-    Logout user by clearing auth cookies
-    """
-    try:
-        response = JSONResponse(content={"message": "Logged out successfully"})
-        
-        # Clear both access and refresh token cookies
-        response.set_cookie(
-            key="access_token",
-            value="",
-            httponly=True,
-            secure=True,  # Enable for HTTPS in production
-            samesite="lax",
-            expires=datetime.now(timezone.utc),
-            path="/"
-        )
-        
-        response.set_cookie(
-            key="refresh_token",
-            value="",
-            httponly=True,
-            secure=True,  # Enable for HTTPS in production
-            samesite="lax",
-            expires=datetime.now(timezone.utc),
-            path="/"
-        )
-        
-        return response
-        
-    except Exception as e:
-        logger.error(f"Logout error: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
 
+# @app.post("/refresh")
+# async def refresh_token(
+#     request: Request,
+#     req: RefreshRequest = None,
+#     db: Session = Depends(services.get_db)
+# ):
+#     """
+#     Refresh access token using refresh token from request body or cookie
+#     """
+#     try:
+#         # Try to get refresh token from request body first, then from cookie
+#         refresh_token_value = None
+        
+#         if req and req.refresh_token:
+#             print("this is the refresh token from request body", req.refresh_token)
+#             refresh_token_value = req.refresh_token
+#         else:
+#             # Try to get from cookie
+#             refresh_token_value = request.cookies.get("refresh_token")
+        
+#         if not refresh_token_value:
+#             raise HTTPException(status_code=401, detail="No refresh token provided")
+        
+#         # Verify refresh token
+#         payload = jwt.decode(
+#             refresh_token_value,
+#             os.getenv("SECRET_KEY"),
+#             algorithms=[os.getenv("ALGORITHM", "HS256")]
+#         )
+        
+#         if payload.get("type") != "refresh":
+#             raise HTTPException(status_code=401, detail="Invalid refresh token")
+        
+#         user_id = payload.get("sub")
+#         if not user_id:
+#             raise HTTPException(status_code=401, detail="Invalid token payload")
+        
+#         user = db.query(models.User).filter(models.User.id == int(user_id)).first()
+#         if not user:
+#             raise HTTPException(status_code=401, detail="User not found")
+        
+#         # Generate new tokens
+#         tokens = await auth.create_tokens(user)
+        
+#         response = JSONResponse(content={
+#             "access_token": tokens["access_token"],
+#             "refresh_token": tokens["refresh_token"],
+#             "token_type": "bearer"
+#         })
+        
+#         # Set cookies
+#         response.set_cookie(
+#             key="access_token",
+#             value=tokens["access_token"], 
+#             httponly=True,
+#             secure=True,  # Enable for HTTPS in production
+#             samesite="lax",
+#             max_age=60*60*24*7,
+#             path="/",
+#         )
+        
+#         response.set_cookie(
+#             key="refresh_token",
+#             value=tokens["refresh_token"],
+#             httponly=True,
+#             secure=True,  # Enable for HTTPS in production
+#             samesite="lax",
+#             max_age=60*60*24*7,
+#             path="/",
+#         )
+        
+#         return response
+        
+#     except ExpiredSignatureError:
+#         raise HTTPException(status_code=401, detail="Token expired")
+#     except JWTError:
+#         raise HTTPException(status_code=401, detail="Invalid token")
+#     except HTTPException:
+#         raise
+#     except Exception as e:
+#         logger.error(f"Refresh token error: {e}")
+#         raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+# @app.get("/signup/me")
+# async def get_user(user: schemas.UserLogin = Depends(auth.get_current_user_dependency())):
+#     return user
+
+
+
+# @app.post("/logout")
+# async def logout():
+#     """
+#     Logout user by clearing auth cookies
+#     """
+#     try:
+#         response = JSONResponse(content={"message": "Logged out successfully"})
+        
+#         # Clear both access and refresh token cookies
+#         response.set_cookie(
+#             key="access_token",
+#             value="",
+#             httponly=True,
+#             secure=True,  # Enable for HTTPS in production
+#             samesite="lax",
+#             expires=datetime.now(timezone.utc),
+#             path="/"
+#         )
+        
+#         response.set_cookie(
+#             key="refresh_token",
+#             value="",
+#             httponly=True,
+#             secure=True,  # Enable for HTTPS in production
+#             samesite="lax",
+#             expires=datetime.now(timezone.utc),
+#             path="/"
+#         )
+        
+#         return response
+        
+#     except Exception as e:
+#         logger.error(f"Logout error: {e}")
+#         raise HTTPException(status_code=500, detail="Internal server error")
+
+
+# --- API Routers ---
+# This tells your main app to use the routes from your other files.
+app.include_router(auth_router.router, prefix="/auth", tags=["Authentication"])
+app.include_router(services.router, prefix="", tags=["User Services"])
 
 # Stock analysis endpoints
 @app.post("/generate-summary")
@@ -894,25 +912,6 @@ async def health_check():
         "database_connected": database_connected,
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # For local development
 if __name__ == '__main__':
     import uvicorn
