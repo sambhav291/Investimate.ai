@@ -1,166 +1,143 @@
+import os
+import logging
+from datetime import datetime, timedelta, timezone
+
 from fastapi import APIRouter, Depends, Request, HTTPException, status
 from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
-from passlib.context import CryptContext
-from jose import jwt, ExpiredSignatureError, JWTError 
-from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
-import os
-import logging
-from dotenv import load_dotenv
+from passlib.context import CryptContext
+from jose import jwt, ExpiredSignatureError, JWTError
 from authlib.integrations.starlette_client import OAuth
+from dotenv import load_dotenv
 
+# Correctly import from other modules in the Auth package
 from . import models, schemas, services
+from .database import get_db # ✅ THE FIX: Import get_db from database.py
 
 load_dotenv()
 
-# --- Single Router for all Auth and User Services ---
-router = APIRouter()
+# --- Setup ---
+router = APIRouter(prefix="/auth", tags=["Authentication"])
 logger = logging.getLogger(__name__)
 
-# --- Authentication Configuration ---
+# --- Security & JWT Configuration ---
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-SECRET_KEY = os.getenv("SECRET_KEY")
-ALGORITHM = os.getenv("ALGORITHM")
+SECRET_KEY = os.getenv("SECRET_KEY", "a_very_secret_key_that_should_be_in_env")
+ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
 REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", 7))
 
-# --- OAuth Configuration for Google ---
+# --- OAuth Configuration ---
 oauth = OAuth()
-oauth.register(
-    name='google',
-    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
-    client_id=os.getenv('GOOGLE_CLIENT_ID'),
-    client_secret=os.getenv('GOOGLE_CLIENT_SECRET'),
-    client_kwargs={'scope': 'openid email profile'}
-)
+google_client_id = os.getenv('GOOGLE_CLIENT_ID')
+google_client_secret = os.getenv('GOOGLE_CLIENT_SECRET')
+if google_client_id and google_client_secret:
+    oauth.register(
+        name='google',
+        server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+        client_id=google_client_id,
+        client_secret=google_client_secret,
+        client_kwargs={'scope': 'openid email profile'}
+    )
 
 # --- Core Authentication Functions ---
 
 def hash_password(password: str):
+    """Hashes a plain-text password."""
     return pwd_context.hash(password)
 
-def verify_password(plain_password, hashed_password):
+def verify_password(plain_password: str, hashed_password: str):
+    """Verifies a plain-text password against a hashed one."""
     return pwd_context.verify(plain_password, hashed_password)
 
 async def authenticate_user(email: str, password: str, db: Session):
+    """Authenticates a user by email and password."""
     user = await services.get_user_by_email(email, db)
     if not user or not user.hashed_password or not verify_password(password, user.hashed_password):
-        return False
+        return None
     return user
 
-async def create_tokens(user: models.User):
+async def create_access_and_refresh_tokens(user: models.User):
+    """Generates both access and refresh JWT tokens for a user."""
     access_expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     refresh_expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
 
-    access_payload = {
-        "sub": str(user.id),
-        "name": user.full_name,
-        "profile_pic": user.profile_pic,
-        "email": user.email,
-        "exp": access_expire
-    }
-    refresh_payload = {"sub": str(user.id), "exp": refresh_expire, "type": "refresh"}
+    access_payload = {"sub": str(user.id), "email": user.email, "exp": access_expire}
+    refresh_payload = {"sub": str(user.id), "exp": refresh_expire}
 
     access_token = jwt.encode(access_payload, SECRET_KEY, algorithm=ALGORITHM)
     refresh_token = jwt.encode(refresh_payload, SECRET_KEY, algorithm=ALGORITHM)
-
+    
     return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
 
-def get_current_user(request: Request, db: Session):
-    token = request.cookies.get("access_token_cookie")
-    if not token:
-        auth_header = request.headers.get("Authorization")
-        if auth_header and auth_header.startswith("Bearer "):
-            token = auth_header.split(" ", 1)[1]
-    
-    if not token:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
-
+async def get_current_user(token: str = Depends(services.oauth2_scheme), db: Session = Depends(get_db)):
+    """Dependency to get the current user from a token."""
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id = payload.get("sub")
-        if not user_id:
-            raise HTTPException(status_code=401, detail="Invalid token payload")
-        
-        user = db.query(models.User).filter(models.User.id == int(user_id)).first()
-        if not user:
-            raise HTTPException(status_code=401, detail="User not found")
-            
-        return schemas.UserOut.from_orm(user)
-    except ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expired")
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid token")
-
-def get_current_user_dependency():
-    def dependency(request: Request, db: Session = Depends(services.get_db)):
-        return get_current_user(request, db)
-    return dependency
-
-# --- API Endpoints (Moved from services.py) ---
-
-@router.post("/signup", response_model=schemas.Token, tags=["User Services"])
-async def register_user(user: schemas.UserCreate, db: Session = Depends(services.get_db)):
-    existing_user = await services.get_user_by_email(user.email, db)
-    if existing_user:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User with this email already exists.")
-    new_user = await services.create_user(user, db)
-    return await create_tokens(new_user)
-
-@router.post("/login", response_model=schemas.Token, tags=["User Services"])
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(services.get_db)):
-    user = await authenticate_user(form_data.username, form_data.password, db)
-    if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
-    return await create_tokens(user)
-
-@router.post("/refresh", response_model=schemas.Token, tags=["User Services"])
-async def refresh_access_token(req: schemas.RefreshRequest, db: Session = Depends(services.get_db)):
-    try:
-        payload = jwt.decode(req.refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
-        if payload.get("type") != "refresh":
-            raise HTTPException(status_code=401, detail="Invalid refresh token type")
-        user_id = payload.get("sub")
-        user = db.query(models.User).filter(models.User.id == int(user_id)).first()
-        if not user:
-            raise HTTPException(status_code=401, detail="User not found")
-        return await create_tokens(user)
-    except ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Refresh token expired")
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid refresh token")
-
-@router.get("/signup/me", response_model=schemas.UserOut, tags=["User Services"])
-async def get_current_user_endpoint(user: schemas.UserOut = Depends(get_current_user_dependency())):
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            raise credentials_exception
+    except (JWTError, ExpiredSignatureError):
+        raise credentials_exception
+    
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if user is None:
+        raise credentials_exception
     return user
 
-@router.post("/logout", tags=["User Services"])
-async def logout_user():
-    response = JSONResponse(content={"message": "Logged out successfully"})
-    response.delete_cookie(key="access_token_cookie")
-    response.delete_cookie(key="refresh_token_cookie")
-    return response
+# --- API Endpoints ---
 
-@router.post("/token/from-cookie", response_model=schemas.Token, tags=["User Services"])
-async def get_token_from_cookie(request: Request, db: Session = Depends(services.get_db)):
-    user = get_current_user(request, db)
+@router.post("/signup", response_model=schemas.Token)
+async def signup_user(user_data: schemas.UserCreate, db: Session = Depends(get_db)):
+    """Endpoint for user registration."""
+    existing_user = await services.get_user_by_email(email=user_data.email, db=db)
+    if existing_user:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
+
+    # Hash the password here in the API layer
+    hashed_pass = hash_password(user_data.password)
+    
+    # Call the service layer with the hashed password
+    new_user = await services.create_user(db=db, user=user_data, hashed_password=hashed_pass)
+    
+    return await create_access_and_refresh_tokens(new_user)
+
+@router.post("/login", response_model=schemas.Token)
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    """Endpoint for user login with email and password."""
+    user = await authenticate_user(email=form_data.username, password=form_data.password, db=db)
     if not user:
-        raise HTTPException(status_code=401, detail="Not authenticated via cookie")
-    db_user = await services.get_user_by_email(user.email, db)
-    if not db_user:
-        raise HTTPException(status_code=404, detail="User not found in database")
-    return await create_tokens(db_user)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return await create_access_and_refresh_tokens(user)
 
-# --- Google OAuth API Endpoints ---
+@router.get("/me", response_model=schemas.UserOut)
+async def read_users_me(current_user: models.User = Depends(get_current_user)):
+    """Endpoint to get the current authenticated user's details."""
+    return current_user
 
-@router.get('/google/login', include_in_schema=False, tags=["Authentication"])
+# --- Google OAuth Endpoints ---
+
+@router.get('/google/login', include_in_schema=False)
 async def google_login(request: Request):
-    redirect_uri = os.getenv('GOOGLE_REDIRECT_URI')
+    """Redirects the user to Google's authentication page."""
+    if not google_client_id:
+        raise HTTPException(status_code=500, detail="Google OAuth is not configured on the server.")
+    redirect_uri = os.getenv('GOOGLE_REDIRECT_URI', str(request.url_for('google_callback')))
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
-@router.get('/google/callback', include_in_schema=False, tags=["Authentication"])
-async def google_callback(request: Request, db: Session = Depends(services.get_db)):
+@router.get('/google/callback', include_in_schema=False)
+async def google_callback(request: Request, db: Session = Depends(get_db)):
+    """Handles the callback from Google after authentication."""
     try:
         token = await oauth.google.authorize_access_token(request)
         user_info = token.get('userinfo')
@@ -171,25 +148,27 @@ async def google_callback(request: Request, db: Session = Depends(services.get_d
         user = await services.get_user_by_email(email, db)
 
         if not user:
+            # Create a new user if they don't exist
             new_user_data = schemas.UserCreate(
                 email=email,
                 full_name=user_info.get('name'),
                 profile_pic=user_info.get('picture'),
-                password="" 
+                password="" # No password for OAuth users
             )
-            user = await services.create_user(db=db, user_data=new_user_data, is_oauth=True)
+            user = await services.create_user(db=db, user=new_user_data, hashed_password=None, is_oauth=True)
 
-        jwt_tokens = await create_tokens(user)
-        frontend_url = os.getenv("FRONTEND_URL")
-        response = RedirectResponse(url=f"{frontend_url}/?source=google")
-
+        jwt_tokens = await create_access_and_refresh_tokens(user)
+        frontend_url = os.getenv("FRONTEND_URL", "/")
+        response = RedirectResponse(url=frontend_url)
+        
+        # Set tokens in secure, HTTP-only cookies
         response.set_cookie(
-            key="access_token_cookie", value=jwt_tokens["access_token"],
-            httponly=True, samesite="lax", secure=True
+            key="access_token", value=jwt_tokens["access_token"],
+            httponly=True, samesite="lax", secure=True, max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60
         )
         response.set_cookie(
-            key="refresh_token_cookie", value=jwt_tokens["refresh_token"],
-            httponly=True, samesite="lax", secure=True
+            key="refresh_token", value=jwt_tokens["refresh_token"],
+            httponly=True, samesite="lax", secure=True, max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
         )
         return response
     except Exception as e:

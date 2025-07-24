@@ -1,60 +1,60 @@
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
 import os
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, declarative_base
 from dotenv import load_dotenv
 
+# --- Load Environment Variables ---
+# This ensures that the .env file in the same directory is loaded.
 dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
-load_dotenv(dotenv_path)
+if os.path.exists(dotenv_path):
+    load_dotenv(dotenv_path)
 
-load_dotenv()
+# Load variables from the root .env file as a fallback
+load_dotenv() 
+
+# --- Database URL Configuration ---
 SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
 
-# Debug: Print database URL (without password for security)
-if SQLALCHEMY_DATABASE_URL:
-    # Hide password in logs
-    safe_url = SQLALCHEMY_DATABASE_URL.replace(":Investimate_291@", ":****@")
-    print(f"Database URL loaded: {safe_url}")
-else:
-    print("ERROR: DATABASE_URL environment variable not found!")
-    # Fallback to a default connection (this will fail but with a clearer error)
-    SQLALCHEMY_DATABASE_URL = "postgresql://user:pass@localhost:5432/db"
+if not SQLALCHEMY_DATABASE_URL:
+    print("CRITICAL ERROR: DATABASE_URL environment variable not found!")
+    # Use a fallback in-memory SQLite database to prevent crashing on import,
+    # but the application will not function correctly.
+    SQLALCHEMY_DATABASE_URL = "sqlite:///./fallback.db"
 
-# Production database configuration with connection pooling
+# --- Database Engine Setup ---
 try:
-    if SQLALCHEMY_DATABASE_URL and SQLALCHEMY_DATABASE_URL != "postgresql://user:pass@localhost:5432/db":
-        engine = create_engine(
-            SQLALCHEMY_DATABASE_URL,
-            pool_size=1,
-            max_overflow=0,
-            pool_pre_ping=True,
-            pool_recycle=3600,
-            echo=False,
-            connect_args={
-                "connect_timeout": 30,
-                "application_name": "investimate-backend"
-            },
-            pool_reset_on_return='commit'
-        )
-        print("Database engine created successfully")
-    else:
-        print("Using SQLite fallback database")
-        engine = create_engine(
-            "sqlite:///./fallback.db", 
-            echo=False,
-            connect_args={"check_same_thread": False}
-        )
-    
+    engine = create_engine(
+        SQLALCHEMY_DATABASE_URL,
+        # Recommended settings for production databases like PostgreSQL
+        pool_pre_ping=True,  # Checks if connections are alive before use
+        connect_args={"connect_timeout": 30}
+    )
+    print("Database engine created successfully.")
 except Exception as e:
     print(f"ERROR creating database engine: {e}")
-    print(f"Problematic URL: {SQLALCHEMY_DATABASE_URL}")
-    # Create a fallback SQLite engine
-    print("Using fallback SQLite database due to error")
+    print("Using fallback SQLite database due to error.")
     engine = create_engine(
-        "sqlite:///./fallback.db", 
-        echo=False,
-        connect_args={"check_same_thread": False}
+        "sqlite:///./error_fallback.db",
+        connect_args={"check_same_thread": False} # Required for SQLite
     )
 
-SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
+# --- Session and Base ---
+# SessionLocal is the factory for creating new database sessions.
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Base is the class your ORM models will inherit from.
 Base = declarative_base()
+
+
+# --- Dependency Function ---
+def get_db():
+    """
+    FastAPI dependency to get a database session.
+    This function creates a new session for each request and ensures it's
+    closed afterward, even if an error occurs.
+    """
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

@@ -1,35 +1,41 @@
 from sqlalchemy.orm import Session
-from .database import SessionLocal
-from . import models, schemas, auth
+from . import models, schemas
 
-# --- Database Session Management ---
-def get_db():
-    """Dependency to get a database session."""
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-# --- Core Database Functions ---
+# This file now focuses purely on database operations (CRUD - Create, Read, Update, Delete).
+# It does NOT handle authentication logic or create database sessions.
 
 async def get_user_by_email(email: str, db: Session):
-    """Fetches a user from the database by their email address."""
+    """
+    Fetches a single user from the database by their email address.
+    
+    Args:
+        email: The email of the user to find.
+        db: The database session.
+
+    Returns:
+        The User model instance or None if not found.
+    """
     return db.query(models.User).filter(models.User.email == email).first()
 
-async def create_user(user_data: schemas.UserCreate, db: Session, is_oauth: bool = False):
-    """Creates a new user in the database."""
-    hashed_password = None
-    if not is_oauth:
-        if not user_data.password:
-            raise ValueError("Password is required for non-OAuth user creation.")
-        hashed_password = auth.hash_password(user_data.password)
+async def create_user(db: Session, user: schemas.UserCreate, hashed_password: str | None, is_oauth: bool = False):
+    """
+    Creates a new user record in the database.
+    It now expects the password to be already hashed.
 
+    Args:
+        db: The database session.
+        user: The Pydantic schema containing user data.
+        hashed_password: The securely hashed password. Can be None for OAuth users.
+        is_oauth: Flag indicating if the user is signing up via OAuth.
+    
+    Returns:
+        The newly created User model instance.
+    """
     db_user = models.User(
-        email=user_data.email,
-        full_name=user_data.full_name,
-        username=user_data.username or user_data.email,
-        profile_pic=user_data.profile_pic,
+        email=user.email,
+        full_name=user.full_name,
+        username=user.username or user.email, # Fallback username to email
+        profile_pic=user.profile_pic,
         hashed_password=hashed_password,
         is_oauth_user=is_oauth
     )
@@ -37,8 +43,6 @@ async def create_user(user_data: schemas.UserCreate, db: Session, is_oauth: bool
     db.commit()
     db.refresh(db_user)
     return db_user
-
-
 
 
 
