@@ -1,7 +1,7 @@
-from passlib.context import CryptContext
-from jose import jwt, ExpiredSignatureError, JWTError 
 from fastapi import APIRouter, Depends, Request, HTTPException, status
 from fastapi.responses import RedirectResponse
+from passlib.context import CryptContext
+from jose import jwt, ExpiredSignatureError, JWTError 
 from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 import os
@@ -9,12 +9,23 @@ import logging
 from dotenv import load_dotenv
 from authlib.integrations.starlette_client import OAuth
 
-# Your existing local imports
+# Import other modules from the 'Auth' package
 from . import models, schemas, services
 
 load_dotenv()
-# This helps organize the routes and will be included in your main.py
+
+# --- Router Definition ---
 router = APIRouter()
+
+# --- Logging Configuration ---
+logger = logging.getLogger(__name__)
+
+# --- Authentication Configuration ---
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = os.getenv("ALGORITHM")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
+REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", 7))
 
 # --- OAuth Configuration for Google ---
 oauth = OAuth()
@@ -23,86 +34,48 @@ oauth.register(
     server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
     client_id=os.getenv('GOOGLE_CLIENT_ID'),
     client_secret=os.getenv('GOOGLE_CLIENT_SECRET'),
-    client_kwargs={
-        'scope': 'openid email profile',
-    }
+    client_kwargs={'scope': 'openid email profile'}
 )
 
-# Configure logging
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-handler = logging.StreamHandler()
-formatter = logging.Formatter('[%(asctime)s] [%(levelname)s] %(message)s')
-handler.setFormatter(formatter)
-logger.addHandler(handler)
-
-# Authentication configuration
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-SECRET_KEY = os.getenv("SECRET_KEY")
-ALGORITHM = os.getenv("ALGORITHM")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
-REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", 7))
+# --- Core Authentication Functions ---
 
 def hash_password(password: str):
-    logger.debug("Hashing password...")
     return pwd_context.hash(password)
 
-def verify_password(plain_password, hashed):
-    logger.debug("Verifying password...")
-    return pwd_context.verify(plain_password, hashed)
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
 
 async def authenticate_user(email: str, password: str, db: Session):
-    logger.debug(f"Authenticating user with email: {email}")
-    try:
-        user = await services.get_user_by_email(email, db)
-        if not user:
-            logger.warning(f"User not found with email: {email}")
-            return False
-        if not verify_password(password, user.hashed_password):
-            logger.warning(f"Invalid password for user: {email}")
-            return False
-        logger.debug(f"User authenticated successfully: {email}")
-        return user
-    except Exception as e:
-        logger.error(f"Error during user authentication: {e}", exc_info=True)
+    user = await services.get_user_by_email(email, db)
+    if not user or not verify_password(password, user.hashed_password):
         return False
+    return user
 
 async def create_tokens(user: models.User):
-    logger.debug(f"Creating tokens for user ID: {user.id}")
-    try:
-        access_expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-        refresh_expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    """Creates access and refresh JWTs for a given user."""
+    access_expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    refresh_expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
 
-        access_payload = {
-            "sub": str(user.id),
-            "name": user.display_name,
-            "profile_pic": user.profile_pic,
-            "email": user.email,
-            "exp": access_expire
-        }
-        refresh_payload = {
-            "sub": str(user.id),
-            "exp": refresh_expire,
-            "type": "refresh"
-        }
+    access_payload = {
+        "sub": str(user.id),
+        "name": user.full_name,
+        "profile_pic": user.profile_pic,
+        "email": user.email,
+        "exp": access_expire
+    }
+    refresh_payload = {"sub": str(user.id), "exp": refresh_expire, "type": "refresh"}
 
-        access_token = jwt.encode(access_payload, SECRET_KEY, algorithm=ALGORITHM)
-        refresh_token = jwt.encode(refresh_payload, SECRET_KEY, algorithm=ALGORITHM)
-        
-        return {
-            "access_token": access_token,
-            "refresh_token": refresh_token,
-            "token_type": "bearer"
-        }
-    except Exception as e:
-        logger.error(f"Error creating tokens: {e}", exc_info=True)
-        raise
+    access_token = jwt.encode(access_payload, SECRET_KEY, algorithm=ALGORITHM)
+    refresh_token = jwt.encode(refresh_payload, SECRET_KEY, algorithm=ALGORITHM)
+
+    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
 
 def get_current_user(request: Request, db: Session):
-    # This function remains unchanged
-    logger.debug("Extracting token from request...")
-    token = None
-    token = request.cookies.get("access_token_cookie") # Note: Changed to access_token_cookie
+    """
+    Extracts user from token in Authorization header or cookie.
+    This is the central function for endpoint protection.
+    """
+    token = request.cookies.get("access_token_cookie")
     if not token:
         auth_header = request.headers.get("Authorization")
         if auth_header and auth_header.startswith("Bearer "):
@@ -126,9 +99,14 @@ def get_current_user(request: Request, db: Session):
         raise HTTPException(status_code=401, detail="Token expired")
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
-    except Exception:
-        raise HTTPException(status_code=401, detail="Authentication error")
 
+def get_current_user_dependency():
+    """FastAPI dependency wrapper for get_current_user."""
+    def dependency(request: Request, db: Session = Depends(services.get_db)):
+        return get_current_user(request, db)
+    return dependency
+
+# --- Google OAuth API Endpoints ---
 
 @router.get('/google/login', include_in_schema=False)
 async def google_login(request: Request):
@@ -138,54 +116,44 @@ async def google_login(request: Request):
 
 @router.get('/google/callback', include_in_schema=False)
 async def google_callback(request: Request, db: Session = Depends(services.get_db)):
-    """Handles the callback from Google and creates a session."""
+    """
+    Handles the callback from Google, creates/finds the user, creates JWTs,
+    sets them in secure cookies, and redirects to the frontend.
+    """
     try:
         token = await oauth.google.authorize_access_token(request)
         user_info = token.get('userinfo')
         if not user_info:
-            raise HTTPException(status_code=400, detail="Could not fetch user info")
+            raise HTTPException(status_code=400, detail="Could not fetch user info from Google")
 
         email = user_info.get('email')
         user = await services.get_user_by_email(email, db)
 
         if not user:
-            # Create a new user if they don't exist
             new_user_data = schemas.UserCreate(
                 email=email,
                 full_name=user_info.get('name'),
                 profile_pic=user_info.get('picture'),
-                password="" # No password for OAuth users
+                password="" # Password is not needed for OAuth users
             )
             user = await services.create_user(db=db, user_data=new_user_data, is_oauth=True)
 
-        # Use YOUR existing create_tokens function to generate JWTs
         jwt_tokens = await create_tokens(user)
-
         frontend_url = os.getenv("FRONTEND_URL")
-        # This redirect is what your AuthContext.jsx is waiting for
         response = RedirectResponse(url=f"{frontend_url}/?source=google")
 
-        # Set the tokens in secure, httpOnly cookies
         response.set_cookie(
-            key="access_token_cookie",
-            value=jwt_tokens["access_token"],
-            httponly=True,
-            samesite="lax",
-            secure=True, # Use True in production
+            key="access_token_cookie", value=jwt_tokens["access_token"],
+            httponly=True, samesite="lax", secure=True
         )
         response.set_cookie(
-            key="refresh_token_cookie",
-            value=jwt_tokens["refresh_token"],
-            httponly=True,
-            samesite="lax",
-            secure=True, # Use True in production
+            key="refresh_token_cookie", value=jwt_tokens["refresh_token"],
+            httponly=True, samesite="lax", secure=True
         )
         return response
-
     except Exception as e:
         logger.error(f"Error in Google callback: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="An error occurred during Google authentication.")
-
 
 
 
