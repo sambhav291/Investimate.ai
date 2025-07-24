@@ -53,7 +53,7 @@ async def create_tokens(user: models.User):
 
     access_payload = {
         "sub": str(user.id),
-        "name": user.full_name,  # <<< CRITICAL FIX: Was user.display_name, now matches the model.
+        "name": user.full_name,  # <<< CRITICAL FIX: Using the correct attribute from the model
         "profile_pic": user.profile_pic,
         "email": user.email,
         "exp": access_expire

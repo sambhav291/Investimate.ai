@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, Body, Request
+from fastapi import FastAPI, HTTPException, Depends, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
@@ -11,32 +11,21 @@ import logging
 from datetime import datetime, timezone
 from urllib.parse import unquote
 
-# --- Project Setup: Add project root to Python path ---
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-# --- Local Module Imports ---
 from Auth.database import engine, Base
 from Auth import schemas, models
 from Auth.supabase_utils import upload_pdf_to_supabase, get_signed_url, supabase, SUPABASE_BUCKET
-
-# --- Import Routers from other files ---
 from Auth import auth as auth_router
 from Auth import services as services_router
 
 load_dotenv()
 
-# --- Logging Configuration ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# --- FastAPI App Initialization ---
-app = FastAPI(
-    title="Investimate AI Backend",
-    description="Backend API for Investimate AI",
-    version="1.0.0"
-)
+app = FastAPI(title="Investimate AI Backend", version="1.0.0")
 
-# --- CORS (Cross-Origin Resource Sharing) Configuration ---
 origins = {"http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173"}
 cors_origins_env = os.getenv("CORS_ORIGINS")
 if cors_origins_env:
@@ -52,28 +41,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- Database Initialization ---
 try:
     Base.metadata.create_all(bind=engine)
     logger.info("Database tables created successfully.")
 except Exception as e:
     logger.error(f"Database setup failed: {e}")
 
-# --- API Routers ---
 app.include_router(auth_router.router, prefix="/auth", tags=["Authentication"])
 app.include_router(services_router.router, tags=["User Services"])
 
-# --- Pydantic Models for Application Logic ---
 class StockRequest(BaseModel):
     stock_name: str
     filename: str | None = None
 
-# --- Helper Functions ---
 def normalize_storage_path(path: str) -> str:
     if not path: return ""
     return path.replace('\\', '/').lstrip('./').lstrip('/')
-
-# --- Application Endpoints (Your Original Logic) ---
 
 @app.post("/generate-summary", tags=["Analysis"])
 def generate_summary(req: StockRequest):
@@ -139,7 +122,6 @@ async def delete_report(report_id: int, db: Session = Depends(services_router.ge
     db.commit()
     return {"msg": "Report deleted"}
 
-# --- Root and Health Check Endpoints ---
 @app.get("/", tags=["Health"])
 async def root():
     return {"message": "Investimate AI Backend API is running"}

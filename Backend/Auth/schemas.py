@@ -18,14 +18,14 @@ class UserOut(BaseModel):
     id: int
     username: Optional[str] = None 
     email: EmailStr
-    full_name: Optional[str] = None  
+    full_name: Optional[str] = None
     profile_pic: Optional[str] = None
-    is_oauth_user: Optional[bool] = None 
+    is_oauth_user: bool
 
     class Config:
         from_attributes = True
 
-# --- Token Schemas ---
+# --- Token Schemas (CRITICAL FIX) ---
 
 class Token(BaseModel):
     access_token: str
