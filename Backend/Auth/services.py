@@ -1,35 +1,17 @@
 from sqlalchemy.orm import Session
 from . import models, schemas
 
-# This file now focuses purely on database operations (CRUD - Create, Read, Update, Delete).
-# It does NOT handle authentication logic or create database sessions.
+# ✅ FIX: Removed 'async' as SQLAlchemy ORM calls are synchronous.
 
-async def get_user_by_email(email: str, db: Session):
+def get_user_by_email(email: str, db: Session):
     """
     Fetches a single user from the database by their email address.
-    
-    Args:
-        email: The email of the user to find.
-        db: The database session.
-
-    Returns:
-        The User model instance or None if not found.
     """
     return db.query(models.User).filter(models.User.email == email).first()
 
-async def create_user(db: Session, user: schemas.UserCreate, hashed_password: str | None, is_oauth: bool = False):
+def create_user(db: Session, user: schemas.UserCreate, hashed_password: str | None, is_oauth: bool = False):
     """
     Creates a new user record in the database.
-    It now expects the password to be already hashed.
-
-    Args:
-        db: The database session.
-        user: The Pydantic schema containing user data.
-        hashed_password: The securely hashed password. Can be None for OAuth users.
-        is_oauth: Flag indicating if the user is signing up via OAuth.
-    
-    Returns:
-        The newly created User model instance.
     """
     db_user = models.User(
         email=user.email,

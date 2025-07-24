@@ -4,20 +4,18 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, Request, HTTPException, status
 from fastapi.responses import RedirectResponse, JSONResponse
-from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer # ✅ Import OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from jose import jwt, ExpiredSignatureError, JWTError
 from authlib.integrations.starlette_client import OAuth
 from dotenv import load_dotenv
 
-# Correctly import from other modules in the Auth package
 from . import models, schemas, services
 from .database import get_db
 
 load_dotenv()
 
-# --- Setup ---
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 logger = logging.getLogger(__name__)
 
@@ -27,9 +25,6 @@ SECRET_KEY = os.getenv("SECRET_KEY", "a_very_secret_key_that_should_be_in_env")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
 REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", 7))
-
-# ✅ THE FIX: Define the OAuth2 scheme here.
-# The `tokenUrl` points to your login endpoint.
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 # --- OAuth Configuration ---
@@ -48,38 +43,28 @@ if google_client_id and google_client_secret:
 # --- Core Authentication Functions ---
 
 def hash_password(password: str):
-    """Hashes a plain-text password."""
     return pwd_context.hash(password)
 
 def verify_password(plain_password: str, hashed_password: str):
-    """Verifies a plain-text password against a hashed one."""
     return pwd_context.verify(plain_password, hashed_password)
 
-async def authenticate_user(email: str, password: str, db: Session):
-    """Authenticates a user by email and password."""
-    user = await services.get_user_by_email(email, db)
+def authenticate_user(email: str, password: str, db: Session):
+    # ✅ FIX: Removed 'await'
+    user = services.get_user_by_email(email, db)
     if not user or not user.hashed_password or not verify_password(password, user.hashed_password):
         return None
     return user
 
 async def create_access_and_refresh_tokens(user: models.User):
-    """Generates both access and refresh JWT tokens for a user."""
     access_expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     refresh_expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
-
     access_payload = {"sub": str(user.id), "email": user.email, "exp": access_expire}
     refresh_payload = {"sub": str(user.id), "exp": refresh_expire}
-
     access_token = jwt.encode(access_payload, SECRET_KEY, algorithm=ALGORITHM)
     refresh_token = jwt.encode(refresh_payload, SECRET_KEY, algorithm=ALGORITHM)
-    
     return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    """
-    Dependency to get the current user from a token.
-    It now uses the 'oauth2_scheme' defined locally in this file.
-    """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -102,20 +87,21 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
 
 @router.post("/signup", response_model=schemas.Token)
 async def signup_user(user_data: schemas.UserCreate, db: Session = Depends(get_db)):
-    """Endpoint for user registration."""
-    existing_user = await services.get_user_by_email(email=user_data.email, db=db)
+    # ✅ FIX: Removed 'await'
+    existing_user = services.get_user_by_email(email=user_data.email, db=db)
     if existing_user:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
-
+    
     hashed_pass = hash_password(user_data.password)
-    new_user = await services.create_user(db=db, user=user_data, hashed_password=hashed_pass)
+    # ✅ FIX: Removed 'await'
+    new_user = services.create_user(db=db, user=user_data, hashed_password=hashed_pass)
     
     return await create_access_and_refresh_tokens(new_user)
 
 @router.post("/login", response_model=schemas.Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    """Endpoint for user login with email and password."""
-    user = await authenticate_user(email=form_data.username, password=form_data.password, db=db)
+    # ✅ FIX: Removed 'await'
+    user = authenticate_user(email=form_data.username, password=form_data.password, db=db)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -126,14 +112,12 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
 @router.get("/me", response_model=schemas.UserOut)
 async def read_users_me(current_user: models.User = Depends(get_current_user)):
-    """Endpoint to get the current authenticated user's details."""
     return current_user
 
 # --- Google OAuth Endpoints ---
 
 @router.get('/google/login', include_in_schema=False)
 async def google_login(request: Request):
-    """Redirects the user to Google's authentication page."""
     if not google_client_id:
         raise HTTPException(status_code=500, detail="Google OAuth is not configured on the server.")
     redirect_uri = os.getenv('GOOGLE_REDIRECT_URI', str(request.url_for('google_callback')))
@@ -141,7 +125,6 @@ async def google_login(request: Request):
 
 @router.get('/google/callback', include_in_schema=False)
 async def google_callback(request: Request, db: Session = Depends(get_db)):
-    """Handles the callback from Google after authentication."""
     try:
         token = await oauth.google.authorize_access_token(request)
         user_info = token.get('userinfo')
@@ -149,16 +132,16 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
             raise HTTPException(status_code=400, detail="Could not fetch user info from Google")
 
         email = user_info.get('email')
-        user = await services.get_user_by_email(email, db)
+        # ✅ FIX: Removed 'await'
+        user = services.get_user_by_email(email, db)
 
         if not user:
             new_user_data = schemas.UserCreate(
-                email=email,
-                full_name=user_info.get('name'),
-                profile_pic=user_info.get('picture'),
-                password="" 
+                email=email, full_name=user_info.get('name'),
+                profile_pic=user_info.get('picture'), password=""
             )
-            user = await services.create_user(db=db, user=new_user_data, hashed_password=None, is_oauth=True)
+            # ✅ FIX: Removed 'await'
+            user = services.create_user(db=db, user=new_user_data, hashed_password=None, is_oauth=True)
 
         jwt_tokens = await create_access_and_refresh_tokens(user)
         frontend_url = os.getenv("FRONTEND_URL", "/")
