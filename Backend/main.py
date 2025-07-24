@@ -12,22 +12,38 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
+# ✅ FIX: Import the SessionMiddleware
+from starlette.middleware.sessions import SessionMiddleware
+
+# --- Local Module Imports ---
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from Auth.database import engine, Base, get_db
 from Auth import schemas, models
 from Auth.supabase_utils import upload_pdf_to_supabase, get_signed_url, supabase, SUPABASE_BUCKET
-# ✅ FIX: Import both the router and the dependency function directly
 from Auth.auth import router as auth_router, get_current_user
 
+# --- Load Environment Variables ---
 load_dotenv()
 
+# --- Logging Configuration ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+# --- FastAPI App Initialization ---
 app = FastAPI(title="Investimate AI Backend", version="1.0.0")
 
-# --- CORS Middleware ---
+# --- Middleware Configuration ---
+
+# ✅ FIX: Add SessionMiddleware. This is CRITICAL for OAuth to work.
+# It must be added BEFORE the other middleware that might use sessions.
+# Make sure you have a SECRET_KEY set in your environment variables.
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=os.getenv("SECRET_KEY", "a_very_secret_key_for_session_if_not_set")
+)
+
+# --- CORS (Cross-Origin Resource Sharing) Middleware ---
 origins = {"http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173"}
 cors_origins_env = os.getenv("CORS_ORIGINS")
 if cors_origins_env:
@@ -50,6 +66,7 @@ try:
 except Exception as e:
     logger.error(f"Database setup failed: {e}")
 
+# --- API Routers ---
 app.include_router(auth_router)
 
 # --- Pydantic Models ---
@@ -96,7 +113,6 @@ async def preview_pdf(storage_path: str):
 async def save_report(
     req: StockRequest = Body(...), 
     db: Session = Depends(get_db),
-    # ✅ FIX: Use the imported function directly
     user: schemas.UserOut = Depends(get_current_user)
 ):
     if not req.filename:
@@ -114,7 +130,6 @@ async def save_report(
 @app.get("/my-reports", tags=["Reports"])
 async def list_my_reports(
     db: Session = Depends(get_db),
-    # ✅ FIX: Use the imported function directly
     user: schemas.UserOut = Depends(get_current_user)
 ):
     reports = db.query(models.UserReport).filter(models.UserReport.user_id == user.id).all()
@@ -124,7 +139,6 @@ async def list_my_reports(
 async def delete_report(
     report_id: int, 
     db: Session = Depends(get_db),
-    # ✅ FIX: Use the imported function directly
     user: schemas.UserOut = Depends(get_current_user)
 ):
     report = db.query(models.UserReport).filter_by(id=report_id, user_id=user.id).first()
