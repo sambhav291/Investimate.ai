@@ -2,18 +2,18 @@ import React, { useState, useContext } from 'react';
 import PropTypes from 'prop-types';
 import { X, Eye, EyeOff, Mail, Lock, User, Check } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
-import { useFetchWithAuth } from "../utils/fetchWithAuth";
 import { API_ENDPOINTS } from '../utils/apiConfig';
 
 export default function Signup({ isOpen, onClose }) {
-  // ✅ FIX: Renamed 'username' in state to 'fullName' for clarity.
   const [form, setForm] = useState({ fullName: '', email: '', password: '', confirmPassword: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { setAuthTokens, fetchUser } = useContext(AuthContext);
-  const fetchWithAuth = useFetchWithAuth();
+  
+  // ✅ **THE FIX IS HERE**: We now get the single 'login' function from the context.
+  // We use this function to complete the login flow after a successful registration.
+  const { login } = useContext(AuthContext);
 
   const submitRegistration = async () => {
     setIsLoading(true);
@@ -23,8 +23,6 @@ export default function Signup({ isOpen, onClose }) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ 
-        // ✅ FIX: The key is now 'full_name' and it correctly maps from the 'fullName' state.
-        // This matches what the backend API schema (UserCreate) expects.
         full_name: form.fullName, 
         email: form.email,
         password: form.password 
@@ -33,18 +31,24 @@ export default function Signup({ isOpen, onClose }) {
     };
 
     try {
-      const response = await fetchWithAuth(API_ENDPOINTS.signup, requestOptions);
+      const response = await fetch(API_ENDPOINTS.signup, requestOptions);
       const data = await response.json();
       
       if (!response.ok) {
-        setErrorMessage(data.detail || 'Registration failed. Please try again.');
-      } else {
-        setAuthTokens(data.access_token, data.refresh_token);
-        await fetchUser(data.access_token);
-        onClose();
+        throw new Error(data.detail || 'Registration failed. Please try again.');
       }
+      
+      // ✅ **THE FIX IS HERE**: After a successful registration, we immediately call the 'login' function
+      // with the new tokens. This ensures the user is logged in right away and prevents the TypeError.
+      if (data.access_token && data.refresh_token) {
+        await login(data.access_token, data.refresh_token);
+        onClose(); // Close the modal on success
+      } else {
+        throw new Error('Signup response did not include the necessary tokens.');
+      }
+
     } catch (error) {
-      setErrorMessage('An unexpected error occurred during registration.');
+      setErrorMessage(error.message || 'An unexpected error occurred during registration.');
     } finally {
       setIsLoading(false);
     }
@@ -67,7 +71,6 @@ export default function Signup({ isOpen, onClose }) {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  // Password strength indicator
   const getPasswordStrength = (password) => {
     if (password.length === 0) return { level: 0, text: '', color: '' };
     if (password.length < 6) return { level: 1, text: 'Weak', color: 'text-red-400' };
@@ -80,21 +83,16 @@ export default function Signup({ isOpen, onClose }) {
 
   if (!isOpen) return null;
 
-  // --- ALL OF YOUR EXISTING JSX, STYLING, AND FUNCTIONALITY IS PRESERVED BELOW ---
+  // --- ALL OF YOUR EXISTING JSX AND STYLING IS PRESERVED BELOW ---
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-      {/* Animated background orbs */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-purple-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
         <div className="absolute top-1/2 right-1/3 w-48 h-48 bg-emerald-500/20 rounded-full blur-3xl animate-pulse delay-500"></div>
       </div>
-
       <div className="relative bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl p-8 w-full max-w-md mx-4 shadow-2xl min-h-[400px] max-h-[90vh] overflow-y-auto flex flex-col">
-        {/* Gradient border effect */}
         <div className="absolute inset-0 h-full w-full bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-emerald-500/20 rounded-3xl blur-sm -z-10"></div>
-        
-        {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <div>
             <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-emerald-400 bg-clip-text text-transparent">
@@ -109,9 +107,7 @@ export default function Signup({ isOpen, onClose }) {
             <X size={24} />
           </button>
         </div>
-
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Full Name Field */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-white/90 uppercase tracking-wide">
               Full Name
@@ -120,7 +116,6 @@ export default function Signup({ isOpen, onClose }) {
               <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/40 w-5 h-5" />
               <input
                 type="text"
-                // ✅ FIX: The name attribute now matches the state property 'fullName'.
                 name="fullName"
                 value={form.fullName}
                 onChange={handleChange}
@@ -130,8 +125,6 @@ export default function Signup({ isOpen, onClose }) {
               />
             </div>
           </div>
-
-          {/* Email Field */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-white/90 uppercase tracking-wide">
               Email
@@ -149,8 +142,6 @@ export default function Signup({ isOpen, onClose }) {
               />
             </div>
           </div>
-
-          {/* Password Field */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-white/90 uppercase tracking-wide">
               Password
@@ -174,7 +165,6 @@ export default function Signup({ isOpen, onClose }) {
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
             </div>
-            {/* Password strength indicator */}
             {form.password && (
               <div className="flex items-center gap-2 mt-2">
                 <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
@@ -192,8 +182,6 @@ export default function Signup({ isOpen, onClose }) {
               </div>
             )}
           </div>
-
-          {/* Confirm Password Field */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-white/90 uppercase tracking-wide">
               Confirm Password
@@ -221,15 +209,11 @@ export default function Signup({ isOpen, onClose }) {
               )}
             </div>
           </div>
-
-          {/* Error Message */}
           {errorMessage && (
             <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 backdrop-blur-sm">
               <p className="text-red-300 text-sm">{errorMessage}</p>
             </div>
           )}
-
-          {/* Sign Up Button */}
           <button
             type="submit"
             disabled={isLoading}
@@ -245,15 +229,11 @@ export default function Signup({ isOpen, onClose }) {
             )}
             <div className="absolute inset-0 bg-white/10 opacity-0 hover:opacity-100 transition-opacity duration-200"></div>
           </button>
-
-          {/* Divider */}
           <div className="flex items-center gap-4 my-6">
             <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
             <span className="text-white/60 text-sm">or</span>
             <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
           </div>
-
-          {/* Google Signup Button */}
           <button
             type="button"
             onClick={() => window.location.href = API_ENDPOINTS.googleOAuth}

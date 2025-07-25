@@ -2,7 +2,6 @@ import React, { useState, useContext } from 'react';
 import PropTypes from 'prop-types';
 import { X, Eye, EyeOff, Mail, Lock } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
-import { useFetchWithAuth } from "../utils/fetchWithAuth";
 import { API_ENDPOINTS } from '../utils/apiConfig';
 
 export default function Login({ isOpen, onClose }) {
@@ -11,8 +10,9 @@ export default function Login({ isOpen, onClose }) {
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { setAuthTokens, fetchUser } = useContext(AuthContext);
-  const fetchWithAuth = useFetchWithAuth();
+  
+  // ✅ **THE FIX IS HERE**: We now get the single 'login' function from the context.
+  const { login } = useContext(AuthContext);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -20,33 +20,31 @@ export default function Login({ isOpen, onClose }) {
     setErrorMessage('');
     
     try {
-      // ✅ **THE FIX IS APPLIED HERE**
-      // The request is now correctly configured to send a JSON payload.
-      const response = await fetchWithAuth(API_ENDPOINTS.login, {
+      // The API call itself is correct and is returning 200 OK.
+      const response = await fetch(API_ENDPOINTS.login, {
         method: "POST",
-        headers: { 
-          "Content-Type": "application/json" 
-        },
-        // The body is a JSON string with 'email' and 'password' keys, matching the backend model.
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
-        // This line is essential for sending credentials (like cookies) across domains.
         credentials: "include",
       });
       
       const data = await response.json();
       
       if (!response.ok) {
-        // Use the detailed error message from the backend if it exists.
-        setErrorMessage(data.detail || 'Login failed. Please check your credentials.');
-      } else {
-        // On success, store tokens, fetch user data, and close the modal.
-        setAuthTokens(data.access_token, data.refresh_token);
-        await fetchUser(data.access_token);
-        onClose();
+        throw new Error(data.detail || 'Login failed. Please check your credentials.');
       }
+      
+      // ✅ **THE FIX IS HERE**: After a successful API call, we call the single 'login' function
+      // from the context. This function will handle setting the tokens and fetching the user data.
+      if (data.access_token && data.refresh_token) {
+        await login(data.access_token, data.refresh_token);
+        onClose(); // Close the modal on success
+      } else {
+        throw new Error('Login response did not include the necessary tokens.');
+      }
+
     } catch (error) {
-      setErrorMessage('An unexpected error occurred. Please try again.');
-      console.log(error);
+      setErrorMessage(error.message || 'An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -57,18 +55,13 @@ export default function Login({ isOpen, onClose }) {
   // --- ALL OF YOUR EXISTING JSX AND STYLING IS PRESERVED BELOW ---
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-      {/* Animated background orbs */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-purple-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
         <div className="absolute top-1/2 right-1/3 w-48 h-48 bg-emerald-500/20 rounded-full blur-3xl animate-pulse delay-500"></div>
       </div>
-
       <div className="relative bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl p-8 w-full max-w-md mx-4 shadow-2xl min-h-[400px] max-h-[90vh] overflow-y-auto flex flex-col">
-        {/* Gradient border effect */}
         <div className="absolute inset-0 h-full w-full bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-emerald-500/20 rounded-3xl blur-sm -z-10"></div>
-        
-        {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
             <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-emerald-400 bg-clip-text text-transparent">
@@ -83,9 +76,7 @@ export default function Login({ isOpen, onClose }) {
             <X size={24} />
           </button>
         </div>
-
         <form onSubmit={handleLogin} className="space-y-6">
-          {/* Email Field */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-white/90 uppercase tracking-wide">
               Email
@@ -102,8 +93,6 @@ export default function Login({ isOpen, onClose }) {
               />
             </div>
           </div>
-
-          {/* Password Field */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-white/90 uppercase tracking-wide">
               Password
@@ -127,15 +116,11 @@ export default function Login({ isOpen, onClose }) {
               </button>
             </div>
           </div>
-
-          {/* Error Message */}
           {errorMessage && (
             <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 backdrop-blur-sm">
               <p className="text-red-300 text-sm">{errorMessage}</p>
             </div>
           )}
-
-          {/* Login Button */}
           <button
             type="submit"
             disabled={isLoading}
@@ -151,15 +136,11 @@ export default function Login({ isOpen, onClose }) {
             )}
             <div className="absolute inset-0 bg-white/10 opacity-0 hover:opacity-100 transition-opacity duration-200"></div>
           </button>
-
-          {/* Divider */}
           <div className="flex items-center gap-4 my-6">
             <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
             <span className="text-white/60 text-sm">or</span>
             <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
           </div>
-
-          {/* Google Login Button */}
           <button
             type="button"
             onClick={() => window.location.href = API_ENDPOINTS.googleOAuth}
@@ -178,6 +159,7 @@ Login.propTypes = {
   isOpen: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
 };
+
 
 
 
