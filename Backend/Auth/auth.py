@@ -129,7 +129,6 @@ async def login_for_access_token(user_credentials: schemas.UserLogin, db: Sessio
         )
     return await create_access_and_refresh_tokens(user)
 
-# ✅ **NEW ENDPOINT ADDED**
 @router.post("/refresh", response_model=schemas.Token)
 async def refresh_access_token(refresh_request: schemas.RefreshRequest, db: Session = Depends(get_db)):
     """
@@ -168,14 +167,16 @@ async def google_login(request: Request):
     """Redirects the user to Google's authentication page."""
     if not google_client_id:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Google OAuth is not configured on the server.")
+    
     # Generate the base URL for the callback
     redirect_uri = request.url_for('google_callback')
     
     # The 'x-forwarded-proto' header is a standard header added by reverse proxies (like Azure's) to indicate the original protocol used by the client.
     if request.url.scheme == 'http' and 'x-forwarded-proto' in request.headers:
         if request.headers['x-forwarded-proto'] == 'https':
-            redirect_uri = redirect_uri.replace("http://", "https://", 1)
+            redirect_uri = str(redirect_uri).replace("http://", "https://", 1)
 
+    # Now, we pass the corrected string to the authorize_redirect function
     return await oauth.google.authorize_redirect(request, str(redirect_uri))
 
 @router.get('/google/callback', name='google_callback', include_in_schema=False)
