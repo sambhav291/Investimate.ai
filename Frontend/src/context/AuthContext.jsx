@@ -9,7 +9,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [authStatus, setAuthStatus] = useState('loading'); // loading | authenticated | unauthenticated
 
-  const setAuthTokens = (accessToken, newRefreshToken) => {
+  const setAuthData = (accessToken, newRefreshToken) => {
     setToken(accessToken);
     setRefreshToken(newRefreshToken);
     if (accessToken && newRefreshToken) {
@@ -22,82 +22,102 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = useCallback(() => {
-    setToken(null);
-    setRefreshToken(null);
+    setAuthData(null, null);
     setUser(null);
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
     setAuthStatus('unauthenticated');
   }, []);
 
-  const fetchUser = useCallback(async (currentToken) => {
-    if (!currentToken) {
-      setAuthStatus('unauthenticated');
-      return;
-    }
+  const login = async (accessToken, newRefreshToken) => {
+    // This is called by Login.jsx or AuthCallback.jsx
+    setAuthStatus('loading');
+    setAuthData(accessToken, newRefreshToken);
+    // After setting tokens, fetch the user's data to confirm authentication
     try {
       const response = await fetch(API_ENDPOINTS.me, {
-        headers: { Authorization: `Bearer ${currentToken}` },
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
+      if (!response.ok) throw new Error("Failed to fetch user after login");
+      const userData = await response.json();
+      setUser(userData);
+      setAuthStatus('authenticated');
+    } catch (e) {
+      console.error(e);
+      logout(); // If we can't fetch the user, something is wrong, so log out.
+    }
+  };
 
-      if (response.ok) {
-        const data = await response.json();
-        setUser(data);
-        setAuthStatus('authenticated');
-        return; // Success, we are done.
+  useEffect(() => {
+    // This effect runs only ONCE on initial application load.
+    const initializeAuth = async () => {
+      const initialToken = localStorage.getItem("access_token");
+      const initialRefreshToken = localStorage.getItem("refresh_token");
+
+      if (!initialToken || !initialRefreshToken) {
+        setAuthStatus('unauthenticated');
+        return;
       }
 
-      // ✅ **THE FIX IS HERE**: If the token is expired (401), try to refresh it.
-      if (response.status === 401) {
-        const currentRefreshToken = localStorage.getItem("refresh_token");
-        if (currentRefreshToken) {
+      // Set tokens in state first
+      setToken(initialToken);
+      setRefreshToken(initialRefreshToken);
+
+      try {
+        // Try to fetch user with the existing token
+        const response = await fetch(API_ENDPOINTS.me, {
+          headers: { Authorization: `Bearer ${initialToken}` },
+        });
+
+        if (response.ok) {
+          const userData = await response.json();
+          setUser(userData);
+          setAuthStatus('authenticated');
+          return;
+        }
+
+        // If it fails (likely expired), try to refresh
+        if (response.status === 401) {
           const refreshResponse = await fetch(API_ENDPOINTS.refresh, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ refresh_token: currentRefreshToken }),
+            body: JSON.stringify({ refresh_token: initialRefreshToken }),
           });
 
           if (refreshResponse.ok) {
             const newTokens = await refreshResponse.json();
-            setAuthTokens(newTokens.access_token, newTokens.refresh_token);
-            // After refreshing, we need to re-fetch the user with the new token.
-            // We'll let the useEffect that watches for token changes handle this.
-            return; 
+            setAuthData(newTokens.access_token, newTokens.refresh_token);
+            
+            // Fetch user with the new token
+            const newUserResponse = await fetch(API_ENDPOINTS.me, {
+              headers: { Authorization: `Bearer ${newTokens.access_token}` },
+            });
+            
+            if (newUserResponse.ok) {
+              const newUser = await newUserResponse.json();
+              setUser(newUser);
+              setAuthStatus('authenticated');
+              return;
+            }
           }
         }
+        
+        // If all attempts fail, log out
+        logout();
+
+      } catch (error) {
+        console.error("Initialization failed:", error);
+        logout();
       }
-      
-      // If the response is not ok and we can't refresh, then log out.
-      throw new Error("Authentication failed");
+    };
 
-    } catch (error) {
-      console.error("Auth process failed, logging out:", error);
-      logout();
-    }
-  }, [logout]);
-
-  const login = (accessToken, newRefreshToken) => {
-    setAuthTokens(accessToken, newRefreshToken);
-  };
-
-  useEffect(() => {
-    // This effect runs on initial load and whenever the token changes.
-    const accessToken = localStorage.getItem("access_token");
-    if (token) {
-      // If the token state changes, fetch the user.
-      fetchUser(token);
-    } else if (accessToken) {
-      // On initial load, if a token exists in storage, set it in state.
-      setToken(accessToken);
-      setRefreshToken(localStorage.getItem("refresh_token"));
-    } else {
-      setAuthStatus('unauthenticated');
-    }
-  }, [token, fetchUser]);
+    initializeAuth();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array ensures this runs only once.
 
   return (
-    <AuthContext.Provider value={{ token, user, authStatus, setAuthTokens, logout, login, fetchUser }}>
-      {children}
+    <AuthContext.Provider value={{ token, user, authStatus, login, logout }}>
+      {/* This is the key to preventing race conditions. The rest of the app */}
+      {/* will not render until the initial authentication check is complete. */}
+      {authStatus !== 'loading' && children}
     </AuthContext.Provider>
   );
 };
