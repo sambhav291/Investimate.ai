@@ -27,26 +27,30 @@ export const AuthProvider = ({ children }) => {
       return;
     }
     try {
-      // ✅ Uses the correct '/auth/me' endpoint
+      // ✅ FIX #1: Uses the correct '/auth/me' endpoint from your apiConfig.
       const response = await fetch(API_ENDPOINTS.me, {
         headers: { Authorization: `Bearer ${currentToken}` },
       });
+
       if (!response.ok) {
-        // If the token is expired or invalid, this will fail.
+        // This will catch expired tokens or other auth errors.
         throw new Error("Failed to fetch user");
       }
+
       const data = await response.json();
       setUser(data);
       setAuthStatus('authenticated');
     } catch (error) {
-      console.error("Failed to fetch user:", error);
-      // If fetching the user fails, log them out.
+      console.error("Failed to fetch user, logging out:", error);
+      // If fetching the user fails for any reason, log them out.
       logout();
     }
-  }, []); // Removed logout from dependencies to prevent re-renders
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); 
 
   const logout = () => {
-    // ✅ Handles logout purely on the frontend. No 404 error.
+    // ✅ FIX #2: Handles logout purely on the frontend. It no longer makes a
+    // failing API call to a non-existent /logout endpoint.
     setToken(null);
     setRefreshToken(null);
     setUser(null);
@@ -57,12 +61,12 @@ export const AuthProvider = ({ children }) => {
   
   const login = (accessToken, newRefreshToken) => {
     setAuthTokens(accessToken, newRefreshToken);
-    // After setting tokens, fetch the user's data.
+    // After setting tokens, this will now call the corrected fetchUser function.
     fetchUser(accessToken);
   };
 
   useEffect(() => {
-    // This effect runs only once on initial app load.
+    // This effect runs only once on initial app load to check for existing tokens.
     const accessToken = localStorage.getItem("access_token");
     if (accessToken) {
       setToken(accessToken);
