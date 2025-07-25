@@ -1,18 +1,17 @@
-// API Configuration
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://investimate-backend-cedqfyhyhsfpdbg4.centralindia-01.azurewebsites.net';
 
 // API Endpoints
 export const API_ENDPOINTS = {
-  // Auth endpoints
-  signup: `${API_BASE_URL}/signup`,
-  login: `${API_BASE_URL}/login`,
-  logout: `${API_BASE_URL}/logout`,
-  refresh: `${API_BASE_URL}/refresh`,
-  tokenFromCookie: `${API_BASE_URL}/token/from-cookie`,
-  signupMe: `${API_BASE_URL}/signup/me`,
+  // --- Auth endpoints ---
+  // All these routes are prefixed with '/auth' as defined in your auth.py
+  signup: `${API_BASE_URL}/auth/signup`,
+  login: `${API_BASE_URL}/auth/login`,
+  me: `${API_BASE_URL}/auth/me`,
   googleOAuth: `${API_BASE_URL}/auth/google/login`,
+  refresh: `${API_BASE_URL}/auth/refresh`, 
   
-  // Report endpoints
+  // --- Report endpoints ---
+  // These routes are defined in main.py at the root level (no prefix)
   generateSummary: `${API_BASE_URL}/generate-summary`,
   generateReport: `${API_BASE_URL}/generate-report`,
   saveReport: `${API_BASE_URL}/save-report`,

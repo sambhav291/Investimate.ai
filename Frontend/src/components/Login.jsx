@@ -46,6 +46,7 @@ export default function Login({ isOpen, onClose }) {
       }
     } catch (error) {
       setErrorMessage('An unexpected error occurred. Please try again.');
+      console.log(error);
     } finally {
       setIsLoading(false);
     }

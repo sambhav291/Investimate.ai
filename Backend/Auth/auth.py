@@ -48,32 +48,27 @@ else:
     logger.warning("Google OAuth credentials (CLIENT_ID, CLIENT_SECRET) are not set. Google login will be disabled.")
 
 
-# --- Core Authentication Functions ---
+# --- Core Authentication Functions (No changes here) ---
 
 def hash_password(password: str):
-    """Hashes a plain-text password using bcrypt."""
     return pwd_context.hash(password)
 
 def verify_password(plain_password: str, hashed_password: str):
-    """Verifies a plain-text password against a hashed one."""
     return pwd_context.verify(plain_password, hashed_password)
 
 def authenticate_user(email: str, password: str, db: Session):
-    """Authenticates a user by email and password."""
     user = services.get_user_by_email(email, db)
     if not user or not user.hashed_password or not verify_password(password, user.hashed_password):
         return None
     return user
 
 def create_jwt_token(data: dict, expires_delta: timedelta):
-    """Helper function to create a JWT token."""
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + expires_delta
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 async def create_access_and_refresh_tokens(user: models.User):
-    """Creates and returns a set of access and refresh tokens."""
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     refresh_token_expires = timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     
@@ -89,7 +84,6 @@ async def create_access_and_refresh_tokens(user: models.User):
     return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    """Decodes JWT token to get the current user. Raises HTTPException on failure."""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -112,7 +106,6 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
 
 @router.post("/signup", response_model=schemas.Token)
 async def signup_user(user_data: schemas.UserCreate, db: Session = Depends(get_db)):
-    """Registers a new user and returns tokens."""
     existing_user = services.get_user_by_email(email=user_data.email, db=db)
     if existing_user:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
@@ -124,7 +117,6 @@ async def signup_user(user_data: schemas.UserCreate, db: Session = Depends(get_d
 
 @router.post("/login", response_model=schemas.Token)
 async def login_for_access_token(user_credentials: schemas.UserLogin, db: Session = Depends(get_db)):
-    """Logs in a user with email/password and returns tokens."""
     user = authenticate_user(
         email=user_credentials.email, 
         password=user_credentials.password, 
@@ -137,28 +129,57 @@ async def login_for_access_token(user_credentials: schemas.UserLogin, db: Sessio
         )
     return await create_access_and_refresh_tokens(user)
 
+# ✅ **NEW ENDPOINT ADDED**
+@router.post("/refresh", response_model=schemas.Token)
+async def refresh_access_token(refresh_request: schemas.RefreshRequest, db: Session = Depends(get_db)):
+    """
+    Refreshes an access token using a valid refresh token.
+    """
+    try:
+        payload = jwt.decode(
+            refresh_request.refresh_token,
+            SECRET_KEY,
+            algorithms=[ALGORITHM]
+        )
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            raise HTTPException(status_code=401, detail="Invalid refresh token")
+            
+        user = db.query(models.User).filter(models.User.id == user_id).first()
+        if user is None:
+            raise HTTPException(status_code=401, detail="User not found")
+            
+        return await create_access_and_refresh_tokens(user)
+
+    except ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Refresh token has expired")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+
 @router.get("/me", response_model=schemas.UserOut)
 async def read_users_me(current_user: models.User = Depends(get_current_user)):
-    """Returns the currently authenticated user's details."""
     return current_user
 
-# --- Google OAuth Endpoints ---
+# --- Google OAuth Endpoints (No changes here) ---
 
 @router.get('/google/login', include_in_schema=False)
 async def google_login(request: Request):
     """Redirects the user to Google's authentication page."""
     if not google_client_id:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Google OAuth is not configured on the server.")
-    
+    # Generate the base URL for the callback
     redirect_uri = request.url_for('google_callback')
+    
+    # The 'x-forwarded-proto' header is a standard header added by reverse proxies (like Azure's) to indicate the original protocol used by the client.
+    if request.url.scheme == 'http' and 'x-forwarded-proto' in request.headers:
+        if request.headers['x-forwarded-proto'] == 'https':
+            redirect_uri = redirect_uri.replace("http://", "https://", 1)
+
     return await oauth.google.authorize_redirect(request, str(redirect_uri))
 
 @router.get('/google/callback', name='google_callback', include_in_schema=False)
 async def google_callback(request: Request, db: Session = Depends(get_db)):
-    """
-    Handles the callback from Google, creates/logs in the user, and redirects 
-    to the frontend with tokens in the URL.
-    """
     try:
         token = await oauth.google.authorize_access_token(request)
         user_info = token.get('userinfo')
