@@ -7,7 +7,7 @@ client = OpenAI(
     api_key=openrouter_key
 )
 
-def REDACTED-GOOGLE-CLIENT-SECRETy(forum_summary, annual_summary, concall_summary, company_name):
+def generate_combined_summary(forum_summary, annual_summary, concall_summary, company_name):
     prompt = f"""
 You are a senior financial analyst.
 
@@ -49,8 +49,7 @@ Return in this format:
             model="deepseek/deepseek-r1:free",  # Change as needed
             messages=[{"role": "user", "content": prompt}],
             extra_headers={
-                "HTTP-Referer": "http://localhost",
-                "X-Title": "Combined Summary Generator"
+                "X-Title": "Investimate AI"
             }
         )
         return response.choices[0].message.content.strip()

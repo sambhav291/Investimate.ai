@@ -4,7 +4,7 @@ import pandas as pd
 from openai import OpenAI  # openrouter
 import time
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from secdat import openrouter_key  # make sure this contains your OpenRouter API key
+from secdat import openrouter_key 
 
 # Initialize OpenRouter-compatible client
 client = OpenAI(
@@ -54,8 +54,7 @@ Key Points:
                     {"role": "user", "content": prompt}
                 ],
                 extra_headers={
-                    "HTTP-Referer": "https://your-portfolio-site.com",  # Optional
-                    "X-Title": "REDACTED-GOOGLE-CLIENT-SECRET"  # Optional
+                "X-Title": "Investimate AI"
                 },
                 extra_body={}
             )

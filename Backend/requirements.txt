@@ -50,4 +50,5 @@ torch
 transformers
 huggingface-hub
 PyMuPDF
+tiktoken
 

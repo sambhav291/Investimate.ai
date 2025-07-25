@@ -64,7 +64,7 @@ def batch_dialogues(dialogues, max_batch_size=8):
     for i in range(0, len(dialogues), max_batch_size):
         yield dialogues[i:i + max_batch_size]
 
-def REDACTED-GOOGLE-CLIENT-SECRET(batch_dialogues: list) -> str:
+def create_safe_batch_prompt(batch_dialogues: list) -> str:
     """Create a batch prompt that safely fits within token limits"""
     
     base_prompt = """
@@ -127,7 +127,7 @@ Key Points:
     
     return base_prompt + f"Transcript Entries:\n{transcript_entries}" + instruction
 
-def REDACTED-GOOGLE-CLIENT-SECRETripts(processed_dialogues):
+def summarize_concall_transcripts(processed_dialogues):
     if not processed_dialogues:
         print("⚠️ No dialogue data to summarize.")
         return None
@@ -158,7 +158,7 @@ def REDACTED-GOOGLE-CLIENT-SECRETripts(processed_dialogues):
         print(f"🔄 Processing batch {batch_idx + 1}...")
         
         # Create token-safe batch prompt
-        batch_prompt = REDACTED-GOOGLE-CLIENT-SECRET(batch)
+        batch_prompt = create_safe_batch_prompt(batch)
         
         # Double-check token count
         token_count = count_tokens(batch_prompt)
@@ -269,6 +269,10 @@ Your summary should be factual, well-organized, and highlight the most business-
     except Exception as e:
         print(f"❌ Full error details: {e}")
         return f"❌ Error generating final summary: {str(e)}"
+
+
+
+
 
 
 

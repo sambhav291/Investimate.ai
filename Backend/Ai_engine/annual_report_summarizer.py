@@ -54,7 +54,7 @@ def batch_chunks(lst, batch_size):
     for i in range(0, len(lst), batch_size):
         yield lst[i:i + batch_size]
 
-def REDACTED-GOOGLE-CLIENT-SECRET(company_name: str, batch_entries: list) -> str:
+def create_safe_batch_prompt(company_name: str, batch_entries: list) -> str:
     """Create a batch prompt that safely fits within token limits"""
     
     base_prompt = f"""
@@ -103,7 +103,7 @@ Instructions:
     
     return base_prompt + sections_text + instruction
 
-def REDACTED-GOOGLE-CLIENT-SECRETsections(company_name, section_data: dict, max_chunks_per_batch=5):
+def summarize_annual_report_sections(company_name, section_data: dict, max_chunks_per_batch=5):
     """Summarize annual report sections with proper token management"""
     
     if not section_data:
@@ -140,7 +140,7 @@ def REDACTED-GOOGLE-CLIENT-SECRETsections(company_name, section_data: dict, max_
             print(f"🔄 Processing batch {batch_idx + 1}...")
             
             # Create token-safe batch prompt
-            batch_prompt = REDACTED-GOOGLE-CLIENT-SECRET(company_name, batch)
+            batch_prompt = create_safe_batch_prompt(company_name, batch)
             
             # Double-check token count
             token_count = count_tokens(batch_prompt)
@@ -153,8 +153,7 @@ def REDACTED-GOOGLE-CLIENT-SECRETsections(company_name, section_data: dict, max_
                     model="deepseek/deepseek-r1:free",
                     messages=[{"role": "user", "content": batch_prompt}],
                     extra_headers={
-                        "HTTP-Referer": "http://localhost",
-                        "X-Title": "Annual Report Summarizer"
+                        "X-Title": "Investimate AI"
                     }
                 )
                 batch_summaries.append(response.choices[0].message.content.strip())
@@ -225,6 +224,7 @@ Key Themes:
     except Exception as e:
         print(f"❌ Full error details: {e}")
         return f"❌ Error summarizing annual report for {company_name}: {str(e)}"
+
 
 
 
