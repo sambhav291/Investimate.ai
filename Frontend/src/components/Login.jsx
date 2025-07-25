@@ -2,7 +2,6 @@ import React, { useState, useContext } from 'react';
 import PropTypes from 'prop-types';
 import { X, Eye, EyeOff, Mail, Lock } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
-import ErrorMessage from './ErrorMessage';
 import { useFetchWithAuth } from "../utils/fetchWithAuth";
 import { API_ENDPOINTS } from '../utils/apiConfig';
 
@@ -15,40 +14,38 @@ export default function Login({ isOpen, onClose }) {
   const { setAuthTokens, fetchUser } = useContext(AuthContext);
   const fetchWithAuth = useFetchWithAuth();
 
-  const login = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setErrorMessage('');
     
-    // ❌ CHANGE: Removed the old URLSearchParams logic as we are now sending JSON.
-    // const params = new URLSearchParams();
-    // params.append('username', email);
-    // params.append('password', password);
-
     try {
+      // ✅ **THE FIX IS APPLIED HERE**
+      // The request is now correctly configured to send a JSON payload.
       const response = await fetchWithAuth(API_ENDPOINTS.login, {
         method: "POST",
-        // ✅ CHANGE: Updated the Content-Type header to 'application/json'.
-        // This tells the backend to expect a JSON payload, which fixes the CORS preflight error.
-        headers: { "Content-Type": "application/json" },
-        
-        // ✅ CHANGE: The body is now a JSON string created with JSON.stringify.
-        // The backend endpoint is expecting an object with 'email' and 'password' keys.
+        headers: { 
+          "Content-Type": "application/json" 
+        },
+        // The body is a JSON string with 'email' and 'password' keys, matching the backend model.
         body: JSON.stringify({ email, password }),
-        
+        // This line is essential for sending credentials (like cookies) across domains.
         credentials: "include",
       });
+      
       const data = await response.json();
       
       if (!response.ok) {
-        setErrorMessage(data.detail);
+        // Use the detailed error message from the backend if it exists.
+        setErrorMessage(data.detail || 'Login failed. Please check your credentials.');
       } else {
+        // On success, store tokens, fetch user data, and close the modal.
         setAuthTokens(data.access_token, data.refresh_token);
         await fetchUser(data.access_token);
         onClose();
       }
     } catch (error) {
-      setErrorMessage('An error occurred during login');
+      setErrorMessage('An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -86,7 +83,7 @@ export default function Login({ isOpen, onClose }) {
           </button>
         </div>
 
-        <form onSubmit={login} className="space-y-6">
+        <form onSubmit={handleLogin} className="space-y-6">
           {/* Email Field */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-white/90 uppercase tracking-wide">

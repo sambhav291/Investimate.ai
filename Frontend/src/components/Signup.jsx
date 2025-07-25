@@ -2,12 +2,12 @@ import React, { useState, useContext } from 'react';
 import PropTypes from 'prop-types';
 import { X, Eye, EyeOff, Mail, Lock, User, Check } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
-import ErrorMessage from './ErrorMessage';
 import { useFetchWithAuth } from "../utils/fetchWithAuth";
-import { API_BASE_URL, API_ENDPOINTS } from '../utils/apiConfig';
+import { API_ENDPOINTS } from '../utils/apiConfig';
 
 export default function Signup({ isOpen, onClose }) {
-  const [form, setForm] = useState({ username: '', email: '', password: '', confirmPassword: '' });
+  // ✅ FIX: Renamed 'username' in state to 'fullName' for clarity.
+  const [form, setForm] = useState({ fullName: '', email: '', password: '', confirmPassword: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -23,29 +23,28 @@ export default function Signup({ isOpen, onClose }) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ 
-        // ✅ CHANGE: Changed the key from 'username' to 'full_name'.
-        // Your form state uses 'username' for the user's full name, but the backend API
-        // model expects this field to be called 'full_name'. This change makes them match.
-        // The 'username' field on the backend is optional and can be set later.
-        full_name: form.username, 
+        // ✅ FIX: The key is now 'full_name' and it correctly maps from the 'fullName' state.
+        // This matches what the backend API schema (UserCreate) expects.
+        full_name: form.fullName, 
         email: form.email,
         password: form.password 
       }),
+      credentials: "include",
     };
 
     try {
-      const response = await fetchWithAuth(API_ENDPOINTS.SIGNUP, requestOptions);
+      const response = await fetchWithAuth(API_ENDPOINTS.signup, requestOptions);
       const data = await response.json();
       
       if (!response.ok) {
-        setErrorMessage(data.detail);
+        setErrorMessage(data.detail || 'Registration failed. Please try again.');
       } else {
         setAuthTokens(data.access_token, data.refresh_token);
         await fetchUser(data.access_token);
         onClose();
       }
     } catch (error) {
-      setErrorMessage('An error occurred during registration');
+      setErrorMessage('An unexpected error occurred during registration.');
     } finally {
       setIsLoading(false);
     }
@@ -53,13 +52,15 @@ export default function Signup({ isOpen, onClose }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (form.password === form.confirmPassword && form.password.length > 5) {
-      submitRegistration();
-    } else {
-      setErrorMessage(
-        "Ensure that the passwords match and are greater than 5 characters"
-      );
+    if (form.password !== form.confirmPassword) {
+      setErrorMessage("Passwords do not match.");
+      return;
     }
+    if (form.password.length < 6) {
+      setErrorMessage("Password must be at least 6 characters long.");
+      return;
+    }
+    submitRegistration();
   };
 
   const handleChange = (e) => {
@@ -110,20 +111,21 @@ export default function Signup({ isOpen, onClose }) {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Username Field */}
+          {/* Full Name Field */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-white/90 uppercase tracking-wide">
-              Username
+              Full Name
             </label>
             <div className="relative">
               <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/40 w-5 h-5" />
               <input
                 type="text"
-                name="username"
-                value={form.username}
+                // ✅ FIX: The name attribute now matches the state property 'fullName'.
+                name="fullName"
+                value={form.fullName}
                 onChange={handleChange}
                 className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent backdrop-blur-sm transition-all duration-200 hover:bg-white/10"
-                placeholder="Choose a username"
+                placeholder="Enter your full name"
                 required
               />
             </div>

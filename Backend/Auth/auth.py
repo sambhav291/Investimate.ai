@@ -3,8 +3,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, Request, HTTPException, status
-from fastapi.responses import RedirectResponse, JSONResponse
-from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from jose import jwt, ExpiredSignatureError, JWTError
@@ -14,8 +13,10 @@ from dotenv import load_dotenv
 from . import models, schemas, services
 from .database import get_db
 
+# --- Load Environment Variables ---
 load_dotenv()
 
+# --- Router and Logger Configuration ---
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 logger = logging.getLogger(__name__)
 
@@ -25,9 +26,15 @@ SECRET_KEY = os.getenv("SECRET_KEY", "a_very_secret_key_that_should_be_in_env")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
 REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", 7))
+
+# ✅ **CRITICAL**: Get the frontend URL from environment variables for portability
+FRONTEND_URL = os.getenv("FRONTEND_URL", "https://investimate-ai-eight.vercel.app")
+
+# --- OAuth2 Bearer Scheme ---
+# This is used by FastAPI's dependency system to extract the token from the request header.
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
-# --- OAuth Configuration ---
+# --- OAuth (Google) Configuration ---
 oauth = OAuth()
 google_client_id = os.getenv('GOOGLE_CLIENT_ID')
 google_client_secret = os.getenv('GOOGLE_CLIENT_SECRET')
@@ -39,31 +46,52 @@ if google_client_id and google_client_secret:
         client_secret=google_client_secret,
         client_kwargs={'scope': 'openid email profile'}
     )
+else:
+    logger.warning("Google OAuth credentials (CLIENT_ID, CLIENT_SECRET) are not set. Google login will be disabled.")
+
 
 # --- Core Authentication Functions ---
 
 def hash_password(password: str):
+    """Hashes a plain-text password using bcrypt."""
     return pwd_context.hash(password)
 
 def verify_password(plain_password: str, hashed_password: str):
+    """Verifies a plain-text password against a hashed one."""
     return pwd_context.verify(plain_password, hashed_password)
 
 def authenticate_user(email: str, password: str, db: Session):
+    """Authenticates a user by email and password."""
     user = services.get_user_by_email(email, db)
     if not user or not user.hashed_password or not verify_password(password, user.hashed_password):
         return None
     return user
 
+def create_jwt_token(data: dict, expires_delta: timedelta):
+    """Helper function to create a JWT token."""
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + expires_delta
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
 async def create_access_and_refresh_tokens(user: models.User):
-    access_expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    refresh_expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
-    access_payload = {"sub": str(user.id), "email": user.email, "exp": access_expire}
-    refresh_payload = {"sub": str(user.id), "exp": refresh_expire}
-    access_token = jwt.encode(access_payload, SECRET_KEY, algorithm=ALGORITHM)
-    refresh_token = jwt.encode(refresh_payload, SECRET_KEY, algorithm=ALGORITHM)
+    """Creates and returns a set of access and refresh tokens."""
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    refresh_token_expires = timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    
+    access_token = create_jwt_token(
+        data={"sub": str(user.id), "email": user.email},
+        expires_delta=access_token_expires
+    )
+    refresh_token = create_jwt_token(
+        data={"sub": str(user.id)},
+        expires_delta=refresh_token_expires
+    )
+    
     return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    """Decodes JWT token to get the current user. Raises HTTPException on failure."""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -86,6 +114,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
 
 @router.post("/signup", response_model=schemas.Token)
 async def signup_user(user_data: schemas.UserCreate, db: Session = Depends(get_db)):
+    """Registers a new user and returns tokens."""
     existing_user = services.get_user_by_email(email=user_data.email, db=db)
     if existing_user:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
@@ -96,12 +125,8 @@ async def signup_user(user_data: schemas.UserCreate, db: Session = Depends(get_d
     return await create_access_and_refresh_tokens(new_user)
 
 @router.post("/login", response_model=schemas.Token)
-async def login_for_access_token(
-    # ✅ FIX: Changed from form data to a Pydantic model to accept a JSON body.
-    # This resolves the underlying cause of the CORS error.
-    user_credentials: schemas.UserLogin, 
-    db: Session = Depends(get_db)
-):
+async def login_for_access_token(user_credentials: schemas.UserLogin, db: Session = Depends(get_db)):
+    """Logs in a user with email/password and returns tokens."""
     user = authenticate_user(
         email=user_credentials.email, 
         password=user_credentials.password, 
@@ -112,61 +137,71 @@ async def login_for_access_token(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
         )
-    # This now returns a simple JSON response, which the frontend can handle.
     return await create_access_and_refresh_tokens(user)
 
 @router.get("/me", response_model=schemas.UserOut)
 async def read_users_me(current_user: models.User = Depends(get_current_user)):
+    """Returns the currently authenticated user's details."""
     return current_user
 
 # --- Google OAuth Endpoints ---
 
 @router.get('/google/login', include_in_schema=False)
 async def google_login(request: Request):
+    """Redirects the user to Google's authentication page."""
     if not google_client_id:
-        raise HTTPException(status_code=500, detail="Google OAuth is not configured on the server.")
-    redirect_uri = os.getenv('GOOGLE_REDIRECT_URI', str(request.url_for('google_callback')))
-    return await oauth.google.authorize_redirect(request, redirect_uri)
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Google OAuth is not configured on the server.")
+    
+    # Use the 'google_callback' route name to generate the full callback URL
+    redirect_uri = request.url_for('google_callback')
+    return await oauth.google.authorize_redirect(request, str(redirect_uri))
 
-@router.get('/google/callback', include_in_schema=False)
+# ✅ **FIX APPLIED HERE**
+@router.get('/google/callback', name='google_callback', include_in_schema=False)
 async def google_callback(request: Request, db: Session = Depends(get_db)):
+    """
+    Handles the callback from Google, creates/logs in the user, and redirects 
+    to the frontend with tokens in the URL query parameters.
+    """
     try:
+        # Authorize the access token from Google
         token = await oauth.google.authorize_access_token(request)
         user_info = token.get('userinfo')
-        if not user_info:
-            raise HTTPException(status_code=400, detail="Could not fetch user info from Google")
+        if not user_info or not user_info.get('email'):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Could not fetch user info from Google")
 
-        email = user_info.get('email')
+        email = user_info['email']
         user = services.get_user_by_email(email, db)
 
+        # If user doesn't exist, create a new one from Google info
         if not user:
             new_user_data = schemas.UserCreate(
                 email=email,
-                full_name=user_info.get('name'),
+                username=user_info.get('name', email), # Use username from google or fallback to email
                 profile_pic=user_info.get('picture'),
-                password="" 
+                password="" # Password is not needed for OAuth users
             )
+            # Create the user without a password, marking as an OAuth login
             user = services.create_user(db=db, user=new_user_data, hashed_password=None, is_oauth=True)
 
+        # Generate JWT tokens for the session
         jwt_tokens = await create_access_and_refresh_tokens(user)
-        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
         
-        # ✅ FIX: Redirect to a specific frontend route with tokens in the URL.
-        # This is a reliable way to handle cross-domain authentication.
-        # Your frontend will need to read these from the URL.
+        # Construct the correct redirect URL for the frontend.
+        # This URL points to your frontend's dedicated /auth/callback route.
         redirect_url = (
-            f"{frontend_url}/auth/callback"
+            f"{FRONTEND_URL}/auth/callback"
             f"?access_token={jwt_tokens['access_token']}"
             f"&refresh_token={jwt_tokens['refresh_token']}"
         )
         
+        # Redirect the user's browser to the frontend
         return RedirectResponse(url=redirect_url)
         
     except Exception as e:
         logger.error(f"Error in Google callback: {e}", exc_info=True)
-        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
-        return RedirectResponse(url=f"{frontend_url}/login?error=true")
-
+        # If anything goes wrong, redirect to the frontend login page with an error flag
+        return RedirectResponse(url=f"{FRONTEND_URL}/login?error=oauth_failed")
 
 
 

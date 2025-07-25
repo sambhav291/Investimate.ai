@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useContext } from 'react'; // ✅ CHANGE: Imported useContext
-import { useNavigate } from 'react-router-dom'; // ✅ CHANGE: Imported useNavigate
+import React, { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Home from './components/Home';
 import AboutUs from './components/AboutUs';
@@ -7,7 +7,6 @@ import Services from './components/Services';
 import Library from './components/Library';
 import Footer from './components/Footer';
 import { useScroll } from './context/ScrollContext';
-import { AuthContext } from './context/AuthContext'; // ✅ CHANGE: Imported AuthContext
 import { motion } from 'framer-motion';
 
 const App = () => {
@@ -15,9 +14,8 @@ const App = () => {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [authError, setAuthError] = useState(null);
 
-  // ✅ CHANGE: Added these hooks to handle login logic
-  const { login } = useContext(AuthContext);
-  const navigate = useNavigate();
+  // useLocation hook is used to get the current URL details.
+  const location = useLocation();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -30,56 +28,31 @@ const App = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // ✅ **FIX APPLIED HERE**
+  // This useEffect is now simplified. It ONLY handles displaying error messages
+  // that might appear in the URL, such as from a failed login attempt.
+  // The logic for handling successful tokens has been moved to AuthCallback.jsx.
   useEffect(() => {
-    // ✅ CHANGE: This entire useEffect block is new.
-    // It handles the redirect from Google Login.
-    const urlParams = new URLSearchParams(window.location.search);
-    const accessToken = urlParams.get('access_token');
-    const refreshToken = urlParams.get('refresh_token');
-    const error = urlParams.get('error');
-
-    if (accessToken && refreshToken) {
-      // If tokens are found in the URL, it means the Google login was successful.
-      // We call the login function from our context to save the tokens.
-      login(accessToken, refreshToken);
-      // We then clean the tokens from the URL and navigate to the services section.
-      window.history.replaceState({}, document.title, window.location.pathname);
-      navigate('/#services'); // Or wherever you want the user to land after login
-    } else if (error) {
-      // This handles any errors that the backend might send back.
-      let errorMessage = 'Login failed. Please try again.';
-      setAuthError(errorMessage);
-      window.history.replaceState({}, document.title, window.location.pathname);
-      setTimeout(() => setAuthError(null), 5000);
-    }
-  }, [login, navigate]);
-
-
-  // Your existing useEffect for handling auth errors remains the same.
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
+    const urlParams = new URLSearchParams(location.search);
     const error = urlParams.get('error');
     const message = urlParams.get('message');
     
     if (error) {
       let errorMessage = 'Login failed. Please try again.';
-      if (error === 'oauth_error') {
-        errorMessage = `OAuth error: ${message || 'Unknown error'}`;
-      } else if (error === 'no_token') {
-        errorMessage = 'No authentication token received.';
-      } else if (error === 'no_user_info') {
-        errorMessage = 'Unable to retrieve user information.';
-      } else if (error === 'oauth_failed') {
-        errorMessage = `Login failed: ${message || 'Unknown error'}`;
+      if (error === 'oauth_failed') {
+        errorMessage = `Google login failed: ${message || 'An unknown error occurred.'}`;
       }
       
       setAuthError(errorMessage);
       
-      window.history.replaceState({}, document.title, window.location.pathname);
+      // Clean the error from the URL so it doesn't reappear on refresh.
+      window.history.replaceState({}, document.title, location.pathname);
       
-      setTimeout(() => setAuthError(null), 5000);
+      // Hide the error message after 5 seconds.
+      const timer = setTimeout(() => setAuthError(null), 5000);
+      return () => clearTimeout(timer);
     }
-  }, []);
+  }, [location]); // This effect runs whenever the URL location changes.
 
   // The rest of your component's JSX remains exactly the same.
   return (
@@ -167,7 +140,6 @@ const App = () => {
 };
 
 export default App;
-
 
 
 
