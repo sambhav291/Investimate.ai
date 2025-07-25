@@ -4,6 +4,8 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, Request, HTTPException, status
 from fastapi.responses import RedirectResponse
+# ✅ **THE FIX IS HERE**: Import OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from jose import jwt, ExpiredSignatureError, JWTError
@@ -26,12 +28,9 @@ SECRET_KEY = os.getenv("SECRET_KEY", "a_very_secret_key_that_should_be_in_env")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
 REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", 7))
-
-# ✅ **CRITICAL**: Get the frontend URL from environment variables for portability
 FRONTEND_URL = os.getenv("FRONTEND_URL", "https://investimate-ai-eight.vercel.app")
 
 # --- OAuth2 Bearer Scheme ---
-# This is used by FastAPI's dependency system to extract the token from the request header.
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 # --- OAuth (Google) Configuration ---
@@ -152,19 +151,16 @@ async def google_login(request: Request):
     if not google_client_id:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Google OAuth is not configured on the server.")
     
-    # Use the 'google_callback' route name to generate the full callback URL
     redirect_uri = request.url_for('google_callback')
     return await oauth.google.authorize_redirect(request, str(redirect_uri))
 
-# ✅ **FIX APPLIED HERE**
 @router.get('/google/callback', name='google_callback', include_in_schema=False)
 async def google_callback(request: Request, db: Session = Depends(get_db)):
     """
     Handles the callback from Google, creates/logs in the user, and redirects 
-    to the frontend with tokens in the URL query parameters.
+    to the frontend with tokens in the URL.
     """
     try:
-        # Authorize the access token from Google
         token = await oauth.google.authorize_access_token(request)
         user_info = token.get('userinfo')
         if not user_info or not user_info.get('email'):
@@ -173,34 +169,27 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
         email = user_info['email']
         user = services.get_user_by_email(email, db)
 
-        # If user doesn't exist, create a new one from Google info
         if not user:
             new_user_data = schemas.UserCreate(
                 email=email,
-                username=user_info.get('name', email), # Use username from google or fallback to email
+                username=user_info.get('name', email),
                 profile_pic=user_info.get('picture'),
-                password="" # Password is not needed for OAuth users
+                password="" 
             )
-            # Create the user without a password, marking as an OAuth login
             user = services.create_user(db=db, user=new_user_data, hashed_password=None, is_oauth=True)
 
-        # Generate JWT tokens for the session
         jwt_tokens = await create_access_and_refresh_tokens(user)
         
-        # Construct the correct redirect URL for the frontend.
-        # This URL points to your frontend's dedicated /auth/callback route.
         redirect_url = (
             f"{FRONTEND_URL}/auth/callback"
             f"?access_token={jwt_tokens['access_token']}"
             f"&refresh_token={jwt_tokens['refresh_token']}"
         )
         
-        # Redirect the user's browser to the frontend
         return RedirectResponse(url=redirect_url)
         
     except Exception as e:
         logger.error(f"Error in Google callback: {e}", exc_info=True)
-        # If anything goes wrong, redirect to the frontend login page with an error flag
         return RedirectResponse(url=f"{FRONTEND_URL}/login?error=oauth_failed")
 
 
