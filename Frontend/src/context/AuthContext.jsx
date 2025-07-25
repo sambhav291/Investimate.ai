@@ -21,61 +21,79 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const fetchUser = useCallback(async (currentToken) => {
-    if (!currentToken) {
-      setAuthStatus('unauthenticated');
-      return;
-    }
-    try {
-      // ✅ FIX #1: Uses the correct '/auth/me' endpoint from your apiConfig.
-      const response = await fetch(API_ENDPOINTS.me, {
-        headers: { Authorization: `Bearer ${currentToken}` },
-      });
-
-      if (!response.ok) {
-        // This will catch expired tokens or other auth errors.
-        throw new Error("Failed to fetch user");
-      }
-
-      const data = await response.json();
-      setUser(data);
-      setAuthStatus('authenticated');
-    } catch (error) {
-      console.error("Failed to fetch user, logging out:", error);
-      // If fetching the user fails for any reason, log them out.
-      logout();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); 
-
-  const logout = () => {
-    // ✅ FIX #2: Handles logout purely on the frontend. It no longer makes a
-    // failing API call to a non-existent /logout endpoint.
+  const logout = useCallback(() => {
     setToken(null);
     setRefreshToken(null);
     setUser(null);
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
     setAuthStatus('unauthenticated');
-  };
-  
+  }, []);
+
+  const fetchUser = useCallback(async (currentToken) => {
+    if (!currentToken) {
+      setAuthStatus('unauthenticated');
+      return;
+    }
+    try {
+      const response = await fetch(API_ENDPOINTS.me, {
+        headers: { Authorization: `Bearer ${currentToken}` },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data);
+        setAuthStatus('authenticated');
+        return; // Success, we are done.
+      }
+
+      // ✅ **THE FIX IS HERE**: If the token is expired (401), try to refresh it.
+      if (response.status === 401) {
+        const currentRefreshToken = localStorage.getItem("refresh_token");
+        if (currentRefreshToken) {
+          const refreshResponse = await fetch(API_ENDPOINTS.refresh, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refresh_token: currentRefreshToken }),
+          });
+
+          if (refreshResponse.ok) {
+            const newTokens = await refreshResponse.json();
+            setAuthTokens(newTokens.access_token, newTokens.refresh_token);
+            // After refreshing, we need to re-fetch the user with the new token.
+            // We'll let the useEffect that watches for token changes handle this.
+            return; 
+          }
+        }
+      }
+      
+      // If the response is not ok and we can't refresh, then log out.
+      throw new Error("Authentication failed");
+
+    } catch (error) {
+      console.error("Auth process failed, logging out:", error);
+      logout();
+    }
+  }, [logout]);
+
   const login = (accessToken, newRefreshToken) => {
     setAuthTokens(accessToken, newRefreshToken);
-    // After setting tokens, this will now call the corrected fetchUser function.
-    fetchUser(accessToken);
   };
 
   useEffect(() => {
-    // This effect runs only once on initial app load to check for existing tokens.
+    // This effect runs on initial load and whenever the token changes.
     const accessToken = localStorage.getItem("access_token");
-    if (accessToken) {
+    if (token) {
+      // If the token state changes, fetch the user.
+      fetchUser(token);
+    } else if (accessToken) {
+      // On initial load, if a token exists in storage, set it in state.
       setToken(accessToken);
       setRefreshToken(localStorage.getItem("refresh_token"));
-      fetchUser(accessToken);
     } else {
       setAuthStatus('unauthenticated');
     }
-  }, [fetchUser]);
+  }, [token, fetchUser]);
 
   return (
     <AuthContext.Provider value={{ token, user, authStatus, setAuthTokens, logout, login, fetchUser }}>
