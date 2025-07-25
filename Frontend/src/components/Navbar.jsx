@@ -52,7 +52,7 @@ const Navbar = () => {
   // Helper: get display name
   const getDisplayName = (user) => {
     if (!user) return null;
-    return user.username || user.name || user.email || null;
+    return user.name || user.username || user.email || null;
   };
 
   // Helper: get avatar src
