@@ -11,7 +11,6 @@ import certifi
 import json
 
 def get_valuepickr_thread_url(company_name):
-    service = Service(ChromeDriverManager().install())  
     
     chrome_options = Options()
     chrome_options.add_argument("--headless=new")
@@ -22,7 +21,11 @@ def get_valuepickr_thread_url(company_name):
     chrome_options.add_argument("--disable-logging")        # Reduce console noise
     chrome_options.add_argument("--log-level=3")           # Suppress INFO messages
 
-    driver = webdriver.Chrome(service=service, options=chrome_options)
+    # service = Service(ChromeDriverManager().install())  
+    chrome_options.binary_location = "/usr/bin/chromium-browser"
+
+    # driver = webdriver.Chrome(service=service, options=chrome_options)
+    driver = webdriver.Chrome(options=chrome_options)   
 
     try:
         search_url = f"https://forum.valuepickr.com/search?q={company_name}"

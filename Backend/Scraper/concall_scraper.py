@@ -48,15 +48,18 @@ class ConcallTranscriptScraper:
             "browser.helperApps.neverAsk.saveToDisk": "application/pdf"
         })
         
+        self.chrome_options.binary_location = "/usr/bin/chromium-browser"
+
         self.driver = None
         self._all_transcripts = []
     
     def __enter__(self):
         try:
-            self.driver = webdriver.Chrome(
-                service=Service(ChromeDriverManager().install()), 
-                options=self.chrome_options
-            )
+            # self.driver = webdriver.Chrome(
+            #     service=Service(ChromeDriverManager().install()), 
+            #     options=self.chrome_options
+            # )
+            self.driver = webdriver.Chrome(options=self.chrome_options)
             return self
         except Exception as e:
             logger.error(f"Failed to initialize WebDriver: {e}")
