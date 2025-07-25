@@ -6,14 +6,13 @@ date
 echo "Python version: $(python --version)"
 echo "Pip version: $(pip --version)"
 
-# --- Install system dependencies for Selenium/Chrome ---
+# --- NEW SECTION: Install system dependencies for Selenium/Chrome ---
 echo "=== Installing system dependencies for Chrome ==="
-apt-get update
-apt-get install -y chromium-browser libglib2.0-0 libnss3 libgconf-2-4 libfontconfig1
+apt-get update && apt-get install -y chromium-browser libnss3 libgconf-2-4 libfontconfig1
 if [ $? -eq 0 ]; then
-    echo "✅ System dependencies installed successfully."
+    echo "✅ System dependencies for Chrome installed successfully."
 else
-    echo "❌ Failed to install system dependencies."
+    echo "❌ Failed to install system dependencies for Chrome. Scraping will likely fail."
 fi
 # --- END OF NEW SECTION ---
 
@@ -102,10 +101,6 @@ echo "Starting application on port $PORT"
 # Start the application with uvicorn
 echo "=== Starting application with uvicorn ==="
 exec python -m uvicorn application:app --host 0.0.0.0 --port $PORT --log-level info
-
-
-
-
 
 
 
