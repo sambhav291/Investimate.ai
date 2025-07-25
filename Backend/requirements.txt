@@ -40,11 +40,14 @@ pandas
 numpy
 nltk
 pypdf
-PyMuPDF
+
 
 # Supabase packages
 supabase
 storage3
 
-# NOTE: torch, transformers, huggingface-hub REMOVED for faster Azure startup
-# These are only needed for preprocessing modules which are lazy-loaded
+torch
+transformers
+huggingface-hub
+PyMuPDF
+
