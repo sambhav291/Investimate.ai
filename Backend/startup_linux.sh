@@ -8,8 +8,16 @@ echo "Pip version: $(pip --version)"
 
 # --- NEW SECTION: Install system dependencies for Selenium/Chrome ---
 echo "=== Installing system dependencies for Chrome ==="
-apt-get update && apt-get install -y chromium-browser libnss3 libgconf-2-4 libfontconfig1
-if [ $? -eq 0 ]; then
+apt-get update
+# Try installing 'chromium' first, which is the more common name now.
+apt-get install -y chromium
+# If that fails, try the older 'chromium-browser' name as a fallback.
+if [ $? -ne 0 ]; then
+    echo "--- 'chromium' not found, trying 'chromium-browser' ---"
+    apt-get install -y chromium-browser
+fi
+
+if [ -f "/usr/bin/chromium" ] || [ -f "/usr/bin/chromium-browser" ]; then
     echo "✅ System dependencies for Chrome installed successfully."
 else
     echo "❌ Failed to install system dependencies for Chrome. Scraping will likely fail."
