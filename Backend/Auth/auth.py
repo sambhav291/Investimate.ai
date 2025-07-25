@@ -4,7 +4,6 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, Request, HTTPException, status
 from fastapi.responses import RedirectResponse
-# ✅ **THE FIX IS HERE**: Import OAuth2PasswordBearer
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
