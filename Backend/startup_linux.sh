@@ -6,6 +6,17 @@ date
 echo "Python version: $(python --version)"
 echo "Pip version: $(pip --version)"
 
+# --- Install system dependencies for Selenium/Chrome ---
+echo "=== Installing system dependencies for Chrome ==="
+apt-get update
+apt-get install -y chromium-browser libglib2.0-0 libnss3 libgconf-2-4 libfontconfig1
+if [ $? -eq 0 ]; then
+    echo "✅ System dependencies installed successfully."
+else
+    echo "❌ Failed to install system dependencies."
+fi
+# --- END OF NEW SECTION ---
+
 # Set working directory
 cd /home/site/wwwroot
 echo "Working directory: $(pwd)"
@@ -15,7 +26,7 @@ echo "Files in current directory:"
 ls -la
 
 # Upgrade pip and install dependencies
-echo "=== Installing dependencies ==="
+echo "=== Installing Python dependencies ==="
 python -m pip install --upgrade pip
 
 # Install from requirements.txt if it exists
@@ -91,3 +102,107 @@ echo "Starting application on port $PORT"
 # Start the application with uvicorn
 echo "=== Starting application with uvicorn ==="
 exec python -m uvicorn application:app --host 0.0.0.0 --port $PORT --log-level info
+
+
+
+
+
+
+
+
+
+
+
+# #!/bin/bash
+# # Startup script for Azure App Service (Linux)
+
+# echo "=== Starting FastAPI application ==="
+# date
+# echo "Python version: $(python --version)"
+# echo "Pip version: $(pip --version)"
+
+# # Set working directory
+# cd /home/site/wwwroot
+# echo "Working directory: $(pwd)"
+
+# # List files to verify deployment
+# echo "Files in current directory:"
+# ls -la
+
+# # Upgrade pip and install dependencies
+# echo "=== Installing dependencies ==="
+# python -m pip install --upgrade pip
+
+# # Install from requirements.txt if it exists
+# if [ -f "requirements.txt" ]; then
+#     echo "Found requirements.txt, installing..."
+#     cat requirements.txt
+#     python -m pip install -r requirements.txt --no-cache-dir --user
+#     if [ $? -eq 0 ]; then
+#         echo "✅ Requirements installation completed successfully"
+#     else
+#         echo "❌ Requirements installation failed, trying without --user flag..."
+#         python -m pip install -r requirements.txt --no-cache-dir
+#     fi
+# elif [ -f "requirements_frozen.txt" ]; then
+#     echo "Found requirements_frozen.txt, installing..."
+#     python -m pip install -r requirements_frozen.txt --no-cache-dir --user || python -m pip install -r requirements_frozen.txt --no-cache-dir
+# else
+#     echo "No requirements file found, installing essential packages..."
+#     python -m pip install fastapi uvicorn pydantic python-multipart python-jose passlib bcrypt python-dotenv sqlalchemy --user
+# fi
+
+# # Verify FastAPI installation
+# echo "=== Verifying installations ==="
+# python -c "import fastapi; print(f'✅ FastAPI {fastapi.__version__} is available')" || {
+#     echo "❌ FastAPI not found, installing..."
+#     python -m pip install fastapi uvicorn
+# }
+
+# # Verify other critical dependencies
+# python -c "import uvicorn; print('✅ Uvicorn is available')" || echo "❌ Uvicorn not available"
+# python -c "import pydantic; print('✅ Pydantic is available')" || echo "❌ Pydantic not available"
+
+# # Check if application file exists
+# if [ -f "application.py" ]; then
+#     echo "✅ application.py found"
+# else
+#     echo "❌ application.py not found!"
+#     echo "Available Python files:"
+#     find . -name "*.py" | head -5
+# fi
+
+# # Add database connectivity diagnostics
+# echo "=== Database Connection Diagnostics ==="
+# if [ -n "$DATABASE_URL" ]; then
+#     echo "Database URL configured: ${DATABASE_URL:0:30}..."
+#     # Extract host and port for connectivity test
+#     DB_HOST=$(echo "$DATABASE_URL" | sed -n 's/.*@\([^:]*\):.*/\1/p')
+#     DB_PORT=$(echo "$DATABASE_URL" | sed -n 's/.*:\([0-9]*\)\/.*/\1/p')
+    
+#     echo "Testing network connectivity to database..."
+#     echo "Host: $DB_HOST"
+#     echo "Port: $DB_PORT"
+    
+#     # Test basic connectivity
+#     if command -v nc >/dev/null 2>&1; then
+#         if nc -z "$DB_HOST" "$DB_PORT" 2>/dev/null; then
+#             echo "✅ Network connectivity to database: OK"
+#         else
+#             echo "❌ Network connectivity to database: FAILED"
+#             echo "This may be due to firewall or network restrictions"
+#         fi
+#     else
+#         echo "⚠️ netcat not available for connectivity test"
+#     fi
+# else
+#     echo "❌ DATABASE_URL environment variable not set"
+# fi
+
+# # Set default port if not provided
+# export PORT=${PORT:-8000}
+# echo "Starting application on port $PORT"
+
+# # Start the application with uvicorn
+# echo "=== Starting application with uvicorn ==="
+# exec python -m uvicorn application:app --host 0.0.0.0 --port $PORT --log-level info

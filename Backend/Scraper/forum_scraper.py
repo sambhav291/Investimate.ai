@@ -6,13 +6,12 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager  # Added this import
+from webdriver_manager.chrome import ChromeDriverManager 
 import certifi
 import json
 
 def get_valuepickr_thread_url(company_name):
-    # Replace the hardcoded path with webdriver-manager
-    service = Service(ChromeDriverManager().install())  # This will auto-download correct version
+    service = Service(ChromeDriverManager().install())  
     
     chrome_options = Options()
     chrome_options.add_argument("--headless=new")
