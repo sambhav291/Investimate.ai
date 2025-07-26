@@ -16,12 +16,10 @@ const StockSelector = ({
   setSummaryLoading,
   summaryError,
   setSummaryError,
-  handleGenerateSummary: initialHandleGenerateSummary,
   reportLoading,
   setReportLoading,
   pdfError,
   setPdfError,
-  handleGenerateReport: initialHandleGenerateReport,
   showPdfPreview,
   setShowPdfPreview,
   storagePath,
@@ -152,6 +150,15 @@ const StockSelector = ({
 
     return () => clearInterval(intervalId);
   }, [reportJobId, pollJobStatus, setReportLoading, setPdfError, setShowPdfPreview, setStoragePath]);
+
+  // Cleanup blob URL on component unmount
+  useEffect(() => {
+    return () => {
+      if (pdfBlobUrl) {
+        URL.revokeObjectURL(pdfBlobUrl);
+      }
+    };
+  }, [pdfBlobUrl]);
 
   const handleGenerateSummary = async () => {
     if (!inputStock) {
@@ -455,6 +462,52 @@ const StockSelector = ({
                   </AnimatePresence>
                 </div>
               </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* PDF Preview Section */}
+      <AnimatePresence>
+        {showPdfPreview && pdfBlobUrl && (
+          <motion.div
+            className="bg-white/5 backdrop-blur-md backdrop-saturate-150 rounded-3xl p-8 shadow-2xl border border-white/10"
+            variants={itemVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+          >
+            {/* Header with Close Button */}
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
+              <motion.h3 
+                className="text-2xl font-bold text-white flex items-center gap-3"
+                variants={itemVariants}
+              >
+                <span>📊</span>
+                PDF Report for {inputStock.toUpperCase()}
+              </motion.h3>
+              
+              <motion.button
+                onClick={() => setShowPdfPreview(false)}
+                className="bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white px-6 py-3 rounded-2xl font-medium transition-all duration-300 flex items-center gap-2 shadow-lg"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                <span>✕</span>
+              </motion.button>
+            </div>
+            
+            {/* PDF Viewer */}
+            <div className="bg-black/30 backdrop-blur-sm rounded-2xl p-4 border border-white/10">
+              <iframe
+                src={pdfBlobUrl}
+                className="w-full h-[600px] rounded-xl"
+                title={`PDF Report for ${inputStock}`}
+                style={{ border: 'none' }}
+              />
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
 
