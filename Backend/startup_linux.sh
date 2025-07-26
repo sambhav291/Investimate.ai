@@ -6,7 +6,7 @@ date
 echo "Python version: $(python --version)"
 echo "Pip version: $(pip --version)"
 
-# --- NEW SECTION: Install system dependencies for Selenium/Chrome ---
+
 echo "=== Installing system dependencies for Chrome ==="
 apt-get update
 # Try installing 'chromium' first, which is the more common name now.
@@ -22,7 +22,7 @@ if [ -f "/usr/bin/chromium" ] || [ -f "/usr/bin/chromium-browser" ]; then
 else
     echo "❌ Failed to install system dependencies for Chrome. Scraping will likely fail."
 fi
-# --- END OF NEW SECTION ---
+
 
 # Set working directory
 cd /home/site/wwwroot
