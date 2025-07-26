@@ -204,7 +204,7 @@ exec python -m uvicorn application:app \
 
 
 # #!/bin/bash
-# # Startup script for Azure App Service (Linux)
+# # Startup script for Azure App Service (Linux)   
 
 # echo "=== Starting FastAPI application ==="
 # date
