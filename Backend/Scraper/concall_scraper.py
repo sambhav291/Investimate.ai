@@ -38,6 +38,7 @@ class ConcallTranscriptScraper:
         self.chrome_options.add_argument("--no-sandbox")
         self.chrome_options.add_argument("--disable-blink-features=AutomationControlled")
         self.chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36")
+        self.chrome_options.add_argument("--disable-dev-shm-usage")
         self.chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
         self.chrome_options.add_experimental_option("useAutomationExtension", False)
         self.chrome_options.add_experimental_option("prefs", {
@@ -156,15 +157,6 @@ class ConcallTranscriptScraper:
                 WebDriverWait(self.driver, 10).until(
                     lambda d: "/company/" in d.current_url or first_text.lower() in d.title.lower()
                 )
-                # current_url = self.driver.current_url
-                # if not "consolidated" in current_url:
-                #     consolidated_url = current_url
-                #     if not consolidated_url.endswith('/'):
-                #         consolidated_url += '/'
-                #     consolidated_url += "consolidated/"
-                #     logger.info(f"Navigating to consolidated view: {consolidated_url}")
-                #     self.driver.get(consolidated_url)
-                #     time.sleep(2)
                 return True
             else:
                 logger.warning("No valid dropdown suggestions found.")
@@ -425,7 +417,7 @@ def scrape_concall_transcripts(company_name):
     logger.info(f"🔍 Scraping concall transcripts for {company_name}...")
     
     try:
-        with ConcallTranscriptScraper(headless=False) as scraper:
+        with ConcallTranscriptScraper(headless=True) as scraper:
             transcripts = scraper.scrape_concall_transcripts(company_name)
             
             if transcripts:
