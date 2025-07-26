@@ -359,7 +359,7 @@ class StockDataScraper:
         
         # --- THIS IS THE KEY CHANGE ---
         # Explicitly set the path to the system-installed browser.
-        self.chrome_options.binary_location = "/usr/bin/chromium-browser"
+        self.chrome_options.binary_location = "/usr/bin/chromium"
         # --- END OF CHANGE ---
         
         self.driver = None

@@ -22,7 +22,7 @@ def get_valuepickr_thread_url(company_name):
     chrome_options.add_argument("--log-level=3")           # Suppress INFO messages
 
     # service = Service(ChromeDriverManager().install())  
-    chrome_options.binary_location = "/usr/bin/chromium-browser"
+    chrome_options.binary_location = "/usr/bin/chromium"
 
     # driver = webdriver.Chrome(service=service, options=chrome_options)
     driver = webdriver.Chrome(options=chrome_options)   

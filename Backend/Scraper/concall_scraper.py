@@ -48,7 +48,7 @@ class ConcallTranscriptScraper:
             "browser.helperApps.neverAsk.saveToDisk": "application/pdf"
         })
         
-        self.chrome_options.binary_location = "/usr/bin/chromium-browser"
+        self.chrome_options.binary_location = "/usr/bin/chromium"
 
         self.driver = None
         self._all_transcripts = []
