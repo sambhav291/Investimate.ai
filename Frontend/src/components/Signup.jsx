@@ -11,8 +11,6 @@ export default function Signup({ isOpen, onClose }) {
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   
-  // ✅ **THE FIX IS HERE**: We now get the single 'login' function from the context.
-  // We use this function to complete the login flow after a successful registration.
   const { login } = useContext(AuthContext);
 
   const submitRegistration = async () => {
@@ -38,8 +36,6 @@ export default function Signup({ isOpen, onClose }) {
         throw new Error(data.detail || 'Registration failed. Please try again.');
       }
       
-      // ✅ **THE FIX IS HERE**: After a successful registration, we immediately call the 'login' function
-      // with the new tokens. This ensures the user is logged in right away and prevents the TypeError.
       if (data.access_token && data.refresh_token) {
         await login(data.access_token, data.refresh_token);
         onClose(); // Close the modal on success
@@ -83,7 +79,6 @@ export default function Signup({ isOpen, onClose }) {
 
   if (!isOpen) return null;
 
-  // --- ALL OF YOUR EXISTING JSX AND STYLING IS PRESERVED BELOW ---
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
       <div className="absolute inset-0 overflow-hidden">
@@ -91,8 +86,10 @@ export default function Signup({ isOpen, onClose }) {
         <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-purple-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
         <div className="absolute top-1/2 right-1/3 w-48 h-48 bg-emerald-500/20 rounded-full blur-3xl animate-pulse delay-500"></div>
       </div>
-      <div className="relative bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl p-8 w-full max-w-md mx-4 shadow-2xl min-h-[400px] max-h-[90vh] overflow-y-auto flex flex-col">
-        <div className="absolute inset-0 h-full w-full bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-emerald-500/20 rounded-3xl blur-sm -z-10"></div>
+      
+      <div className="relative bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-emerald-500/20 backdrop-blur-md border border-white/10 rounded-3xl p-8 w-full max-w-md mx-4 shadow-2xl min-h-[400px] max-h-[90vh] overflow-y-auto flex flex-col">
+        
+
         <div className="flex justify-between items-center mb-6">
           <div>
             <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-emerald-400 bg-clip-text text-transparent">
@@ -244,6 +241,7 @@ export default function Signup({ isOpen, onClose }) {
           </button>
         </form>
       </div>
+      {/* --- MODIFIED PART END --- */}
     </div>
   );
 }
@@ -252,6 +250,7 @@ Signup.propTypes = {
   isOpen: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
 };
+
 
 
 

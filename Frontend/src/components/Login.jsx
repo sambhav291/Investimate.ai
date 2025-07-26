@@ -11,7 +11,6 @@ export default function Login({ isOpen, onClose }) {
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  // ✅ **THE FIX IS HERE**: We now get the single 'login' function from the context.
   const { login } = useContext(AuthContext);
 
   const handleLogin = async (e) => {
@@ -20,7 +19,6 @@ export default function Login({ isOpen, onClose }) {
     setErrorMessage('');
     
     try {
-      // The API call itself is correct and is returning 200 OK.
       const response = await fetch(API_ENDPOINTS.login, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -34,8 +32,6 @@ export default function Login({ isOpen, onClose }) {
         throw new Error(data.detail || 'Login failed. Please check your credentials.');
       }
       
-      // ✅ **THE FIX IS HERE**: After a successful API call, we call the single 'login' function
-      // from the context. This function will handle setting the tokens and fetching the user data.
       if (data.access_token && data.refresh_token) {
         await login(data.access_token, data.refresh_token);
         onClose(); // Close the modal on success
@@ -52,16 +48,18 @@ export default function Login({ isOpen, onClose }) {
 
   if (!isOpen) return null;
 
-  // --- ALL OF YOUR EXISTING JSX AND STYLING IS PRESERVED BELOW ---
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+      {/* This is the decorative background with pulsing circles, it remains unchanged */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-purple-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
         <div className="absolute top-1/2 right-1/3 w-48 h-48 bg-emerald-500/20 rounded-full blur-3xl animate-pulse delay-500"></div>
       </div>
-      <div className="relative bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl p-8 w-full max-w-md mx-4 shadow-2xl min-h-[400px] max-h-[90vh] overflow-y-auto flex flex-col">
-        <div className="absolute inset-0 h-full w-full bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-emerald-500/20 rounded-3xl blur-sm -z-10"></div>
+
+      <div className="relative bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-emerald-500/20 backdrop-blur-md border border-white/10 rounded-3xl p-8 w-full max-w-md mx-4 shadow-2xl min-h-[400px] max-h-[90vh] overflow-y-auto flex flex-col">
+        
+
         <div className="flex justify-between items-center mb-8">
           <div>
             <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-emerald-400 bg-clip-text text-transparent">
@@ -159,7 +157,6 @@ Login.propTypes = {
   isOpen: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
 };
-
 
 
 

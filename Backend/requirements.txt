@@ -51,4 +51,6 @@ transformers
 huggingface-hub
 PyMuPDF
 tiktoken
+weasyprint
+Jinja2
 

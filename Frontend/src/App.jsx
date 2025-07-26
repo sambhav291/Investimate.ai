@@ -28,10 +28,6 @@ const App = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // ✅ **FIX APPLIED HERE**
-  // This useEffect is now simplified. It ONLY handles displaying error messages
-  // that might appear in the URL, such as from a failed login attempt.
-  // The logic for handling successful tokens has been moved to AuthCallback.jsx.
   useEffect(() => {
     const urlParams = new URLSearchParams(location.search);
     const error = urlParams.get('error');
@@ -44,17 +40,12 @@ const App = () => {
       }
       
       setAuthError(errorMessage);
-      
-      // Clean the error from the URL so it doesn't reappear on refresh.
       window.history.replaceState({}, document.title, location.pathname);
-      
-      // Hide the error message after 5 seconds.
+
       const timer = setTimeout(() => setAuthError(null), 5000);
       return () => clearTimeout(timer);
     }
-  }, [location]); // This effect runs whenever the URL location changes.
-
-  // The rest of your component's JSX remains exactly the same.
+  }, [location]); 
   return (
     <>
       <Navbar />
