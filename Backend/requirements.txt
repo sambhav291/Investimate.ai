@@ -46,11 +46,11 @@ pypdf
 supabase
 storage3
 
-# torch
-# transformers
-# huggingface-hub
-# PyMuPDF
-# tiktoken
-# weasyprint
-# Jinja2
+torch
+transformers
+huggingface-hub
+PyMuPDF
+tiktoken
+weasyprint
+Jinja2
 
