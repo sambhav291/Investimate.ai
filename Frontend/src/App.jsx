@@ -159,12 +159,9 @@ const App = () => {
   const location = useLocation();
   const fetchWithAuth = useFetchWithAuth();
 
-  // --- ORIGINAL FUNCTIONALITY PRESERVED ---
   const [scrollProgress, setScrollProgress] = useState(0);
   const [authError, setAuthError] = useState(null);
 
-  // --- STATE MOVED FROM Services.jsx ---
-  // App.jsx is now the single source of truth for the application's state.
   const [inputStock, setInputStock] = useState("");
   const [summaries, setSummaries] = useState({});
   const [summaryLoading, setSummaryLoading] = useState(false);
@@ -177,7 +174,6 @@ const App = () => {
   const [reportJobId, setReportJobId] = useState(null);
   const [pollingStatus, setPollingStatus] = useState('');
 
-  // --- ORIGINAL SCROLL & AUTH LOGIC PRESERVED ---
   useEffect(() => {
     const handleScroll = () => {
       const scrollTop = window.scrollY;
@@ -208,7 +204,6 @@ const App = () => {
     }
   }, [location]);
 
-  // --- LOGIC MOVED FROM Services.jsx ---
   const pollJobStatus = useCallback(async (jobId, statusUrl, onComplete, onError) => {
     try {
       const res = await fetchWithAuth(`${statusUrl}/${jobId}`);
@@ -238,13 +233,13 @@ const App = () => {
         API_ENDPOINTS.summaryStatus,
         (data) => {
           setSummaries(data);
-          setSummaryLoading(false);
+          setSummaryLoading(false); // <-- Loading stops ONLY on completion
           setPollingStatus('');
           setSummaryJobId(null);
         },
         (errorMsg) => {
           setSummaryError(errorMsg);
-          setSummaryLoading(false);
+          setSummaryLoading(false); // <-- Loading stops ONLY on error
           setPollingStatus('');
           setSummaryJobId(null);
         }
@@ -263,13 +258,13 @@ const App = () => {
         (data) => {
           setShowPdfPreview(true);
           setStoragePath(data.storage_path);
-          setReportLoading(false);
+          setReportLoading(false); // <-- Loading stops ONLY on completion
           setPollingStatus('');
           setReportJobId(null);
         },
         (errorMsg) => {
           setPdfError(errorMsg);
-          setReportLoading(false);
+          setReportLoading(false); // <-- Loading stops ONLY on error
           setPollingStatus('');
           setReportJobId(null);
         }
@@ -279,12 +274,13 @@ const App = () => {
     return () => clearInterval(intervalId);
   }, [reportJobId, pollJobStatus]);
 
+  // --- CHANGE IS HERE ---
   const handleGenerateSummary = async () => {
     if (!inputStock) {
       setSummaryError('Please enter a stock name.');
       return;
     }
-    setSummaryLoading(true);
+    setSummaryLoading(true); // <-- Loading starts
     setSummaryError('');
     setSummaries({});
     setShowPdfPreview(false);
@@ -300,13 +296,14 @@ const App = () => {
         throw new Error(errData.detail || 'Failed to start summary generation.');
       }
       const { job_id } = await res.json();
-      setSummaryJobId(job_id);
+      setSummaryJobId(job_id); // This triggers the polling useEffect
       setPollingStatus('Summary generation is in progress. Please wait...');
     } catch (err) {
       setSummaryError(err.message);
-      setSummaryLoading(false);
+      setSummaryLoading(false); // Set loading to false only if the initial call fails
       setPollingStatus('');
     }
+    // REMOVED: `finally { setSummaryLoading(false) }` - This was the cause of the problem.
   };
 
   const handleGenerateReport = async () => {
@@ -314,7 +311,7 @@ const App = () => {
       setPdfError('Please enter a stock name to generate a report.');
       return;
     }
-    setReportLoading(true);
+    setReportLoading(true); // <-- Loading starts
     setPdfError('');
     setShowPdfPreview(false);
     setPollingStatus('Starting report generation...');
@@ -329,13 +326,14 @@ const App = () => {
         throw new Error(errData.detail || 'Failed to start report generation.');
       }
       const { job_id } = await res.json();
-      setReportJobId(job_id);
+      setReportJobId(job_id); // This triggers the polling useEffect
       setPollingStatus('Report generation is in progress. This may take several minutes...');
     } catch (err) {
       setPdfError(err.message);
-      setReportLoading(false);
+      setReportLoading(false); // Set loading to false only if the initial call fails
       setPollingStatus('');
     }
+    // REMOVED: `finally { setReportLoading(false) }`
   };
 
   return (
@@ -368,7 +366,6 @@ const App = () => {
 
         <section ref={refs.stockRef}>
           <Services
-            // Pass all state and handlers down to the Services component
             inputStock={inputStock}
             setInputStock={setInputStock}
             summaries={summaries}
@@ -404,7 +401,6 @@ const App = () => {
 };
 
 export default App;
-
 
 
 
