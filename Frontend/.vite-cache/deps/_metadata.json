@@ -1,77 +1,95 @@
 {
-  "hash": "c1a7fe73",
+  "hash": "aa769099",
   "configHash": "a2e02d15",
-  "lockfileHash": "3a4b6539",
-  "browserHash": "fc66c604",
+  "lockfileHash": "8a07ff07",
+  "browserHash": "1cbe038a",
   "optimized": {
     "react/jsx-dev-runtime": {
       "src": "../../node_modules/react/jsx-dev-runtime.js",
       "file": "react_jsx-dev-runtime.js",
-      "fileHash": "8dd3affd",
+      "fileHash": "95eb0a6d",
       "needsInterop": true
     },
-    "react-router-dom": {
-      "src": "../../node_modules/react-router-dom/dist/index.mjs",
-      "file": "react-router-dom.js",
-      "fileHash": "63047948",
-      "needsInterop": false
-    },
-    "react": {
-      "src": "../../node_modules/react/index.js",
-      "file": "react.js",
-      "fileHash": "7b28d6fc",
-      "needsInterop": true
-    },
-    "react-dom/client": {
-      "src": "../../node_modules/react-dom/client.js",
-      "file": "react-dom_client.js",
-      "fileHash": "04693fad",
-      "needsInterop": true
-    },
-    "prop-types": {
-      "src": "../../node_modules/prop-types/index.js",
-      "file": "prop-types.js",
-      "fileHash": "ae3b90c6",
-      "needsInterop": true
-    },
-    "pdfjs-dist/build/pdf": {
-      "src": "../../node_modules/pdfjs-dist/build/pdf.mjs",
-      "file": "pdfjs-dist_build_pdf.js",
-      "fileHash": "499c6ad8",
-      "needsInterop": false
-    },
-    "framer-motion": {
-      "src": "../../node_modules/framer-motion/dist/es/index.mjs",
-      "file": "framer-motion.js",
-      "fileHash": "8f7c0e31",
+    "@lottiefiles/dotlottie-react": {
+      "src": "../../node_modules/@lottiefiles/dotlottie-react/dist/browser/index.js",
+      "file": "@lottiefiles_dotlottie-react.js",
+      "fileHash": "d018e13d",
       "needsInterop": false
     },
     "@splinetool/react-spline": {
       "src": "../../node_modules/@splinetool/react-spline/dist/react-spline.js",
       "file": "@splinetool_react-spline.js",
-      "fileHash": "6483c36c",
+      "fileHash": "b3648fec",
+      "needsInterop": false
+    },
+    "framer-motion": {
+      "src": "../../node_modules/framer-motion/dist/es/index.mjs",
+      "file": "framer-motion.js",
+      "fileHash": "4d1070d4",
       "needsInterop": false
     },
     "lucide-react": {
       "src": "../../node_modules/lucide-react/dist/esm/lucide-react.js",
       "file": "lucide-react.js",
-      "fileHash": "3b9a48db",
+      "fileHash": "5209f794",
       "needsInterop": false
     },
-    "@lottiefiles/dotlottie-react": {
-      "src": "../../node_modules/@lottiefiles/dotlottie-react/dist/browser/index.js",
-      "file": "@lottiefiles_dotlottie-react.js",
-      "fileHash": "88af372c",
+    "pdfjs-dist/build/pdf": {
+      "src": "../../node_modules/pdfjs-dist/build/pdf.mjs",
+      "file": "pdfjs-dist_build_pdf.js",
+      "fileHash": "be79d094",
+      "needsInterop": false
+    },
+    "prop-types": {
+      "src": "../../node_modules/prop-types/index.js",
+      "file": "prop-types.js",
+      "fileHash": "d4034b1d",
+      "needsInterop": true
+    },
+    "react": {
+      "src": "../../node_modules/react/index.js",
+      "file": "react.js",
+      "fileHash": "dd614513",
+      "needsInterop": true
+    },
+    "react-dom/client": {
+      "src": "../../node_modules/react-dom/client.js",
+      "file": "react-dom_client.js",
+      "fileHash": "824d45b1",
+      "needsInterop": true
+    },
+    "react-markdown": {
+      "src": "../../node_modules/react-markdown/index.js",
+      "file": "react-markdown.js",
+      "fileHash": "3221a78d",
       "needsInterop": false
     },
     "react-pdf": {
       "src": "../../node_modules/react-pdf/dist/index.js",
       "file": "react-pdf.js",
-      "fileHash": "aa555bdc",
+      "fileHash": "df722513",
       "needsInterop": false
+    },
+    "react-router-dom": {
+      "src": "../../node_modules/react-router-dom/dist/index.mjs",
+      "file": "react-router-dom.js",
+      "fileHash": "8334038c",
+      "needsInterop": false
+    },
+    "react/jsx-runtime": {
+      "src": "../../node_modules/react/jsx-runtime.js",
+      "file": "react_jsx-runtime.js",
+      "fileHash": "b64538e4",
+      "needsInterop": true
     }
   },
   "chunks": {
+    "boolean-6GW6JIEE": {
+      "file": "boolean-6GW6JIEE.js"
+    },
+    "howler-HFV3EF3T": {
+      "file": "howler-HFV3EF3T.js"
+    },
     "opentype-4GFL454O": {
       "file": "opentype-4GFL454O.js"
     },
@@ -80,6 +98,9 @@
     },
     "gaussian-splat-compression-HYCCJA6T": {
       "file": "gaussian-splat-compression-HYCCJA6T.js"
+    },
+    "chunk-2FI3C5CE": {
+      "file": "chunk-2FI3C5CE.js"
     },
     "navmesh-QHKC64UT": {
       "file": "navmesh-QHKC64UT.js"
@@ -90,20 +111,14 @@
     "process-LVJ3LRGN": {
       "file": "process-LVJ3LRGN.js"
     },
-    "boolean-6GW6JIEE": {
-      "file": "boolean-6GW6JIEE.js"
+    "chunk-W2HZVVEF": {
+      "file": "chunk-W2HZVVEF.js"
     },
-    "howler-HFV3EF3T": {
-      "file": "howler-HFV3EF3T.js"
+    "chunk-D65RT7HI": {
+      "file": "chunk-D65RT7HI.js"
     },
     "chunk-LHF4VH4G": {
       "file": "chunk-LHF4VH4G.js"
-    },
-    "chunk-2FI3C5CE": {
-      "file": "chunk-2FI3C5CE.js"
-    },
-    "chunk-AO33BGRN": {
-      "file": "chunk-AO33BGRN.js"
     },
     "chunk-TAMO26DO": {
       "file": "chunk-TAMO26DO.js"
