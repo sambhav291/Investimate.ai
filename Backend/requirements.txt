@@ -53,4 +53,5 @@ PyMuPDF
 tiktoken
 weasyprint
 Jinja2
+PyYAML
 
