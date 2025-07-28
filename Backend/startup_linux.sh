@@ -108,6 +108,6 @@ echo "Starting application on port $PORT"
 
 # Start the application with uvicorn
 echo "=== Starting application with uvicorn ==="
-exec python -m uvicorn application:app --host 0.0.0.0 --port $PORT --log-level info
+exec python -m uvicorn main:app --host 0.0.0.0 --port $PORT --log-level info
 
 
