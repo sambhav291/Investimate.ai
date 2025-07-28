@@ -1,26 +1,69 @@
 #!/bin/bash
 
-# --- STEP 1: Change to the correct directory ---
-# This is the most important step. All subsequent commands depend on this.
-cd /home/site/wwwroot/Backend/
+echo "--- Startup script initiated ---"
+date
 
-# --- STEP 2: Install System Dependencies (One-time setup) ---
-echo "=== Installing system dependencies for Chrome (if not already installed) ==="
-apt-get update && apt-get install -y chromium
+# --- STEP 1: Change to the correct application directory ---
+cd /home/site/wwwroot/Backend/
+echo "✅ Changed working directory to: $(pwd)"
+
+
+# --- STEP 2: Install System Dependencies (This will be fast on subsequent runs) ---
+echo "--- STEP 2: Installing system dependencies for Chrome ---"
+apt-get update -y && apt-get install -y chromium
+if [ $? -eq 0 ]; then
+    echo "✅ System dependencies installed successfully."
+else
+    echo "❌ System dependency installation failed."
+fi
+
 
 # --- STEP 3: Install Python Packages ---
-echo "=== Installing Python dependencies from requirements.txt ==="
+echo "--- STEP 3: Installing Python dependencies from requirements.txt ---"
 pip install --upgrade pip
 pip install -r requirements.txt
+if [ $? -eq 0 ]; then
+    echo "✅ Python requirements installed successfully."
+else
+    # This part is crucial. If pip install fails, the script will exit.
+    echo "❌ FATAL: Python requirements installation failed. Exiting."
+    exit 1
+fi
 
-# --- STEP 4: Start the Application ---
-echo "=== Starting application with uvicorn ==="
+
+# --- STEP 4: Start the Uvicorn Server ---
+echo "--- STEP 4: Starting application with Uvicorn ---"
+# The --log-level info flag will give us detailed logs from the running app itself.
 uvicorn main:app --host 0.0.0.0 --port 8000 --log-level info
 
 
 
 
 
+#script without logs new one_______________________________________________________
+# #!/bin/bash
+
+# # --- STEP 1: Change to the correct directory ---
+# # This is the most important step. All subsequent commands depend on this.
+# cd /home/site/wwwroot/Backend/
+
+# # --- STEP 2: Install System Dependencies (One-time setup) ---
+# echo "=== Installing system dependencies for Chrome (if not already installed) ==="
+# apt-get update && apt-get install -y chromium
+
+# # --- STEP 3: Install Python Packages ---
+# echo "=== Installing Python dependencies from requirements.txt ==="
+# pip install --upgrade pip
+# pip install -r requirements.txt
+
+# # --- STEP 4: Start the Application ---
+# echo "=== Starting application with uvicorn ==="
+# uvicorn main:app --host 0.0.0.0 --port 8000 --log-level info
+
+
+
+
+#old script with logs__________________________________________________________
 # #!/bin/bash
 # # Startup script for Azure App Service (Linux)   
 
