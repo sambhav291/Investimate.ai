@@ -46,8 +46,8 @@ pypdf
 supabase
 storage3
 
-# torch
-# transformers
+torch
+transformers
 huggingface-hub
 PyMuPDF
 tiktoken
