@@ -43,24 +43,24 @@ async def generate_stock_summary(stock_name: str, user_id: int):
         concall_summary = "No concall transcript data available."
 
         # --- Step 1: Forum Summary ---
-        try:
-            logger.info(f"Step 1: Scraping forum data for {stock_name}...")
-            forum_raw = await asyncio.to_thread(scrape_forum_data, stock_name)
+        # try:
+        #     logger.info(f"Step 1: Scraping forum data for {stock_name}...")
+        #     forum_raw = await asyncio.to_thread(scrape_forum_data, stock_name)
             
-            if forum_raw and len(forum_raw) > 0:
-                logger.info(f"Forum data scraped successfully: {len(forum_raw)} posts")
-                forum_preprocessed = preprocess_forum_data([{'Stock Name': stock_name, 'Posts': forum_raw}])
+        #     if forum_raw and len(forum_raw) > 0:
+        #         logger.info(f"Forum data scraped successfully: {len(forum_raw)} posts")
+        #         forum_preprocessed = preprocess_forum_data([{'Stock Name': stock_name, 'Posts': forum_raw}])
                 
-                if forum_preprocessed and len(forum_preprocessed) > 0:
-                    forum_summary = summarize_forum_data(forum_preprocessed) or "Forum data processed but no summary generated."
-                else:
-                    forum_summary = "No relevant forum posts found after preprocessing."
-            else:
-                forum_summary = "No forum data found for this company."
-        except Exception:
-            logger.error(f"Error in forum processing for {stock_name}:")
-            logger.error(traceback.format_exc())
-            forum_summary = "An error occurred while processing forum data."
+        #         if forum_preprocessed and len(forum_preprocessed) > 0:
+        #             forum_summary = summarize_forum_data(forum_preprocessed) or "Forum data processed but no summary generated."
+        #         else:
+        #             forum_summary = "No relevant forum posts found after preprocessing."
+        #     else:
+        #         forum_summary = "No forum data found for this company."
+        # except Exception:
+        #     logger.error(f"Error in forum processing for {stock_name}:")
+        #     logger.error(traceback.format_exc())
+        #     forum_summary = "An error occurred while processing forum data."
 
         # --- Step 2: Annual Report Summary ---
         try:
@@ -84,25 +84,25 @@ async def generate_stock_summary(stock_name: str, user_id: int):
             annual_summary = "An error occurred while processing the annual report."
 
         # --- Step 3: Concall Summary ---
-        try:
-            logger.info(f"Step 3: Scraping concall transcripts for {stock_name}...")
-            concall_raw = await asyncio.to_thread(scrape_concall_transcripts, stock_name)
+        # try:
+        #     logger.info(f"Step 3: Scraping concall transcripts for {stock_name}...")
+        #     concall_raw = await asyncio.to_thread(scrape_concall_transcripts, stock_name)
             
-            if concall_raw and len(concall_raw) > 0:
-                logger.info(f"Concall transcripts scraped successfully: {len(concall_raw)} transcripts")
-                concall_text = " ".join([transcript.get("text", "") for transcript in concall_raw])
-                _, _, concall_preprocessed = preprocess_concall_transcripts(concall_text)
+        #     if concall_raw and len(concall_raw) > 0:
+        #         logger.info(f"Concall transcripts scraped successfully: {len(concall_raw)} transcripts")
+        #         concall_text = " ".join([transcript.get("text", "") for transcript in concall_raw])
+        #         _, _, concall_preprocessed = preprocess_concall_transcripts(concall_text)
                 
-                if concall_preprocessed and len(concall_preprocessed) > 0:
-                    concall_summary = summarize_concall_transcripts(concall_preprocessed) or "Concall transcript processed but no summary generated."
-                else:
-                    concall_summary = "No relevant content found in concall transcript after preprocessing."
-            else:
-                concall_summary = "No concall transcript data found for this company."
-        except Exception:
-            logger.error(f"Error in concall transcript processing for {stock_name}:")
-            logger.error(traceback.format_exc())
-            concall_summary = "An error occurred while processing concall transcripts."
+        #         if concall_preprocessed and len(concall_preprocessed) > 0:
+        #             concall_summary = summarize_concall_transcripts(concall_preprocessed) or "Concall transcript processed but no summary generated."
+        #         else:
+        #             concall_summary = "No relevant content found in concall transcript after preprocessing."
+        #     else:
+        #         concall_summary = "No concall transcript data found for this company."
+        # except Exception:
+        #     logger.error(f"Error in concall transcript processing for {stock_name}:")
+        #     logger.error(traceback.format_exc())
+        #     concall_summary = "An error occurred while processing concall transcripts."
 
         # --- Step 4: Combined Summary ---
         try:

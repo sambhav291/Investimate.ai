@@ -38,19 +38,19 @@ async def generate_stock_report(stock_name: str, user_id: int):
         enhanced_concall = "No concall transcript data found for this company."
         
         # --- Step 1: Forum Post data ---
-        try:
-            logger.info(f"Step 1: Scraping forum data for {stock_name}...")
-            forum_raw = await asyncio.to_thread(scrape_forum_data, stock_name)
+        # try:
+        #     logger.info(f"Step 1: Scraping forum data for {stock_name}...")
+        #     forum_raw = await asyncio.to_thread(scrape_forum_data, stock_name)
             
-            if forum_raw and len(forum_raw) > 0:
-                logger.info(f"Forum data scraped successfully: {len(forum_raw)} posts")
-                forum_preprocessed = preprocess_forum_data([{'Stock Name': stock_name, 'Posts': forum_raw}])
-                enhanced_forum = enhance_forum_data(forum_preprocessed, stock_name)
-            else:
-                logger.warning(f"No forum data found for {stock_name}")
-        except Exception:
-            logger.error(f"Error in forum processing for {stock_name}:")
-            logger.error(traceback.format_exc())
+        #     if forum_raw and len(forum_raw) > 0:
+        #         logger.info(f"Forum data scraped successfully: {len(forum_raw)} posts")
+        #         forum_preprocessed = preprocess_forum_data([{'Stock Name': stock_name, 'Posts': forum_raw}])
+        #         enhanced_forum = enhance_forum_data(forum_preprocessed, stock_name)
+        #     else:
+        #         logger.warning(f"No forum data found for {stock_name}")
+        # except Exception:
+        #     logger.error(f"Error in forum processing for {stock_name}:")
+        #     logger.error(traceback.format_exc())
 
         # --- Step 2: Annual Report data ---
         try:
@@ -69,20 +69,20 @@ async def generate_stock_report(stock_name: str, user_id: int):
             logger.error(traceback.format_exc())
 
         # --- Step 3: Concall Transcript data ---
-        try:
-            logger.info(f"Step 3: Scraping concall transcripts for {stock_name}...")
-            concall_raw = await asyncio.to_thread(scrape_concall_transcripts, stock_name)
+        # try:
+        #     logger.info(f"Step 3: Scraping concall transcripts for {stock_name}...")
+        #     concall_raw = await asyncio.to_thread(scrape_concall_transcripts, stock_name)
             
-            if concall_raw and len(concall_raw) > 0:
-                logger.info(f"Concall transcripts scraped successfully: {len(concall_raw)} transcripts")
-                concall_text = " ".join([transcript.get("text", "") for transcript in concall_raw])
-                _, _, concall_preprocessed = preprocess_concall_transcripts(concall_text)
-                enhanced_concall = enhance_concall_data(concall_preprocessed, stock_name)
-            else:
-                logger.warning(f"No concall transcript data found for {stock_name}")
-        except Exception:
-            logger.error(f"Error in concall transcript processing for {stock_name}:")
-            logger.error(traceback.format_exc())
+        #     if concall_raw and len(concall_raw) > 0:
+        #         logger.info(f"Concall transcripts scraped successfully: {len(concall_raw)} transcripts")
+        #         concall_text = " ".join([transcript.get("text", "") for transcript in concall_raw])
+        #         _, _, concall_preprocessed = preprocess_concall_transcripts(concall_text)
+        #         enhanced_concall = enhance_concall_data(concall_preprocessed, stock_name)
+        #     else:
+        #         logger.warning(f"No concall transcript data found for {stock_name}")
+        # except Exception:
+        #     logger.error(f"Error in concall transcript processing for {stock_name}:")
+        #     logger.error(traceback.format_exc())
 
         # --- Step 4: Generate report sections ---
         sections = None
