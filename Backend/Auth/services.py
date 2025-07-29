@@ -13,12 +13,10 @@ def create_user(db: Session, user: schemas.UserCreate, hashed_password: str | No
     """
     db_user = models.User(
         email=user.email,
-        # ✅ FIX: Map the incoming 'full_name' from the schema to the 'name' column in the model
         name=user.full_name,
         username=user.username or user.email,
         profile_pic=user.profile_pic,
         hashed_password=hashed_password,
-        # ✅ FIX: Map the 'is_oauth' flag to the 'is_google_account' column in the model
         is_google_account=is_oauth
     )
     db.add(db_user)
