@@ -74,7 +74,8 @@ app.add_middleware(
 # --- CORS (Cross-Origin Resource Sharing) Middleware ---
 origins = [
     "http://localhost:5173",
-    "https://investimate.vercel.app",
+    "https://investimate-ai-eight.vercel.app/",
+    "https://investimate-backend-cedqfyhyhsfpdbg4.centralindia-01.azurewebsites.net"
 ]
 app.add_middleware(
     CORSMiddleware,
