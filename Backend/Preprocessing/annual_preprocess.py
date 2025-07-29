@@ -13,12 +13,29 @@ logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Load FinBERT model
-logger.info("Loading FinBERT tokenizer and model...")
-tokenizer = AutoTokenizer.from_pretrained("yiyanghkust/finbert-tone")
-model = AutoModelForSequenceClassification.from_pretrained("yiyanghkust/finbert-tone")
-logger.info("Model and tokenizer loaded successfully.")
+# --- Global Cache for FinBERT Model and Tokenizer ---
+FINBERT_TOKENIZER_ANNUAL = None
+FINBERT_MODEL_ANNUAL = None
 
+def get_finbert_model_and_tokenizer_annual():
+    """
+    Lazy-loads the FinBERT model and tokenizer for annual reports.
+    """
+    global FINBERT_TOKENIZER_ANNUAL, FINBERT_MODEL_ANNUAL
+    
+    if FINBERT_TOKENIZER_ANNUAL is None or FINBERT_MODEL_ANNUAL is None:
+        logger.info("--- [Annual] Loading FinBERT tokenizer and model for the first time... ---")
+        try:
+            from transformers import AutoTokenizer, AutoModelForSequenceClassification
+            model_name = "yiyanghkust/finbert-tone"
+            FINBERT_TOKENIZER_ANNUAL = AutoTokenizer.from_pretrained(model_name)
+            FINBERT_MODEL_ANNUAL = AutoModelForSequenceClassification.from_pretrained(model_name)
+            logger.info("--- [Annual] FinBERT model and tokenizer loaded successfully. ---")
+        except Exception as e:
+            logger.error(f"[Annual] Could not load FinBERT model: {e}", exc_info=True)
+            FINBERT_TOKENIZER_ANNUAL, FINBERT_MODEL_ANNUAL = None, None
+            
+    return FINBERT_TOKENIZER_ANNUAL, FINBERT_MODEL_ANNUAL
 DEFAULT_KEYWORDS = [
     "valuation", "management", "risk", "moat", "market", "revenue", "profit", "loss",
     "guidance", "demand", "supply", "pricing", "competition", "capex", "growth",
@@ -30,12 +47,17 @@ DEFAULT_KEYWORDS = [
 LABELS = ["Negative", "Neutral", "Positive"]
 
 def chunk_text(text, max_tokens=512):
+    tokenizer, _ = get_finbert_model_and_tokenizer_annual()
+    if not tokenizer: return [text]
     tokens = tokenizer.tokenize(text)
     chunks = [' '.join(tokens[i:i+max_tokens]) for i in range(0, len(tokens), max_tokens)]
     return [tokenizer.convert_tokens_to_string(tokenizer.tokenize(chunk)) for chunk in chunks]
 
 def analyze_sentiment_finbert(text):
     """Analyze sentiment with better error handling and length limits"""
+    tokenizer, model = get_finbert_model_and_tokenizer_annual()
+    if tokenizer is None or model is None:
+        return "Neutral"
     try:
         # Limit text length for sentiment analysis
         if len(text) > 10000:  # Limit to ~2500 tokens

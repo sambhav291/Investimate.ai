@@ -4,20 +4,34 @@ from collections import defaultdict
 import torch
 import torch.nn.functional as F
 import warnings
+import logging
 
+logger = logging.getLogger(__name__)
 # Load FinBERT in a more robust way
-def get_finbert_model():
-    try:
-        from transformers import AutoTokenizer, AutoModelForSequenceClassification
-        tokenizer = AutoTokenizer.from_pretrained("yiyanghkust/finbert-tone")
-        model = AutoModelForSequenceClassification.from_pretrained("yiyanghkust/finbert-tone")
-        return tokenizer, model
-    except Exception as e:
-        warnings.warn(f"Could not load FinBERT model: {e}")
-        return None, None
+# --- Global Cache for FinBERT Model and Tokenizer ---
+FINBERT_TOKENIZER_CONCALL = None
+FINBERT_MODEL_CONCALL = None
 
-# Initialize models at module level but handle failures gracefully
-tokenizer, model = get_finbert_model()
+def get_finbert_model_and_tokenizer_concall():
+    """
+    Lazy-loads the FinBERT model and tokenizer for concall transcripts.
+    """
+    global FINBERT_TOKENIZER_CONCALL, FINBERT_MODEL_CONCALL
+
+    if FINBERT_TOKENIZER_CONCALL is None or FINBERT_MODEL_CONCALL is None:
+        logger.info("--- [Concall] Loading FinBERT tokenizer and model for the first time... ---")
+        try:
+            from transformers import AutoTokenizer, AutoModelForSequenceClassification
+            model_name = "yiyanghkust/finbert-tone"
+            FINBERT_TOKENIZER_CONCALL = AutoTokenizer.from_pretrained(model_name)
+            FINBERT_MODEL_CONCALL = AutoModelForSequenceClassification.from_pretrained(model_name)
+            logger.info("--- [Concall] FinBERT model and tokenizer loaded successfully. ---")
+        except Exception as e:
+            warnings.warn(f"Could not load FinBERT model: {e}")
+            FINBERT_TOKENIZER_CONCALL, FINBERT_MODEL_CONCALL = None, None
+
+    return FINBERT_TOKENIZER_CONCALL, FINBERT_MODEL_CONCALL
+
 
 DEFAULT_KEYWORDS = [
     "valuation", "management", "risk", "moat", "market", "revenue", "profit", "loss",
@@ -28,6 +42,7 @@ DEFAULT_KEYWORDS = [
 ]
 
 def analyze_sentiment_finbert(text):
+    tokenizer, model = get_finbert_model_and_tokenizer_concall()
     # Fall back to neutral if no models are available
     if tokenizer is None or model is None:
         return "Neutral"
