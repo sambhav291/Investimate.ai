@@ -25,6 +25,7 @@ const Services = () => {
   });
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState("");
+  const [summaryJobId, setSummaryJobId] = useState(null); 
   const [pdfUrl, setPdfUrl] = useState("");
   const [reportLoading, setReportLoading] = useState(false);
   const [pdfError, setPdfError] = useState("");
@@ -90,6 +91,53 @@ const Services = () => {
     };
   }, [pdfBlobUrl]);
 
+  // This useEffect hook handles polling for the summary result
+  useEffect(() => {
+    if (!summaryJobId || !summaryLoading) {
+      return;
+    }
+
+    const intervalId = setInterval(async () => {
+      try {
+        const response = await fetchWithAuth(`${API_ENDPOINTS.summaryStatus}/${summaryJobId}`);
+        if (!response.ok) {
+          // Stop polling on server error
+          throw new Error("Failed to get summary status.");
+        }
+
+        const result = await response.json();
+
+        if (result.status === "completed") {
+          clearInterval(intervalId); // Stop polling
+          setSummaries({
+            forum: result.data.forum_summary || "No forum data available",
+            annual: result.data.annual_report_summary || "No annual report data available",
+            concall: result.data.concall_summary || "No concall data available",
+            combined: result.data.combined_summary || "No combined summary available",
+          });
+          setSummaryLoading(false);
+          setSummaryJobId(null);
+        } else if (result.status === "failed") {
+          clearInterval(intervalId); // Stop polling
+          setSummaryError(result.error || "Summary generation failed in the backend.");
+          setSummaryLoading(false);
+          setSummaryJobId(null);
+        }
+        // If status is "processing", do nothing and let the interval run again
+
+      } catch (err) {
+        clearInterval(intervalId); // Stop polling on fetch error
+        setSummaryError(err.message);
+        setSummaryLoading(false);
+        setSummaryJobId(null);
+      }
+    }, 5000); // Poll every 5 seconds
+
+    // Cleanup function to clear the interval if the component unmounts
+    return () => clearInterval(intervalId);
+
+  }, [summaryJobId, summaryLoading, fetchWithAuth]);
+
   const itemVariants = {
     hidden: { opacity: 0, y: 30 },
     visible: { 
@@ -116,33 +164,33 @@ const Services = () => {
       setSummaryError("Please enter a company name");
       return;
     }
+    // Reset state and start loading
     setSummaryLoading(true);
     setSummaries({ forum: "", annual: "", concall: "", combined: "" });
     setSummaryError("");
+    setSummaryJobId(null);
+
     try {
       const response = await fetchWithAuth(API_ENDPOINTS.generateSummary, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ stock_name: trimmedStock }),
       });
+
       if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error("Stock not found. Try a valid company name.");
-        }
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Something went wrong.");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || "Failed to start summary generation.");
       }
+
       const data = await response.json();
-      setSummaries({
-        forum: data.forum_summary || "No forum data available",
-        annual: data.annual_report_summary || "No annual report data available",
-        concall: data.concall_summary || "No concall data available",
-        combined: data.combined_summary || "No combined summary available",
-      });
+      if (data.job_id) {
+        setSummaryJobId(data.job_id); // Save the job ID to trigger the polling
+      } else {
+        throw new Error("Backend did not return a job ID.");
+      }
     } catch (err) {
       setSummaryError(err.message);
-    } finally {
-      setSummaryLoading(false);
+      setSummaryLoading(false); // Stop loading on initial failure
     }
   };
 
