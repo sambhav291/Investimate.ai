@@ -9,17 +9,17 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [authStatus, setAuthStatus] = useState('loading'); // loading | authenticated | unauthenticated
 
-  const setAuthData = (accessToken, newRefreshToken) => {
-    setToken(accessToken);
-    setRefreshToken(newRefreshToken);
-    if (accessToken && newRefreshToken) {
-      localStorage.setItem("access_token", accessToken);
-      localStorage.setItem("refresh_token", newRefreshToken);
-    } else {
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("refresh_token");
-    }
-  };
+const setAuthData = useCallback((accessToken, newRefreshToken) => {
+  setToken(accessToken);
+  setRefreshToken(newRefreshToken);
+  if (accessToken && newRefreshToken) {
+    localStorage.setItem("access_token", accessToken);
+    localStorage.setItem("refresh_token", newRefreshToken);
+  } else {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+  }
+}, []); // Add useCallback with an empty dependency array
 
   const logout = useCallback(() => {
     setAuthData(null, null);
@@ -27,24 +27,22 @@ export const AuthProvider = ({ children }) => {
     setAuthStatus('unauthenticated');
   }, []);
 
-  const login = async (accessToken, newRefreshToken) => {
-    // This is called by Login.jsx or AuthCallback.jsx
-    setAuthStatus('loading');
-    setAuthData(accessToken, newRefreshToken);
-    // After setting tokens, fetch the user's data to confirm authentication
-    try {
-      const response = await fetch(API_ENDPOINTS.me, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      if (!response.ok) throw new Error("Failed to fetch user after login");
-      const userData = await response.json();
-      setUser(userData);
-      setAuthStatus('authenticated');
-    } catch (e) {
-      console.error(e);
-      logout(); // If we can't fetch the user, something is wrong, so log out.
-    }
-  };
+const login = useCallback(async (accessToken, newRefreshToken) => {
+  setAuthStatus('loading');
+  setAuthData(accessToken, newRefreshToken);
+  try {
+    const response = await fetch(API_ENDPOINTS.me, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!response.ok) throw new Error("Failed to fetch user after login");
+    const userData = await response.json();
+    setUser(userData);
+    setAuthStatus('authenticated');
+  } catch (e) {
+    console.error(e);
+    logout();
+  }
+}, [setAuthData, logout]);
 
   useEffect(() => {
     // This effect runs only ONCE on initial application load.
@@ -84,19 +82,9 @@ export const AuthProvider = ({ children }) => {
 
           if (refreshResponse.ok) {
             const newTokens = await refreshResponse.json();
-            setAuthData(newTokens.access_token, newTokens.refresh_token);
-            
-            // Fetch user with the new token
-            const newUserResponse = await fetch(API_ENDPOINTS.me, {
-              headers: { Authorization: `Bearer ${newTokens.access_token}` },
-            });
-            
-            if (newUserResponse.ok) {
-              const newUser = await newUserResponse.json();
-              setUser(newUser);
-              setAuthStatus('authenticated');
-              return;
-            }
+            // Use the login flow to handle setting tokens and fetching the user
+            await login(newTokens.access_token, newTokens.refresh_token); 
+            return;
           }
         }
         
@@ -110,13 +98,10 @@ export const AuthProvider = ({ children }) => {
     };
 
     initializeAuth();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty dependency array ensures this runs only once.
+  }, []); 
 
   return (
-    <AuthContext.Provider value={{ token, user, authStatus, login, logout }}>
-      {/* This is the key to preventing race conditions. The rest of the app */}
-      {/* will not render until the initial authentication check is complete. */}
+    <AuthContext.Provider value={{ token, refreshToken, user, authStatus, login, logout, setAuthData }}>
       {authStatus !== 'loading' && children}
     </AuthContext.Provider>
   );

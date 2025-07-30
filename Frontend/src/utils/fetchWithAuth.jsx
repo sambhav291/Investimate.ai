@@ -3,11 +3,11 @@ import { AuthContext } from "../context/AuthContext";
 import { API_ENDPOINTS } from "./apiConfig";
 
 export const useFetchWithAuth = () => {
-  const { refreshToken, setAuthTokens, logout } = useContext(AuthContext);
+  const { token, refreshToken, setAuthData, logout } = useContext(AuthContext);
 
   return async (url, options = {}) => {
-    let accessToken = localStorage.getItem("token"); // ⬅️ always fresh token
-    const currentRefreshToken = localStorage.getItem("refresh_token") || refreshToken;
+    let accessToken = token; 
+    const currentRefreshToken = refreshToken; 
 
 // Create a new Headers object to avoid overwriting issues
     const headers = new Headers(options.headers || {});
@@ -37,7 +37,7 @@ export const useFetchWithAuth = () => {
           const data = await refreshRes.json();
           console.log("[Auth] Refreshed token received:", data.access_token);
 
-          setAuthTokens(data.access_token, data.refresh_token);
+          setAuthData(data.access_token, data.refresh_token);
 
           // ⬅️ Immediately retry request with new token
           finalOptions.headers.set('Authorization', `Bearer ${data.access_token}`);
