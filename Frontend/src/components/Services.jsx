@@ -14,7 +14,7 @@ import { API_ENDPOINTS } from '../utils/apiConfig.js';
 const Services = () => {
   // All of your original state and logic are preserved here.
   // This component correctly acts as the "brain" for this section of the page.
-  const { setToken, token } = useContext(AuthContext);
+  const { login, token } = useContext(AuthContext);
   const fetchWithAuth = useFetchWithAuth();
   const [inputStock, setInputStock] = useState("");
   const [summaries, setSummaries] = useState({
@@ -26,6 +26,7 @@ const Services = () => {
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState("");
   const [summaryJobId, setSummaryJobId] = useState(null); 
+  const [reportJobId, setReportJobId] = useState(null); // Add this
   const [pdfUrl, setPdfUrl] = useState("");
   const [reportLoading, setReportLoading] = useState(false);
   const [pdfError, setPdfError] = useState("");
@@ -39,7 +40,6 @@ const Services = () => {
   const [saveMessage, setSaveMessage] = useState("");
   const { refs } = useScroll();
 
-  // All of your original handler functions and useEffects are preserved.
   useEffect(() => {
     if (showPdfPreview && storagePath && storagePath !== lastFetchedPath) {
       setPdfError("");
@@ -138,6 +138,46 @@ const Services = () => {
 
   }, [summaryJobId, summaryLoading, fetchWithAuth]);
 
+
+
+  // This useEffect hook handles polling for the PDF report result
+  useEffect(() => {
+    if (!reportJobId || !reportLoading) {
+      return;
+    }
+
+    const intervalId = setInterval(async () => {
+      try {
+        const response = await fetchWithAuth(`${API_ENDPOINTS.reportStatus}/${reportJobId}`);
+        if (!response.ok) throw new Error("Failed to get report status.");
+
+        const result = await response.json();
+
+        if (result.status === "completed") {
+          clearInterval(intervalId);
+          setPdfUrl(result.data.signed_url);
+          setStoragePath(result.data.storage_path);
+          setShowPdfPreview(true);
+          setReportLoading(false);
+          setReportJobId(null);
+        } else if (result.status === "failed") {
+          clearInterval(intervalId);
+          setPdfError(result.error || "Report generation failed in the backend.");
+          setReportLoading(false);
+          setReportJobId(null);
+        }
+      } catch (err) {
+        clearInterval(intervalId);
+        setPdfError(err.message);
+        setReportLoading(false);
+        setReportJobId(null);
+      }
+    }, 5000); // Poll every 5 seconds
+
+    return () => clearInterval(intervalId);
+
+  }, [reportJobId, reportLoading, fetchWithAuth]);
+
   const itemVariants = {
     hidden: { opacity: 0, y: 30 },
     visible: { 
@@ -200,34 +240,33 @@ const Services = () => {
       setPdfError("Please enter a company name");
       return;
     }
+    // Reset state and start loading
     setReportLoading(true);
     setPdfError("");
     setPdfUrl("");
     setShowPdfPreview(false);
-    setStoragePath("");
-    setLastFetchedPath("");
-    setNumPages(null);
-    if (pdfBlobUrl) {
-      URL.revokeObjectURL(pdfBlobUrl);
-      setPdfBlobUrl("");
-    }
+    setReportJobId(null);
+
     try {
       const response = await fetchWithAuth(API_ENDPOINTS.generateReport, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ stock_name: trimmedStock }),
       });
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Something went wrong.");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || "Failed to start report generation.");
       }
+
       const data = await response.json();
-      setPdfUrl(data.signed_url);
-      setStoragePath(data.storage_path);
-      setShowPdfPreview(true);
+      if (data.job_id) {
+        setReportJobId(data.job_id); // Save the job ID to trigger polling
+      } else {
+        throw new Error("Backend did not return a report job ID.");
+      }
     } catch (err) {
       setPdfError(err.message);
-    } finally {
       setReportLoading(false);
     }
   };
@@ -286,13 +325,14 @@ const Services = () => {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const urltoken = params.get("token");
-    if (urltoken) {
-      setToken(urltoken);
-      localStorage.setItem("token", urltoken);
-      window.history.replaceState({}, document.title, "/");
+    const urlToken = params.get("token");
+    const urlRefreshToken = params.get("refresh_token");
+
+    if (urlToken && urlRefreshToken) {
+      login(urlToken, urlRefreshToken);
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
-  }, [setToken]);
+  }, [login]);
 
   return (
     <div className="min-h-screen relative overflow-hidden pt-32">
