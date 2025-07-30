@@ -9,14 +9,21 @@ export const useFetchWithAuth = () => {
     let accessToken = localStorage.getItem("token"); // ⬅️ always fresh token
     const currentRefreshToken = localStorage.getItem("refresh_token") || refreshToken;
 
-    options.credentials = "include";
-    options.headers = {
-      ...options.headers,
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": options.headers?.["Content-Type"] || "application/json",
+// Create a new Headers object to avoid overwriting issues
+    const headers = new Headers(options.headers || {});
+    if (accessToken) {
+        headers.set('Authorization', `Bearer ${accessToken}`);
+    }
+    if (!headers.has('Content-Type')) {
+        headers.set('Content-Type', 'application/json');
+    }
+    const finalOptions = {
+        ...options,
+        credentials: "include",
+        headers: headers,
     };
 
-    let response = await fetch(url, options);
+    let response = await fetch(url, finalOptions);
 
     if (response.status === 401 && currentRefreshToken) {
       try {
@@ -33,8 +40,8 @@ export const useFetchWithAuth = () => {
           setAuthTokens(data.access_token, data.refresh_token);
 
           // ⬅️ Immediately retry request with new token
-          options.headers.Authorization = `Bearer ${data.access_token}`;
-          response = await fetch(url, options);
+          finalOptions.headers.set('Authorization', `Bearer ${data.access_token}`);
+          response = await fetch(url, finalOptions);
         } else {
           logout();
           throw new Error("Session expired. Please log in again.");
