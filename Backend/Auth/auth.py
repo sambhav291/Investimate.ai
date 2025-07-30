@@ -21,7 +21,7 @@ load_dotenv()
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 logger = logging.getLogger(__name__)
 
-# --- Security & JWT Configuration ---
+# --- Security & JWT Configuration ----
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 SECRET_KEY = os.getenv("SECRET_KEY", "a_very_secret_key_that_should_be_in_env")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
