@@ -12,8 +12,6 @@ import "react-pdf/dist/Page/TextLayer.css";
 import { API_ENDPOINTS } from '../utils/apiConfig.js';
 
 const Services = () => {
-  // All of your original state and logic are preserved here.
-  // This component correctly acts as the "brain" for this section of the page.
   const { login, token } = useContext(AuthContext);
   const fetchWithAuth = useFetchWithAuth();
   const [inputStock, setInputStock] = useState("");
