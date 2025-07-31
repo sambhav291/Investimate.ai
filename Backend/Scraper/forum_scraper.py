@@ -3,11 +3,27 @@ import requests
 from bs4 import BeautifulSoup
 import certifi
 import json
+import random
+import logging
 
-# --- BROWSER-LIKE HEADERS ---
+# --- Basic Configuration ---
+logging.basicConfig(level=logging.INFO, 
+                    format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# --- More Realistic Browser Headers ---
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36"
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Referer": "https://www.google.com/",
+    "Connection": "keep-alive",
+    "Upgrade-Insecure-Requests": "1"
 }
+
+# --- Create a single session object to persist cookies and headers ---
+SESSION = requests.Session()
+SESSION.headers.update(HEADERS)
 
 def get_valuepickr_thread_url(company_name: str) -> str | None:
     """
@@ -15,49 +31,41 @@ def get_valuepickr_thread_url(company_name: str) -> str | None:
     This replicates the "click the first suggestion" logic without a browser.
     """
     search_url = f"https://forum.valuepickr.com/search?q={company_name}"
-    print(f"🔍 Searching for '{company_name}' at: {search_url}")
+    logger.info(f"🔍 Searching for '{company_name}' at: {search_url}")
     
     try:
-        # 1. Make a direct request to the search page
-        response = requests.get(search_url, headers=HEADERS, timeout=10)
+        # Add a small random delay to mimic human behavior
+        time.sleep(random.uniform(0.5, 1.5))
+        response = SESSION.get(search_url, timeout=15)
         response.raise_for_status()
         
-        # 2. Parse the HTML response to find the links
         soup = BeautifulSoup(response.content, 'html.parser')
         
-        # 3. Find the first search result link that points to a thread.
-        # The CSS selector looks for an <a> tag with class "search-link"
-        # and an href that contains "/t/", which is unique to forum threads.
+        # Find the first search result link that points to a thread
         first_result_link = soup.select_one("a.search-link[href*='/t/']")
         
         if first_result_link:
             href = first_result_link.get("href")
-            print(f"✅ Found thread URL: {href}")
+            logger.info(f"✅ Found thread URL: {href}")
             return href
                 
-        print(f"⚠️ No matching thread found for: {company_name}")
+        logger.warning(f"⚠️ No matching thread found for: {company_name}")
         return None
 
-    except requests.exceptions.RequestException as e:
-        print(f"❌ Error during search: {e}")
+    except requests.RequestException as e:
+        logger.error(f"❌ Error during search for '{company_name}': {e}")
         return None
 
 def scrape_valuepickr_posts(url: str):
     """
-    (This function is already optimized and remains unchanged)
     Fetches all posts from a given ValuePickr thread URL using its JSON API.
     """
     try:
-        # Append .json to the URL to get the raw data
         api_url = url.rstrip('/') + ".json"
-        print(f"🔍 Fetching posts from: {api_url}")
+        logger.info(f"🔍 Fetching posts from API: {api_url}")
         
-        response = requests.get(
-            api_url,
-            headers=HEADERS,
-            timeout=15,
-            verify=certifi.where()
-        )
+        time.sleep(random.uniform(0.5, 1.5))
+        response = SESSION.get(api_url, timeout=20, verify=certifi.where())
         response.raise_for_status()
         data = response.json()
 
@@ -65,7 +73,7 @@ def scrape_valuepickr_posts(url: str):
         posts = data.get("post_stream", {}).get("posts", [])
         
         if not posts:
-            print("⚠️ No posts found in the thread")
+            logger.warning("⚠️ No posts found in the thread JSON response")
             return []
             
         for post in posts:
@@ -76,44 +84,42 @@ def scrape_valuepickr_posts(url: str):
             soup = BeautifulSoup(cooked_html, 'html.parser')
             text = soup.get_text(separator=' ', strip=True)
             
-            if len(text) > 50 and not text.lower().startswith(('thanks', 'thank you', '+1', 'agreed')):
+            # Filter for meaningful posts
+            if len(text) > 50 and not text.lower().startswith(('thanks', 'thank you', '+1', 'agreed', 'great work')):
                 extracted_posts.append(text)
 
-        print(f"✅ Extracted {len(extracted_posts)} meaningful posts")
+        logger.info(f"✅ Extracted {len(extracted_posts)} meaningful posts")
         return extracted_posts
 
-    except requests.exceptions.RequestException as e:
-        print(f"❌ Network error scraping forum data from {url}: {e}")
+    except requests.RequestException as e:
+        logger.error(f"❌ Network error scraping forum data from {url}: {e}")
         return []
     except json.JSONDecodeError as e:
-        print(f"❌ JSON parsing error for {url}: {e}")
+        logger.error(f"❌ JSON parsing error for {url}: {e}")
         return []
     except Exception as e:
-        print(f"❌ Unexpected error scraping forum data from {url}: {e}")
+        logger.error(f"❌ Unexpected error scraping forum data from {url}: {e}")
         return []
 
 def scrape_forum_data(company_name: str):
     """
-    (This function is already optimized and remains unchanged)
     Main function to scrape forum data for a company.
     """
-    print(f"🔍 Starting forum data scraping for: {company_name}")
+    logger.info(f"🔍 Starting forum data scraping for: {company_name}")
     
     thread_url = get_valuepickr_thread_url(company_name)
     if not thread_url:
-        print(f"❌ Could not find a thread for {company_name}")
+        logger.error(f"❌ Could not find a thread for {company_name}, aborting forum scrape.")
         return []
 
-    print(f"🔍 Scraping posts for: {company_name}")
     posts = scrape_valuepickr_posts(thread_url)
     
     if posts:
-        print(f"✅ Successfully scraped {len(posts)} posts for {company_name}")
+        logger.info(f"✅ Successfully scraped {len(posts)} posts for {company_name}")
     else:
-        print(f"⚠️ No posts found for {company_name}")
+        logger.warning(f"⚠️ No posts were ultimately extracted for {company_name}")
         
     return posts
-
 
 
 
