@@ -33,8 +33,8 @@ fi
 
 # --- STEP 4: Start the Uvicorn Server ---
 echo "--- STEP 4: Starting application with Uvicorn ---"
-# The --log-level info flag will give us detailed logs from the running app itself.
-uvicorn main:app --host 0.0.0.0 --port 8000 --log-level info
+# uvicorn main:app --host 0.0.0.0 --port 8000 --log-level info
+gunicorn -w 1 -k uvicorn.workers.UvicornWorker main:app --timeout 600 --host 0.0.0.0 --port 8000 --log-level info
 
 
 

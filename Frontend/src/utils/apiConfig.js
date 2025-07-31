@@ -13,7 +13,9 @@ export const API_ENDPOINTS = {
   // --- Report endpoints ---
   // These routes are defined in main.py at the root level (no prefix)
   generateSummary: `${API_BASE_URL}/generate-summary`,
+  summaryStatus: `${API_BASE_URL}/summary-status`,
   generateReport: `${API_BASE_URL}/generate-report`,
+  reportStatus: `${API_BASE_URL}/report-status`, 
   saveReport: `${API_BASE_URL}/save-report`,
   myReports: `${API_BASE_URL}/my-reports`,
   deleteReport: `${API_BASE_URL}/delete-report`,
