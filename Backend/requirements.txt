@@ -30,8 +30,8 @@ google-auth
 openai
 
 # Web scraping packages
-selenium
-webdriver-manager
+# selenium
+# webdriver-manager
 beautifulsoup4
 lxml
 
