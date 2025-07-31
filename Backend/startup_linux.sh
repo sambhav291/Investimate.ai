@@ -34,7 +34,8 @@ fi
 # --- STEP 4: Start the Uvicorn Server ---
 echo "--- STEP 4: Starting application with Uvicorn ---"
 # uvicorn main:app --host 0.0.0.0 --port 8000 --log-level info
-gunicorn -w 1 -k uvicorn.workers.UvicornWorker main:app --timeout 600 --host 0.0.0.0 --port 8000 --log-level info
+# New command in startup_linux.sh
+gunicorn -w 1 -k uvicorn.workers.UvicornWorker main:app --timeout 600 --bind 0.0.0.0:8000 --log-level info
 
 
 
