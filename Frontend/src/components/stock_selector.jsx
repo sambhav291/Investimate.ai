@@ -97,7 +97,7 @@ const StockSelector = ({
             <motion.div className="relative">
               <input
                 type="text"
-                placeholder="Enter stock symbol (e.g., AAPL, TSLA, NVDA)"
+                placeholder="Enter stock symbol (e.g., AAPL, TSLA, JSW)"
                 value={inputStock}
                 onChange={(e) => setInputStock(e.target.value)}
                 onKeyUp={handleKeyPress}

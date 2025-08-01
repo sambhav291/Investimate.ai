@@ -12,7 +12,7 @@ import "react-pdf/dist/Page/TextLayer.css";
 import { API_ENDPOINTS } from '../utils/apiConfig.js';
 
 const Services = () => {
-  const { login, token } = useContext(AuthContext);
+  const { login, token, setShowLoginModal } = useContext(AuthContext);
   const fetchWithAuth = useFetchWithAuth();
   const [inputStock, setInputStock] = useState("");
   const [summaries, setSummaries] = useState({
@@ -191,6 +191,11 @@ const Services = () => {
   };
 
   const handleGenerateSummary = async () => {
+    if (!token) {
+      setShowLoginModal(true); // Show login prompt if user is not logged in
+      return; // Stop the function from proceeding
+    }
+
     const trimmedStock = inputStock.trim();
     if (!trimmedStock) {
       setSummaryError("Please enter a company name");
