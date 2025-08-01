@@ -169,7 +169,7 @@ def get_summary_status(job_id: str):
 # --- Find this function in your code (around line 203) ---
 @app.post("/generate-report", tags=["Analysis"])
 async def generate_report_async(
-    req: StockRequest, 
+    req: StockRequest,  
     background_tasks: BackgroundTasks,
     current_user: models.User = Depends(get_current_user)
 ):
