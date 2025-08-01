@@ -7,7 +7,8 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null);
   const [refreshToken, setRefreshToken] = useState(null);
   const [user, setUser] = useState(null);
-  const [authStatus, setAuthStatus] = useState('loading'); // loading | authenticated | unauthenticated
+  const [authStatus, setAuthStatus] = useState('loading'); 
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
 const setAuthData = useCallback((accessToken, newRefreshToken) => {
   setToken(accessToken);
@@ -101,7 +102,7 @@ const login = useCallback(async (accessToken, newRefreshToken) => {
   }, []); 
 
   return (
-    <AuthContext.Provider value={{ token, refreshToken, user, authStatus, login, logout, setAuthData }}>
+    <AuthContext.Provider value={{ token, refreshToken, user, authStatus, login, logout, setAuthData, showLoginModal, setShowLoginModal }}>
       {authStatus !== 'loading' && children}
     </AuthContext.Provider>
   );

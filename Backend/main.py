@@ -166,6 +166,7 @@ def get_summary_status(job_id: str):
         raise HTTPException(status_code=404, detail="Job not found")
     return result
 
+# --- Find this function in your code (around line 203) ---
 @app.post("/generate-report", tags=["Analysis"])
 async def generate_report_async(
     req: StockRequest, 
