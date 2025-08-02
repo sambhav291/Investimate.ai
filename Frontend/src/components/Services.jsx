@@ -30,64 +30,64 @@ const Services = () => {
   const [pdfError, setPdfError] = useState("");
   const [showPdfPreview, setShowPdfPreview] = useState(false);
   const [storagePath, setStoragePath] = useState("");
-  const [pdfBlobUrl, setPdfBlobUrl] = useState("");
-  const [pdfBlobLoading, setPdfBlobLoading] = useState(false);
-  const [lastFetchedPath, setLastFetchedPath] = useState("");
+  //const [pdfBlobUrl, setPdfBlobUrl] = useState("");
+  //const [pdfBlobLoading, setPdfBlobLoading] = useState(false);
+ // const [lastFetchedPath, setLastFetchedPath] = useState("");
   const [numPages, setNumPages] = useState(null);
   const [saveLoading, setSaveLoading] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
   const { refs } = useScroll();
 
-  useEffect(() => {
-    if (showPdfPreview && storagePath && storagePath !== lastFetchedPath) {
-      setPdfError("");
-      setPdfBlobLoading(true);
-      setNumPages(null);
-      if (pdfBlobUrl) {
-        URL.revokeObjectURL(pdfBlobUrl);
-        setPdfBlobUrl("");
-      }
+  // useEffect(() => {
+  //   if (showPdfPreview && storagePath && storagePath !== lastFetchedPath) {
+  //     setPdfError("");
+  //     setPdfBlobLoading(true);
+  //     setNumPages(null);
+  //     if (pdfBlobUrl) {
+  //       URL.revokeObjectURL(pdfBlobUrl);
+  //       setPdfBlobUrl("");
+  //     }
       
-      const fetchPdfBlob = async () => {
-        try {
-          const response = await fetchWithAuth(
-            `${API_ENDPOINTS.previewPdf}?storage_path=${encodeURIComponent(storagePath)}`
-          );
+  //     const fetchPdfBlob = async () => {
+  //       try {
+  //         const response = await fetchWithAuth(
+  //           `${API_ENDPOINTS.previewPdf}?storage_path=${encodeURIComponent(storagePath)}`
+  //         );
           
-          if (!response.ok) {
-            throw new Error(`Failed to fetch PDF: ${response.status}`);
-          }
+  //         if (!response.ok) {
+  //           throw new Error(`Failed to fetch PDF: ${response.status}`);
+  //         }
           
-          const blob = await response.blob();
-          const blobUrl = URL.createObjectURL(blob);
-          setPdfBlobUrl(blobUrl);
-          setLastFetchedPath(storagePath);
-        } catch (error) {
-          setPdfError("Failed to load PDF preview");
-        } finally {
-          setPdfBlobLoading(false);
-        }
-      };
+  //         const blob = await response.blob();
+  //         const blobUrl = URL.createObjectURL(blob);
+  //         setPdfBlobUrl(blobUrl);
+  //         setLastFetchedPath(storagePath);
+  //       } catch (error) {
+  //         setPdfError("Failed to load PDF preview");
+  //       } finally {
+  //         setPdfBlobLoading(false);
+  //       }
+  //     };
       
-      fetchPdfBlob();
-    } else if (!showPdfPreview) {
-      if (pdfBlobUrl) {
-        URL.revokeObjectURL(pdfBlobUrl);
-        setPdfBlobUrl("");
-      }
-      setPdfBlobLoading(false);
-      setLastFetchedPath("");
-      setNumPages(null);
-    }
-  }, [showPdfPreview, storagePath, fetchWithAuth, pdfBlobUrl, lastFetchedPath]);
+  //     fetchPdfBlob();
+  //   } else if (!showPdfPreview) {
+  //     if (pdfBlobUrl) {
+  //       URL.revokeObjectURL(pdfBlobUrl);
+  //       setPdfBlobUrl("");
+  //     }
+  //     setPdfBlobLoading(false);
+  //     setLastFetchedPath("");
+  //     setNumPages(null);
+  //   }
+  // }, [showPdfPreview, storagePath, fetchWithAuth, pdfBlobUrl, lastFetchedPath]);
 
-  useEffect(() => {
-    return () => {
-      if (pdfBlobUrl) {
-        URL.revokeObjectURL(pdfBlobUrl);
-      }
-    };
-  }, [pdfBlobUrl]);
+  // useEffect(() => {
+  //   return () => {
+  //     if (pdfBlobUrl) {
+  //       URL.revokeObjectURL(pdfBlobUrl);
+  //     }
+  //   };
+  // }, [pdfBlobUrl]);
 
   useEffect(() => {
     if (!summaryJobId || !summaryLoading) {
@@ -281,13 +281,13 @@ const Services = () => {
 
   const handleClosePdfPreview = () => {
     setShowPdfPreview(false);
-    if (pdfBlobUrl) {
-      URL.revokeObjectURL(pdfBlobUrl);
-      setPdfBlobUrl("");
+    if (pdfUrl) {
+      // URL.revokeObjectURL(pdfUrl);
+      setPdfUrl("");
     }
     setPdfUrl("");
     setStoragePath("");
-    setLastFetchedPath("");
+    // setLastFetchedPath("");
     setNumPages(null);
     setSaveMessage("");
   };
@@ -399,11 +399,11 @@ const Services = () => {
                     Report Preview - {inputStock.toUpperCase()}
                   </motion.h3>
                   <div className="flex gap-3 flex-wrap">
-                    <motion.button onClick={handleDownloadPdf} disabled={!pdfBlobUrl} className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3 rounded-2xl font-medium transition-all duration-300 flex items-center gap-2 shadow-lg" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
+                    <motion.button onClick={handleDownloadPdf} disabled={!pdfUrl} className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3 rounded-2xl font-medium transition-all duration-300 flex items-center gap-2 shadow-lg" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
                       <span>⬇️</span>
                       Download PDF
                     </motion.button>
-                    <motion.button onClick={handleSaveToLibrary} disabled={saveLoading || !pdfBlobUrl || !token} className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 disabled:from-emerald-600/50 disabled:to-emerald-700/50 text-white px-6 py-3 rounded-2xl font-medium transition-all duration-300 flex items-center gap-2 shadow-lg" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 }}>
+                    <motion.button onClick={handleSaveToLibrary} disabled={saveLoading || !pdfUrl || !token} className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 disabled:from-emerald-600/50 disabled:to-emerald-700/50 text-white px-6 py-3 rounded-2xl font-medium transition-all duration-300 flex items-center gap-2 shadow-lg" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 }}>
                       {saveLoading ? ( <> <motion.div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full" animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} /> Saving... </> ) : ( <> <span>💾</span> Save to Library </> )}
                     </motion.button>
                     <motion.button onClick={handleClosePdfPreview} className="bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white px-6 py-3 rounded-2xl font-medium transition-all duration-300 flex items-center gap-2 shadow-lg" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 }}>
@@ -418,10 +418,10 @@ const Services = () => {
                     {saveMessage}
                   </motion.div>
                 )}
-                {pdfBlobUrl && !pdfBlobLoading ? (
+                {pdfUrl && !reportLoading ? (
                   <div className="bg-white/10 backdrop-blur-sm rounded-2xl overflow-hidden shadow-lg border border-white/20">
                     <div className="bg-black/20 backdrop-blur-sm overflow-y-auto max-h-[80vh] p-4" style={{ scrollbarWidth: 'thin', scrollbarColor: '#3fffad #1f2937' }}>
-                      <Document file={pdfBlobUrl} onLoadSuccess={({ numPages }) => setNumPages(numPages)} onLoadError={() => setPdfError("Failed to load PDF")} className="flex flex-col items-center" loading={<div className="flex items-center justify-center p-8 text-blue-400"><div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div></div>}>
+                      <Document file={pdfUrl} onLoadSuccess={({ numPages }) => setNumPages(numPages)} onLoadError={() => setPdfError("Failed to load PDF")} className="flex flex-col items-center" loading={<div className="flex items-center justify-center p-8 text-blue-400"><div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div></div>}>
                         {Array.from(new Array(numPages), (el, index) => (
                           <motion.div key={`page_${index + 1}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }} className="mb-6 last:mb-0">
                             <Page pageNumber={index + 1} width={Math.min(800, window.innerWidth * 0.8)} className="shadow-lg rounded-lg overflow-hidden border border-white/20" />
