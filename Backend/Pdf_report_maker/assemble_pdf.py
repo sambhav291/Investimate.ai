@@ -598,14 +598,15 @@ class BrokerageReportAssembler:
                 file_size = os.path.getsize(output_path)
                 print(f"[PDF] Generated PDF size: {file_size} bytes")
 
-                storage_path = f"reports/{os.path.basename(output_path)}"
-                upload_pdf_to_supabase(output_path, dest_path=storage_path)
-                print(f"[Supabase] Uploaded PDF to: {storage_path}")
+                # storage_path = f"reports/{os.path.basename(output_path)}"
+                # upload_pdf_to_supabase(output_path, dest_path=storage_path)
+                # print(f"[Supabase] Uploaded PDF to: {storage_path}")
 
-                os.remove(output_path)
-                print(f"[PDF] Local PDF deleted: {output_path}")
+                # os.remove(output_path)
+                # print(f"[PDF] Local PDF deleted: {output_path}")
 
-                return storage_path
+                # return storage_path
+                return output_path
 
             except Exception as e:
                 print(f"[ERROR] PDF generation/upload failed: {e}")

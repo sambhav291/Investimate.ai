@@ -21,6 +21,7 @@ from Enhanced_preprocessing.enhance_annual import enhance_annual_data
 from Enhanced_preprocessing.enhance_concall import enhance_concall_data
 from Pdf_report_maker.section_generator import ReportSectionGenerator
 from Pdf_report_maker.assemble_pdf import BrokerageReportAssembler
+from Auth.supabase_utils import upload_pdf_to_supabase
 
 # Note: This function is now async and accepts user_id to properly work with FastAPI's background tasks
 async def generate_stock_report(stock_name: str, user_id: int):
@@ -99,20 +100,32 @@ async def generate_stock_report(stock_name: str, user_id: int):
 
         # --- Step 5: Assemble and generate PDF ---
         pdf_path = None
+        local_pdf_path = None
         if sections:
             try:
                 logger.info("Step 5: Assembling PDF report...")
                 assembler = BrokerageReportAssembler(stock_name)
-                pdf_path = assembler.generate_pdf(sections)
-                if not pdf_path:
-                    logger.error("PDF generation failed: No path was returned from assembler.")
+                # pdf_path = assembler.generate_pdf(sections)
+                local_pdf_path = assembler.generate_pdf(sections)
+                # if not pdf_path:
+                #     logger.error("PDF generation failed: No path was returned from assembler.")
+                # else:
+                #     logger.info(f"PDF report generated successfully: {pdf_path}")
+                if local_pdf_path and os.path.exists(local_pdf_path):
+                    storage_path = f"reports/{os.path.basename(local_pdf_path)}"
+                    upload_pdf_to_supabase(local_pdf_path, dest_path=storage_path)
+                    logger.info(f"PDF report generated and uploaded successfully: {storage_path}")
+                    pdf_path = storage_path 
+                    
                 else:
-                    logger.info(f"PDF report generated successfully: {pdf_path}")
-                    # Here you would add the logic to save the pdf_path to your database
-                    # associated with the user_id.
+                    logger.error("PDF generation failed: No local file path was returned from assembler.")
             except Exception:
                 logger.error(f"Error generating PDF for {stock_name}:")
                 logger.error(traceback.format_exc())
+            finally:
+                if local_pdf_path and os.path.exists(local_pdf_path):
+                    os.remove(local_pdf_path)
+                    logger.info(f"[PDF] Local PDF deleted: {local_pdf_path}")
         
         logger.info(f"BACKGROUND TASK COMPLETED for {stock_name}. PDF path: {pdf_path}")
         return pdf_path, os.path.basename(pdf_path) if pdf_path else None
