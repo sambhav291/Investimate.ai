@@ -39,33 +39,33 @@ async def generate_stock_report(stock_name: str, user_id: int):
         enhanced_concall = "No concall transcript data found for this company."
 
         # --- Step 1: Forum Post data ---
-        try:
-            logger.info(f"Step 1: Scraping forum data for {stock_name}...")
-            forum_raw = await asyncio.to_thread(scrape_forum_data, stock_name)
+        # try:
+        #     logger.info(f"Step 1: Scraping forum data for {stock_name}...")
+        #     forum_raw = await asyncio.to_thread(scrape_forum_data, stock_name)
             
-            if forum_raw and len(forum_raw) > 0:
-                logger.info(f"Forum data scraped successfully: {len(forum_raw)} posts")
-                forum_preprocessed = preprocess_forum_data([{'Stock Name': stock_name, 'Posts': forum_raw}])
-                enhanced_forum = enhance_forum_data(forum_preprocessed, stock_name)
-            else:
-                logger.warning(f"No forum data found for {stock_name}")
-        except Exception:
-            logger.error(f"Error in forum processing for {stock_name}:")
-            logger.error(traceback.format_exc())
+        #     if forum_raw and len(forum_raw) > 0:
+        #         logger.info(f"Forum data scraped successfully: {len(forum_raw)} posts")
+        #         forum_preprocessed = preprocess_forum_data([{'Stock Name': stock_name, 'Posts': forum_raw}])
+        #         enhanced_forum = enhance_forum_data(forum_preprocessed, stock_name)
+        #     else:
+        #         logger.warning(f"No forum data found for {stock_name}")
+        # except Exception:
+        #     logger.error(f"Error in forum processing for {stock_name}:")
+        #     logger.error(traceback.format_exc())
 
         # --- Step 2: Annual Report data ---
-        # try:
-        #     logger.info(f"Step 2: Scraping annual report for {stock_name}...")
-        #     annual_raw = await asyncio.to_thread(scrape_annual_report_text, stock_name)
-        #     if annual_raw:
-        #         logger.info(f"Annual report scraped successfully: {len(annual_raw)} sections")
-        #         annual_text = " ".join([text for _, text in annual_raw])
-        #         annual_preprocessed = preprocess_annual_report(annual_text)
-        #         enhanced_annual = enhance_annual_data(annual_preprocessed, stock_name)
-        #     else:
-        #         logger.warning(f"No annual report data found for {stock_name}")
-        # except Exception:
-        #     logger.error(f"Error in annual report processing for {stock_name}:", exc_info=True)
+        try:
+            logger.info(f"Step 2: Scraping annual report for {stock_name}...")
+            annual_raw = await asyncio.to_thread(scrape_annual_report_text, stock_name)
+            if annual_raw:
+                logger.info(f"Annual report scraped successfully: {len(annual_raw)} sections")
+                annual_text = " ".join([text for _, text in annual_raw])
+                annual_preprocessed = preprocess_annual_report(annual_text)
+                enhanced_annual = enhance_annual_data(annual_preprocessed, stock_name)
+            else:
+                logger.warning(f"No annual report data found for {stock_name}")
+        except Exception:
+            logger.error(f"Error in annual report processing for {stock_name}:", exc_info=True)
 
 
         # --- Step 3: Concall Transcript data ---

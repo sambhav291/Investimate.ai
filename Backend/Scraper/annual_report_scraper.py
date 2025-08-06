@@ -50,30 +50,53 @@ def get_company_url_from_screener(company_name: str) -> str | None:
         return None
 
 def download_and_extract_pdf(pdf_url: str) -> tuple[str, str] | None:
-    """Downloads a PDF and extracts its text content."""
+    """
+    Downloads a PDF, extracts its text content, and implements a retry mechanism.
+    """
     logger.info(f"📥 Downloading PDF from: {pdf_url}")
-    try:
-        time.sleep(random.uniform(1.0, 2.0))
-        response = SESSION.get(pdf_url, stream=True, timeout=30)
-        response.raise_for_status()
-
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_pdf:
-            for chunk in response.iter_content(chunk_size=8192):
-                temp_pdf.write(chunk)
-            temp_pdf_path = temp_pdf.name
-
-        text = ""
-        with fitz.open(temp_pdf_path) as doc:
-            text = "".join(page.get_text() for page in doc)
-        os.unlink(temp_pdf_path)
-
-        if len(text.strip()) > 100:
-            return (os.path.basename(pdf_url), text)
-        return None
+    
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            # Add a small random delay before each attempt
+            time.sleep(random.uniform(1.0, 3.0))
             
-    except Exception as e:
-        logger.error(f"Failed to process PDF from {pdf_url}: {e}")
-        return None
+            # Use a longer timeout and stream the response
+            response = SESSION.get(pdf_url, stream=True, timeout=60) # Increased timeout to 60 seconds
+            response.raise_for_status()
+
+            # Process the PDF from the stream
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_pdf:
+                for chunk in response.iter_content(chunk_size=8192):
+                    temp_pdf.write(chunk)
+                temp_pdf_path = temp_pdf.name
+
+            text = ""
+            with fitz.open(temp_pdf_path) as doc:
+                text = "".join(page.get_text() for page in doc)
+            os.unlink(temp_pdf_path)
+
+            if len(text.strip()) > 100:
+                return (os.path.basename(pdf_url), text)
+            
+            logger.warning(f"Extracted text from {pdf_url} is too short, considering it empty.")
+            return None
+
+        except requests.exceptions.RequestException as e:
+            logger.warning(f"Attempt {attempt + 1} of {max_retries} failed for {pdf_url}: {e}")
+            if attempt + 1 == max_retries:
+                logger.error(f"All download attempts failed for {pdf_url}.")
+                return None
+            time.sleep(5 * (attempt + 1)) # Wait longer before the next retry (5s, 10s)
+            
+        except Exception as e:
+            logger.error(f"A non-network error occurred while processing PDF from {pdf_url}: {e}", exc_info=True)
+            # Clean up temp file if it exists
+            if 'temp_pdf_path' in locals() and os.path.exists(temp_pdf_path):
+                os.unlink(temp_pdf_path)
+            return None
+            
+    return None
 
 def scrape_annual_report_text(company_name: str):
     logger.info(f"🔍 Starting robust annual report scrape for '{company_name}'...")
@@ -86,10 +109,7 @@ def scrape_annual_report_text(company_name: str):
         response = SESSION.get(company_url, timeout=15)
         response.raise_for_status()
         soup = BeautifulSoup(response.content, 'html.parser')
-        
-        # =====================================================================
-        # --- ✅ RE-IMPLEMENTING YOUR ORIGINAL, MORE ROBUST SELECTOR LOGIC ---
-        # =====================================================================
+
         report_links = []
         
         # 1. First, try to find links with "Financial Year"
