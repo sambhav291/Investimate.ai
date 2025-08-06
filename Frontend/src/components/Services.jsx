@@ -339,7 +339,6 @@ const Services = () => {
         </motion.div>
 
         <div ref={refs.stockRef}>
-          {/* --- THE ONLY CHANGE IS HERE: Pass all necessary props down --- */}
           <StockSelector
             inputStock={inputStock}
             setInputStock={setInputStock}
@@ -351,6 +350,8 @@ const Services = () => {
             reportLoading={reportLoading}
             pdfError={pdfError}
             handleGenerateReport={handleGenerateReport}
+            setReportLoading={setReportLoading}
+            setPdfError={setPdfError}
           />
           {(summaryLoading || reportLoading) && (
             <div className="flex flex-col items-center justify-center mt-2">

@@ -5,9 +5,6 @@ import ReactMarkdown from 'react-markdown';
 import { AuthContext } from '../context/AuthContext.jsx';
 import Login from './Login.jsx';
 
-// --- CHANGE 1: SIMPLIFY PROPS ---
-// We are removing all the 'set...' functions and other props that are no longer needed
-// because this component will not manage its own state for API data.
 const StockSelector = ({
   inputStock,
   setInputStock,
@@ -25,12 +22,6 @@ const StockSelector = ({
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const { token } = useContext(AuthContext);
 
-  // --- CHANGE 2: REMOVE ALL API LOGIC ---
-  // All of the following have been REMOVED from this file:
-  // - useState for summaryJobId, reportJobId, pollingStatus, etc.
-  // - useEffect hooks for polling job statuses.
-  // - The async handleGenerateSummary and handleGenerateReport functions that call the API.
-  // This logic now lives exclusively in Services.jsx.
 
   const handleGenerateReportWithAuth = () => {
     if (!token) {
@@ -48,14 +39,10 @@ const StockSelector = ({
     }
   };
   
-  // --- CHANGE 3: ADD A HANDLER TO CLOSE THE SUMMARY VIEW ---
   const handleCloseSummary = () => {
-    // We call the setSummaries function from the parent to clear the data,
-    // which will hide the summary component.
     setSummaries({ forum: "", annual: "", concall: "", combined: "" });
   };
 
-  // --- NO CHANGES BELOW THIS LINE to helper functions or JSX ---
 
   const getTabIcon = (tab) => {
     const icons = { combined: '🔄', annual: '📊', concall: '🎧', forum: '💬' };
@@ -267,8 +254,7 @@ const StockSelector = ({
   );
 };
 
-// --- CHANGE 4: UPDATE PROPTYPES ---
-// The prop types are updated to reflect the new, simplified props.
+
 StockSelector.propTypes = {
   inputStock: PropTypes.string.isRequired,
   setInputStock: PropTypes.func.isRequired,
