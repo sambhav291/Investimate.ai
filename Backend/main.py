@@ -121,26 +121,15 @@ def run_report_generation(job_id: str, stock_name: str, user_id: int):
     import asyncio
     logger.info(f"--- [Job {job_id}] Starting background report generation for {stock_name} ---")
     try:
-        pdf_path, filename = asyncio.run(generate_stock_report(stock_name, user_id))
+        # The generator function now handles everything: creation, upload, and URL signing
+        result_data = asyncio.run(generate_stock_report(stock_name, user_id))
         
-        if not pdf_path or not filename:
-            raise Exception("PDF file was not generated or filename is missing.")
-        
-        storage_path = f"reports/{filename}"
-        upload_pdf_to_supabase(pdf_path, storage_path)
-        signed_url = get_signed_url(storage_path)
+        if not result_data or "signed_url" not in result_data:
+            raise Exception("The report generation process failed to return a valid signed URL.")
 
-        if not signed_url:
-            raise Exception("Could not generate signed URL for the report.")
-        
-        result_data = {
-            "msg": "PDF report generated", 
-            "signed_url": signed_url, 
-            "storage_path": storage_path, 
-            "filename": filename
-        }
         job_results[job_id] = {"status": "completed", "data": result_data}
-        logger.info(f"--- [Job {job_id}] Finished background report generation ---")
+        logger.info(f"--- [Job {job_id}] Finished background report generation with URL: {result_data.get('signed_url')} ---")
+        
     except Exception as e:
         logger.error(f"--- [Job {job_id}] Background report generation failed: {e} ---", exc_info=True)
         job_results[job_id] = {"status": "failed", "error": str(e)}

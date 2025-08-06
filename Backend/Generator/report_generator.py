@@ -21,15 +21,15 @@ from Enhanced_preprocessing.enhance_annual import enhance_annual_data
 from Enhanced_preprocessing.enhance_concall import enhance_concall_data
 from Pdf_report_maker.section_generator import ReportSectionGenerator
 from Pdf_report_maker.assemble_pdf import BrokerageReportAssembler
-from Auth.supabase_utils import upload_pdf_to_supabase
+from Auth.supabase_utils import upload_pdf_to_supabase, get_signed_url
 
-# Note: This function is now async and accepts user_id to properly work with FastAPI's background tasks
 async def generate_stock_report(stock_name: str, user_id: int):
     """
     Asynchronous function to perform the entire report generation process.
-    It's wrapped in a try-except block to catch and log any exceptions
-    that occur during the background task execution.
+    It now handles PDF creation, upload, URL signing, and cleanup internally.
+    Returns a dictionary with the final signed URL and filename.
     """
+    local_pdf_path = None  # Ensure this is defined for the finally block
     try:
         logger.info(f"BACKGROUND TASK STARTED: Report generation for '{stock_name}' for user_id '{user_id}'.")
 
@@ -37,7 +37,7 @@ async def generate_stock_report(stock_name: str, user_id: int):
         enhanced_forum = "No forum data found for this company."
         enhanced_annual = "No annual report data found for this company."
         enhanced_concall = "No concall transcript data found for this company."
-        
+
         # --- Step 1: Forum Post data ---
         # try:
         #     logger.info(f"Step 1: Scraping forum data for {stock_name}...")
@@ -57,8 +57,7 @@ async def generate_stock_report(stock_name: str, user_id: int):
         try:
             logger.info(f"Step 2: Scraping annual report for {stock_name}...")
             annual_raw = await asyncio.to_thread(scrape_annual_report_text, stock_name)
-            
-            if annual_raw and len(annual_raw) > 0:
+            if annual_raw:
                 logger.info(f"Annual report scraped successfully: {len(annual_raw)} sections")
                 annual_text = " ".join([text for _, text in annual_raw])
                 annual_preprocessed = preprocess_annual_report(annual_text)
@@ -66,8 +65,8 @@ async def generate_stock_report(stock_name: str, user_id: int):
             else:
                 logger.warning(f"No annual report data found for {stock_name}")
         except Exception:
-            logger.error(f"Error in annual report processing for {stock_name}:")
-            logger.error(traceback.format_exc())
+            logger.error(f"Error in annual report processing for {stock_name}:", exc_info=True)
+
 
         # --- Step 3: Concall Transcript data ---
         # try:
@@ -86,55 +85,57 @@ async def generate_stock_report(stock_name: str, user_id: int):
         #     logger.error(traceback.format_exc())
 
         # --- Step 4: Generate report sections ---
-        sections = None
-        try:
-            logger.info("Step 4: Generating report sections...")
-            generator = ReportSectionGenerator(enhanced_concall, enhanced_forum, enhanced_annual)
-            sections = generator.generate_all_sections()
-            logger.info("Report sections generated successfully.")
-        except Exception:
-            logger.error(f"Error generating report sections for {stock_name}:")
-            logger.error(traceback.format_exc())
-            # Exit gracefully if sections can't be generated
-            return
+        logger.info("Step 4: Generating report sections...")
+        generator = ReportSectionGenerator(enhanced_concall, enhanced_forum, enhanced_annual)
+        sections = generator.generate_all_sections()
+        if not sections:
+            raise Exception("Failed to generate report sections.")
+        logger.info("Report sections generated successfully.")
 
-        # --- Step 5: Assemble and generate PDF ---
-        pdf_path = None
-        local_pdf_path = None
-        if sections:
-            try:
-                logger.info("Step 5: Assembling PDF report...")
-                assembler = BrokerageReportAssembler(stock_name)
-                # pdf_path = assembler.generate_pdf(sections)
-                local_pdf_path = assembler.generate_pdf(sections)
-                # if not pdf_path:
-                #     logger.error("PDF generation failed: No path was returned from assembler.")
-                # else:
-                #     logger.info(f"PDF report generated successfully: {pdf_path}")
-                if local_pdf_path and os.path.exists(local_pdf_path):
-                    storage_path = f"reports/{os.path.basename(local_pdf_path)}"
-                    upload_pdf_to_supabase(local_pdf_path, dest_path=storage_path)
-                    logger.info(f"PDF report generated and uploaded successfully: {storage_path}")
-                    pdf_path = storage_path 
-                    
-                else:
-                    logger.error("PDF generation failed: No local file path was returned from assembler.")
-            except Exception:
-                logger.error(f"Error generating PDF for {stock_name}:")
-                logger.error(traceback.format_exc())
-            finally:
-                if local_pdf_path and os.path.exists(local_pdf_path):
-                    os.remove(local_pdf_path)
-                    logger.info(f"[PDF] Local PDF deleted: {local_pdf_path}")
+        # --- Step 5: Assemble, Upload, and Finalize PDF ---
+        logger.info("Step 5: Assembling PDF report...")
+        assembler = BrokerageReportAssembler(stock_name)
         
-        logger.info(f"BACKGROUND TASK COMPLETED for {stock_name}. PDF path: {pdf_path}")
-        return pdf_path, os.path.basename(pdf_path) if pdf_path else None
+        # 5a. Generate the PDF locally
+        local_pdf_path = assembler.generate_pdf(sections)
+        if not local_pdf_path or not os.path.exists(local_pdf_path):
+            raise Exception("PDF generation failed: No local file was created.")
+        
+        # 5b. Upload to Supabase
+        filename = os.path.basename(local_pdf_path)
+        storage_path = f"reports/{filename}"
+        uploaded_path = upload_pdf_to_supabase(local_pdf_path, dest_path=storage_path)
+        if not uploaded_path:
+            raise Exception("Failed to upload PDF to Supabase.")
+        
+        # 5c. Get the signed URL
+        signed_url = get_signed_url(uploaded_path)
+        if not signed_url:
+            raise Exception("Failed to create a signed URL for the report.")
+            
+        logger.info(f"BACKGROUND TASK COMPLETED for {stock_name}. Signed URL: {signed_url}")
+        
+        # Return a dictionary with all necessary info for the frontend
+        return {
+            "msg": "PDF report generated successfully",
+            "signed_url": signed_url,
+            "storage_path": uploaded_path,
+            "filename": filename
+        }
 
-    except Exception:
-        # This is the main catch-all for any unexpected failure in the entire process.
-        logger.error(f"--- CRITICAL FAILURE IN BACKGROUND TASK for {stock_name} ---")
-        logger.error(traceback.format_exc())
-        # You might want to update the database here to indicate that the task failed.
+    except Exception as e:
+        logger.error(f"--- CRITICAL FAILURE IN BACKGROUND TASK for {stock_name} ---", exc_info=True)
+        # Return None or raise to indicate failure to the background task manager
+        return None
+        
+    finally:
+        # 5d. Clean up the local file regardless of success or failure
+        if local_pdf_path and os.path.exists(local_pdf_path):
+            try:
+                os.remove(local_pdf_path)
+                logger.info(f"[PDF] Cleaned up local file: {local_pdf_path}")
+            except Exception as e:
+                logger.error(f"Failed to clean up local file {local_pdf_path}: {e}")
 
 
 

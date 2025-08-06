@@ -575,40 +575,35 @@ class BrokerageReportAssembler:
         }
         """
     
-    def generate_pdf(self, sections, output_path=None):
-        """Generate PDF from assembled sections with error handling"""
-        
-        if output_path is None:
+    def generate_pdf(self, sections):
+        """Generate PDF from assembled sections and return the local path."""
+        output_path = None
+        try:
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            # Use a temporary directory for local file creation
             output_dir = os.path.join(os.path.dirname(__file__), '..', 'reports')
             os.makedirs(output_dir, exist_ok=True)
             output_path = os.path.join(output_dir, f"{self.company_name.replace(' ', '_')}_report_{timestamp}.pdf")
-            try:
-                html_content = self.assemble_full_report(sections)
-                print(f"[PDF] Assembled HTML content for {output_path}")
+            
+            html_content = self.assemble_full_report(sections)
+            print(f"[PDF] Assembled HTML content for {output_path}")
 
-                HTML(string=html_content, base_url='.').write_pdf(
-                    output_path,
-                    stylesheets=[CSS(string=self.get_report_css())],
-                    presentational_hints=True
-                )
-                print(f"[PDF] PDF written to {output_path}")
+            HTML(string=html_content, base_url='.').write_pdf(
+                output_path,
+                stylesheets=[CSS(string=self.get_report_css())],
+                presentational_hints=True
+            )
+            print(f"[PDF] PDF written to {output_path}")
 
-                # Check file size before upload
-                file_size = os.path.getsize(output_path)
-                print(f"[PDF] Generated PDF size: {file_size} bytes")
+            file_size = os.path.getsize(output_path)
+            print(f"[PDF] Generated PDF size: {file_size} bytes")
 
-                # storage_path = f"reports/{os.path.basename(output_path)}"
-                # upload_pdf_to_supabase(output_path, dest_path=storage_path)
-                # print(f"[Supabase] Uploaded PDF to: {storage_path}")
+            return output_path
 
-                # os.remove(output_path)
-                # print(f"[PDF] Local PDF deleted: {output_path}")
-
-                # return storage_path
-                return output_path
-
-            except Exception as e:
-                print(f"[ERROR] PDF generation/upload failed: {e}")
-                import traceback; traceback.print_exc()
-                return None
+        except Exception as e:
+            print(f"[ERROR] PDF generation failed: {e}")
+            import traceback; traceback.print_exc()
+            # If there's an error, make sure to clean up any partially created file
+            if output_path and os.path.exists(output_path):
+                os.remove(output_path)
+            return None
