@@ -30,64 +30,39 @@ const Services = () => {
   const [pdfError, setPdfError] = useState("");
   const [showPdfPreview, setShowPdfPreview] = useState(false);
   const [storagePath, setStoragePath] = useState("");
-  //const [pdfBlobUrl, setPdfBlobUrl] = useState("");
-  //const [pdfBlobLoading, setPdfBlobLoading] = useState(false);
- // const [lastFetchedPath, setLastFetchedPath] = useState("");
   const [numPages, setNumPages] = useState(null);
   const [saveLoading, setSaveLoading] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
   const { refs } = useScroll();
 
-  // useEffect(() => {
-  //   if (showPdfPreview && storagePath && storagePath !== lastFetchedPath) {
-  //     setPdfError("");
-  //     setPdfBlobLoading(true);
-  //     setNumPages(null);
-  //     if (pdfBlobUrl) {
-  //       URL.revokeObjectURL(pdfBlobUrl);
-  //       setPdfBlobUrl("");
-  //     }
-      
-  //     const fetchPdfBlob = async () => {
-  //       try {
-  //         const response = await fetchWithAuth(
-  //           `${API_ENDPOINTS.previewPdf}?storage_path=${encodeURIComponent(storagePath)}`
-  //         );
-          
-  //         if (!response.ok) {
-  //           throw new Error(`Failed to fetch PDF: ${response.status}`);
-  //         }
-          
-  //         const blob = await response.blob();
-  //         const blobUrl = URL.createObjectURL(blob);
-  //         setPdfBlobUrl(blobUrl);
-  //         setLastFetchedPath(storagePath);
-  //       } catch (error) {
-  //         setPdfError("Failed to load PDF preview");
-  //       } finally {
-  //         setPdfBlobLoading(false);
-  //       }
-  //     };
-      
-  //     fetchPdfBlob();
-  //   } else if (!showPdfPreview) {
-  //     if (pdfBlobUrl) {
-  //       URL.revokeObjectURL(pdfBlobUrl);
-  //       setPdfBlobUrl("");
-  //     }
-  //     setPdfBlobLoading(false);
-  //     setLastFetchedPath("");
-  //     setNumPages(null);
-  //   }
-  // }, [showPdfPreview, storagePath, fetchWithAuth, pdfBlobUrl, lastFetchedPath]);
 
-  // useEffect(() => {
-  //   return () => {
-  //     if (pdfBlobUrl) {
-  //       URL.revokeObjectURL(pdfBlobUrl);
-  //     }
-  //   };
-  // }, [pdfBlobUrl]);
+  const fetchAndDisplayPdf = async (signedUrl) => {
+    setReportLoading(true);
+    setPdfError("");
+    try {
+      const response = await fetch(signedUrl); 
+      if (!response.ok) {
+        throw new Error(`Failed to download PDF: Server responded with ${response.status}`);
+      }
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      setPdfUrl(blobUrl); 
+      setShowPdfPreview(true);
+    } catch (err) {
+      setPdfError(err.message || "Could not load the PDF file for preview.");
+      setShowPdfPreview(false); 
+    } finally {
+      setReportLoading(false); 
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (pdfUrl && pdfUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(pdfUrl);
+      }
+    };
+  }, [pdfUrl]);
 
   useEffect(() => {
     if (!summaryJobId || !summaryLoading) {
@@ -144,14 +119,15 @@ const Services = () => {
         if (!response.ok) throw new Error("Failed to get report status.");
 
         const result = await response.json();
-
-        if (result.status === "completed") {
-          clearInterval(intervalId);
-          setPdfUrl(result.data.signed_url);
+      if (result.status === "completed") {
+        clearInterval(intervalId);
+        setReportJobId(null);
+        if (result.data && result.data.signed_url) {
           setStoragePath(result.data.storage_path);
-          setShowPdfPreview(true);
-          setReportLoading(false);
-          setReportJobId(null);
+          fetchAndDisplayPdf(result.data.signed_url);
+        } else {
+          throw new Error("Report generation completed, but the PDF URL was not provided.");
+        }
         } else if (result.status === "failed") {
           clearInterval(intervalId);
           setPdfError(result.error || "Report generation failed in the backend.");
@@ -164,7 +140,7 @@ const Services = () => {
         setReportLoading(false);
         setReportJobId(null);
       }
-    }, 5000); // Poll every 5 seconds
+    }, 5000); 
 
     return () => clearInterval(intervalId);
 
@@ -451,7 +427,6 @@ const Services = () => {
   );
 };
 
-// It's good practice to define the prop types for the component.
 Services.propTypes = {};
 
 export default Services;
