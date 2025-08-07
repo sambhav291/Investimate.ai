@@ -10,8 +10,8 @@ echo "✅ Changed working directory to: $(pwd)"
 # --- STEP 2: Install System Dependencies for PDF Generation ---
 echo "--- STEP 2: Installing system dependencies ---"
 apt-get update -y && apt-get install -y \
-    chromium-browser \
     chromium \
+    chromium-driver \
     fonts-liberation \
     libappindicator3-1 \
     libasound2 \
@@ -41,7 +41,7 @@ apt-get update -y && apt-get install -y \
 if [ $? -eq 0 ]; then
     echo "✅ System dependencies installed successfully."
     # Verify Chromium installation
-    which chromium-browser || which chromium || echo "⚠️ Chromium binary not found in PATH"
+    which chromium || which chromium-driver || echo "⚠️ Chromium or driver not found in PATH"
 else
     echo "❌ System dependency installation failed."
     exit 1
@@ -51,8 +51,9 @@ fi
 echo "--- STEP 3: Installing Python dependencies from requirements.txt ---"
 pip install --upgrade pip
 
-# Use --no-cache-dir and install in smaller chunks to avoid disk space issues
-pip install --no-cache-dir --no-deps -r requirements.txt
+
+# Use --no-cache-dir to avoid filling up disk
+pip install --no-cache-dir -r requirements.txt
 
 if [ $? -eq 0 ]; then
     echo "✅ Python requirements installed successfully."
@@ -62,8 +63,8 @@ else
 fi
 
 # --- STEP 4: Set Chrome/Chromium path for Selenium ---
-export CHROME_BIN="/usr/bin/chromium-browser"
-export CHROMIUM_BIN="/usr/bin/chromium-browser"
+export CHROME_BIN="/usr/bin/chromium"
+export CHROMIUM_BIN="/usr/bin/chromium"
 
 # --- STEP 5: Start the Gunicorn Server ---
 echo "--- STEP 5: Starting application with Gunicorn ---"
