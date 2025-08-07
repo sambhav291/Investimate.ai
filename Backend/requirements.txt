@@ -1,59 +1,100 @@
-# Essential FastAPI and web framework packages
-fastapi
-uvicorn
-pydantic
+# # Essential FastAPI and web framework packages
+# fastapi
+# uvicorn
+# pydantic
 
-# Database packages
-sqlalchemy
-alembic
-psycopg2-binary
+# # Database packages
+# sqlalchemy
+# alembic
+# psycopg2-binary
 
-# Authentication packages
-python-multipart
-python-jose[cryptography]
-passlib[bcrypt]
-authlib
-itsdangerous
-email-validator
+# # Authentication packages
+# python-multipart
+# python-jose[cryptography]
+# passlib[bcrypt]
+# authlib
+# itsdangerous
+# email-validator
 
-# Environment and utilities
-python-dotenv
-requests
-certifi
+# # Environment and utilities
+# python-dotenv
+# requests
+# certifi
 
-# Google packages
-google-generativeai
-google-api-python-client
-google-auth
+# # Google packages
+# google-generativeai
+# google-api-python-client
+# google-auth
 
-# AI and ML packages (lightweight)
-openai
+# # AI and ML packages (lightweight)
+# openai
 
-# Web scraping packages
-selenium
-webdriver-manager
-beautifulsoup4
-lxml
+# # Web scraping packages
+# selenium
+# webdriver-manager
+# beautifulsoup4
+# lxml
 
-# Data processing packages
-pandas
-numpy
-nltk
-pypdf
+# # Data processing packages
+# pandas
+# numpy
+# nltk
+# pypdf
 
 
-# Supabase packages
-supabase
-storage3
+# # Supabase packages
+# supabase
+# storage3
 
---extra-index-url https://download.pytorch.org/whl/cpu
-torch
-transformers
-huggingface-hub
-PyMuPDF
-tiktoken
-weasyprint
-Jinja2
-PyYAML
+# --extra-index-url https://download.pytorch.org/whl/cpu
+# torch
+# transformers
+# huggingface-hub
+# PyMuPDF
+# tiktoken
+# weasyprint
+# Jinja2
+# PyYAML
+# Core FastAPI
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+python-multipart==0.0.6
+
+# Database
+psycopg2-binary==2.9.9
+sqlalchemy==2.0.23
+alembic==1.13.1
+
+# Authentication
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-dotenv==1.0.0
+
+# Web Scraping (Lightweight)
+selenium==4.15.2
+beautifulsoup4==4.12.2
+requests==2.31.0
+lxml==5.1.0
+
+# PDF Generation
+weasyprint==60.2
+jinja2==3.1.2
+
+# FREE AI/ML - Lightweight Hugging Face (CPU only)
+--index-url https://download.pytorch.org/whl/cpu
+torch==2.1.0+cpu
+transformers==4.35.0
+sentence-transformers==2.2.2
+
+# Utilities
+pandas==2.1.4
+numpy==1.24.4
+Pillow==10.1.0
+nltk==3.8.1
+textstat==0.7.3
+
+# Supabase
+supabase==2.3.0
 
 

@@ -1,17 +1,43 @@
 import json
 import sys
 import os
-from openai import OpenAI
+import logging
+
+# Add parent directory to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from secdat import openrouter_key 
 
-client = OpenAI(
-    base_url="https://openrouter.ai/api/v1",
-    api_key=openrouter_key,
-)
+# Import free summarizer
+from Ai_engine.free_summarizer import enhance_forum_data_free
 
+logger = logging.getLogger(__name__)
 
 def enhance_forum_data(basic_forum_data, stock_name):
+    """
+    Enhanced forum data processing using free AI models
+    """
+    return enhance_forum_data_free(basic_forum_data, stock_name)
+
+def generate_response(basic_forum_data, stock_name):
+    enhanced_data = enhance_forum_data(basic_forum_data, stock_name)
+    try:
+        return json.loads(enhanced_data)
+    except json.JSONDecodeError:
+        # Return a basic structure if JSON parsing fails
+        return {
+            "sentiment_overview": {
+                "dominant_sentiment": "Neutral",
+                "confidence_score": 0.5,
+                "sentiment_distribution": {"positive": 33, "neutral": 34, "negative": 33}
+            },
+            "key_discussion_points": [
+                "Forum data processed with basic analysis",
+                "Unable to perform detailed enhancement"
+            ],
+            "price_targets": {"mentions_count": 0, "average_target": 0},
+            "investment_themes": ["General market discussion"],
+            "risk_concerns": ["Standard market risks"],
+            "retail_sentiment": "Mixed opinions from retail investors"
+        }
     
     enhancement_prompt = f"""
     You are a senior financial analyst specializing in social sentiment analysis. Analyze this forum discussion data for {stock_name} and extract investment-relevant insights.

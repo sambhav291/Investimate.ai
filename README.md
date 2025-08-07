@@ -2,24 +2,25 @@
 
 ## 📋 Project Overview
 
-Investimate.ai is an AI-powered brokerage report automation platform that generates comprehensive stock analysis reports using advanced machine learning and natural language processing.
+Investimate.ai is an AI-powered brokerage report automation platform that generates comprehensive stock analysis reports using free local machine learning models and natural language processing.
 
 ## ✨ Features
 
-- **AI-Powered Analysis**: Generate detailed stock reports using OpenAI GPT and Google Gemini
+- **AI-Powered Analysis**: Generate detailed stock reports using free local AI models
 - **Multi-Source Data**: Scrapes annual reports, conference calls, and forum discussions
 - **PDF Report Generation**: Creates professional PDF reports with charts and analysis
 - **User Authentication**: Secure login with Google OAuth and email/password
 - **Report Library**: Save and manage generated reports
 - **Real-time Preview**: Interactive PDF preview with download capabilities
+- **Cost-Free AI**: No API costs - runs entirely on local CPU-based models
 
 ## 🛠 Tech Stack
 
 ### Backend
 - **FastAPI** - Modern Python web framework
 - **PostgreSQL** - Database with Supabase
-- **OpenAI GPT** - AI text generation
-- **Google Gemini** - Additional AI capabilities
+- **Free Local AI** - Hugging Face transformers (CPU-only)
+- **NLTK** - Natural language processing and sentiment analysis
 - **Supabase** - Backend-as-a-Service for storage and auth
 
 ### Frontend

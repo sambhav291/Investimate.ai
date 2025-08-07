@@ -1,72 +1,29 @@
 import sys
 import os
 import pandas as pd
-from openai import OpenAI  # openrouter
-import time
+import logging
+
+# Add parent directory to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from secdat import openrouter_key 
 
-# Initialize OpenRouter-compatible client
-client = OpenAI(
-    base_url="https://openrouter.ai/api/v1",
-    api_key=openrouter_key,
-)
+# Import free summarizer
+from Ai_engine.free_summarizer import summarize_forum_data
 
-def summarize_forum_data(processed_list):
+logger = logging.getLogger(__name__)
+
+def summarize_forum_data_legacy(processed_list):
+    """
+    Legacy function that now uses free summarizer
+    """
+    return summarize_forum_data(processed_list)
     processed_df = pd.DataFrame(processed_list)
 
     if not processed_df.empty:
-        stock_name = processed_df.iloc[0]['stock_name']
-        posts = processed_df['post_text'].tolist()
-        sentiments = processed_df['sentiment'].tolist()
-
-        prompt = f"""
-You are a financial analyst.
-
-Here are some forum posts about the stock '{stock_name}':
-{posts}
-
-The sentiment labels for each post are: {sentiments}
-
-Your task:
-- Summarize the overall discussion in 5-7 sentences.
-- Provide an overall public sentiment (Positive, Negative, or Neutral) based on the majority of the sentiments and tone of posts.
-- Highlight any major concerns or positives mentioned by users.
-
-Return the output as:
-
-Summary:
-[Your summary here]
-
-Overall Public Sentiment: [Positive/Negative/Neutral]
-
-Key Points:
-- [Point 1]
-- [Point 2]
-- [Point 3]
-        """
-
-        try:
-            response = client.chat.completions.create(
-                model="deepseek/deepseek-r1:free",
-                messages=[
-                    {"role": "system", "content": "You are a helpful financial analyst."},
-                    {"role": "user", "content": prompt}
-                ],
-                extra_headers={
-                "X-Title": "Investimate AI"
-                },
-                extra_body={}
-            )
-
-            result = response.choices[0].message.content
-            return result
-
-        except Exception as e:
-            return f"Error processing {stock_name}: {e}"
+        # Use free summarizer
+        return summarize_forum_data(processed_list)
     else:
-        print("⚠️ No relevant posts found after preprocessing.")
-        return None
+        logger.warning("⚠️ No relevant posts found after preprocessing.")
+        return "No forum data available for analysis."
 
 
 
