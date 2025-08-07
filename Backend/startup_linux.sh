@@ -40,7 +40,8 @@ fi
 
 # --- STEP 4: Start the Gunicorn Server ---
 echo "--- STEP 4: Starting application with Gunicorn ---"
-gunicorn -w 1 -k uvicorn.workers.UvicornWorker main:app --timeout 600 --bind 0.0.0.0:8000 --log-level info
+# gunicorn -w 1 -k uvicorn.workers.UvicornWorker main:app --timeout 600 --bind 0.0.0.0:8000 --log-level info
+gunicorn -w 2 --threads 4 -k uvicorn.workers.UvicornWorker main:app --timeout 600 --bind 0.0.0.0:8000 --log-level info
 
 
 
