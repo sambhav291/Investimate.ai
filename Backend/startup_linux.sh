@@ -27,7 +27,8 @@ fi
 # --- STEP 3: Install Python Packages ---
 echo "--- STEP 3: Installing Python dependencies from requirements.txt ---"
 pip install --upgrade pip
-pip install -r requirements.txt
+# pip install -r requirements.txt
+pip install --no-cache-dir -r requirements.txt
 if [ $? -eq 0 ]; then
     echo "✅ Python requirements installed successfully."
 else
