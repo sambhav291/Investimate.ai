@@ -46,6 +46,7 @@ pypdf
 supabase
 storage3
 
+--extra-index-url https://download.pytorch.org/whl/cpu
 torch
 transformers
 huggingface-hub
