@@ -108,4 +108,7 @@ gotrue==1.2.0
 # Web scraping driver manager
 webdriver_manager==4.0.1
 
+# For PDF extraction (fitz import)
+pymupdf==1.23.25
+
 
