@@ -60,6 +60,8 @@ fastapi==0.104.1
 uvicorn[standard]==0.24.0
 pydantic==2.5.0
 python-multipart==0.0.6
+starlette==0.27.0
+gunicorn==23.0.0
 
 # Database
 psycopg2-binary==2.9.9
@@ -70,6 +72,9 @@ alembic==1.13.1
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 python-dotenv==1.0.0
+email-validator==2.1.0
+authlib==1.2.1
+itsdangerous==2.1.2
 
 # Web Scraping (Lightweight)
 selenium==4.15.2
@@ -93,6 +98,8 @@ numpy==1.24.4
 Pillow==10.1.0
 nltk==3.8.1
 textstat==0.7.3
+certifi==2023.11.17
+urllib3==2.0.7
 
 # Supabase
 supabase==2.3.0
