@@ -137,11 +137,6 @@ If you encounter any issues:
 
 **✅ DEPLOYMENT DEPENDENCIES COMPLETE:**
 All necessary packages have been added to requirements.txt including:
-- `email-validator` (for Pydantic email validation)
-- `authlib` (for OAuth integration)
-- `itsdangerous` (for session middleware)
-- `gunicorn` (for Azure production server)
-- `starlette` (FastAPI dependency)
-- `certifi` & `urllib3` (for secure connections)
+ - `supabase==1.2.0` and `gotrue==2.10.0` (pinned for Azure compatibility)
 
 The migration is complete and your system is ready to run **completely free** forever! 🎉
