@@ -69,6 +69,7 @@ async def generate_stock_report(stock_name: str, user_id: int):
 
 
         # --- Step 3: Concall Transcript data ---
+        #
         # try:
         #     logger.info(f"Step 3: Scraping concall transcripts for {stock_name}...")
         #     concall_raw = await asyncio.to_thread(scrape_concall_transcripts, stock_name)
