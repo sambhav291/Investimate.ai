@@ -1,20 +1,60 @@
-import os
-import sys
-import logging
+from openai import OpenAI
+from secdat import openrouter_key
 
-# Add parent directory to path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# Configure OpenRouter client
+client = OpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key=openrouter_key
+)
 
-# Import free summarizer
-from Ai_engine.free_summarizer import generate_combined_summary
+def generate_combined_summary(forum_summary, annual_summary, concall_summary, company_name):
+    prompt = f"""
+You are a senior financial analyst.
 
-logger = logging.getLogger(__name__)
+You are given three types of summaries about '{company_name}':
+---
+📢 Forum Summary:
+{forum_summary}
 
-def generate_combined_summary_legacy(forum_summary, annual_summary, concall_summary, company_name):
+📄 Annual Report Summary:
+{annual_summary}
+
+📞 Earnings Concall Summary:
+{concall_summary}
+---
+
+Your tasks:
+1. Combine the three sources into a **single concise investor summary** in 5–7 bullet points.
+2. Identify and state the **overall investment tone** (Positive/Neutral/Negative), taking into account all three.
+3. Highlight 3–5 key **risks or opportunities** discussed across sources.
+4. Emphasize any **market perception vs management guidance** gaps, if noticeable.
+
+Return in this format:
+
+📌 Combined Summary:
+- Bullet 1
+- Bullet 2
+...
+
+📊 Overall Investment Tone: [Positive/Negative/Neutral]
+
+⚠️ Risks/Opportunities:
+- Point 1
+- Point 2
+- ...
     """
-    Legacy function that now uses free summarizer
-    """
-    return generate_combined_summary(forum_summary, annual_summary, concall_summary, company_name)
+
+    try:
+        response = client.chat.completions.create(
+            model="deepseek/deepseek-r1:free",  # Change as needed
+            messages=[{"role": "user", "content": prompt}],
+            extra_headers={
+                "X-Title": "Investimate AI"
+            }
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        return f"❌ Error generating combined summary: {e}"
 
 
 

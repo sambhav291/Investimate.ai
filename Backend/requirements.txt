@@ -1,114 +1,61 @@
-# # Essential FastAPI and web framework packages
-# fastapi
-# uvicorn
-# pydantic
-
-# # Database packages
-# sqlalchemy
-# alembic
-# psycopg2-binary
-
-# # Authentication packages
-# python-multipart
-# python-jose[cryptography]
-# passlib[bcrypt]
-# authlib
-# itsdangerous
-# email-validator
-
-# # Environment and utilities
-# python-dotenv
-# requests
-# certifi
-
-# # Google packages
-# google-generativeai
-# google-api-python-client
-# google-auth
-
-# # AI and ML packages (lightweight)
-# openai
-
-# # Web scraping packages
-# selenium
-# webdriver-manager
-# beautifulsoup4
-# lxml
-
-# # Data processing packages
-# pandas
-# numpy
-# nltk
-# pypdf
-
-
-# # Supabase packages
-# supabase
-# storage3
-
-# --extra-index-url https://download.pytorch.org/whl/cpu
-# torch
-# transformers
-# huggingface-hub
-# PyMuPDF
-# tiktoken
-# weasyprint
-# Jinja2
-# PyYAML
-
-
-# Core FastAPI
-fastapi==0.110.0
-uvicorn[standard]==0.24.0
+# Essential FastAPI and web framework packages
+fastapi
+uvicorn
 pydantic
-python-multipart==0.0.6
-gunicorn==23.0.0
 
-# Database
-psycopg2-binary==2.9.9
-sqlalchemy>=2.0.30
-alembic==1.13.1
+# Database packages
+sqlalchemy
+alembic
+psycopg2-binary
 
-# Authentication
-python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
-python-dotenv==1.0.0
-email-validator==2.1.0
-authlib==1.2.1
-itsdangerous==2.1.2
+# Authentication packages
+python-multipart
+python-jose[cryptography]
+passlib[bcrypt]
+authlib
+itsdangerous
+email-validator
 
-# Web Scraping (Lightweight)
-selenium==4.15.2
-beautifulsoup4==4.12.2
-requests==2.31.0
-lxml==5.1.0
+# Environment and utilities
+python-dotenv
+requests
+certifi
 
-# PDF Generation
-weasyprint==60.2
-jinja2==3.1.2
+# Google packages
+google-generativeai
+google-api-python-client
+google-auth
 
-# FREE AI/ML - Lightweight Hugging Face (CPU only)
+# AI and ML packages (lightweight)
+openai
+
+# Web scraping packages
+selenium
+webdriver-manager
+beautifulsoup4
+lxml
+
+# Data processing packages
+pandas
+numpy
+nltk
+pypdf
+
+
+# Supabase packages
+supabase
+storage3
+
 --extra-index-url https://download.pytorch.org/whl/cpu
-torch==2.8.0+cpu
-transformers==4.35.0
-sentence-transformers==2.2.2
+torch
+transformers
+huggingface-hub
+PyMuPDF
+tiktoken
+weasyprint
+Jinja2
+PyYAML
 
-# Utilities
-pandas>=2.2.2
-numpy==1.24.4
-Pillow==10.1.0
-nltk==3.8.1
-textstat==0.7.3
-certifi==2023.11.17
-urllib3==2.0.7
 
-# Supabase
-supabase>=2.3.0
-
-# Web scraping driver manager
-webdriver_manager==4.0.1
-
-# For PDF extraction (fitz import)
-pymupdf==1.23.25
 
 
