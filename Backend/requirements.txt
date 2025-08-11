@@ -55,17 +55,18 @@
 # weasyprint
 # Jinja2
 # PyYAML
+
+
 # Core FastAPI
-fastapi==0.104.1
+fastapi==0.110.0
 uvicorn[standard]==0.24.0
-pydantic==2.5.0
+pydantic
 python-multipart==0.0.6
-starlette==0.27.0
 gunicorn==23.0.0
 
 # Database
 psycopg2-binary==2.9.9
-sqlalchemy==2.0.23
+sqlalchemy>=2.0.30
 alembic==1.13.1
 
 # Authentication
@@ -88,12 +89,12 @@ jinja2==3.1.2
 
 # FREE AI/ML - Lightweight Hugging Face (CPU only)
 --extra-index-url https://download.pytorch.org/whl/cpu
-torch==2.1.0+cpu
+torch==2.8.0+cpu
 transformers==4.35.0
 sentence-transformers==2.2.2
 
 # Utilities
-pandas==2.1.4
+pandas>=2.2.2
 numpy==1.24.4
 Pillow==10.1.0
 nltk==3.8.1
@@ -102,8 +103,7 @@ certifi==2023.11.17
 urllib3==2.0.7
 
 # Supabase
-supabase==1.2.0
-gotrue==1.2.0
+supabase>=2.3.0
 
 # Web scraping driver manager
 webdriver_manager==4.0.1
