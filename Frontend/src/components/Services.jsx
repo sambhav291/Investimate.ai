@@ -71,7 +71,7 @@ const Services = () => {
 
     const intervalId = setInterval(async () => {
       try {
-        const response = await fetchWithAuth(`${API_ENDPOINTS.summaryStatus}/${summaryJobId}`);
+        const response = await fetchWithAuth(`${API_ENDPOINTS.jobStatus}/${summaryJobId}`);
         if (!response.ok) {
           throw new Error("Failed to get summary status.");
         }
@@ -115,7 +115,7 @@ const Services = () => {
 
     const intervalId = setInterval(async () => {
       try {
-        const response = await fetchWithAuth(`${API_ENDPOINTS.reportStatus}/${reportJobId}`);
+        const response = await fetchWithAuth(`${API_ENDPOINTS.jobStatus}/${reportJobId}`);
         if (!response.ok) throw new Error("Failed to get report status.");
 
         const result = await response.json();
@@ -187,7 +187,7 @@ const Services = () => {
       const response = await fetchWithAuth(API_ENDPOINTS.generateSummary, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ stock_name: trimmedStock }),
+        body: JSON.stringify({ company: trimmedStock }),
       });
 
       if (!response.ok) {
@@ -224,7 +224,7 @@ const Services = () => {
       const response = await fetchWithAuth(API_ENDPOINTS.generateReport, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ stock_name: trimmedStock }),
+        body: JSON.stringify({ company: trimmedStock }),
       });
 
       if (!response.ok) {
