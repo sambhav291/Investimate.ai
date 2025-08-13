@@ -3,6 +3,7 @@ import sys
 import traceback
 import logging
 import asyncio
+import json 
 
 # This ensures that the logger configured in main.py is used
 logger = logging.getLogger(__name__)
@@ -22,6 +23,26 @@ from Enhanced_preprocessing.enhance_concall import enhance_concall_data
 from Pdf_report_maker.section_generator import ReportSectionGenerator
 from Pdf_report_maker.assemble_pdf import BrokerageReportAssembler
 from Auth.supabase_utils import upload_pdf_to_supabase, get_signed_url
+
+def create_chunks(data, chunk_size=2500, overlap=300):
+    """Creates overlapping chunks from a long text."""
+    if isinstance(data, dict):
+        text = json.dumps(data)
+    else:
+        text = data
+
+    if not text:
+        return []
+    
+    chunks = []
+    start = 0
+    while start < len(text):
+        end = start + chunk_size
+        chunks.append(text[start:end])
+        start += chunk_size - overlap
+        if end >= len(text):
+            break
+    return chunks
 
 async def generate_stock_report(stock_name: str, user_id: int):
     """
@@ -53,7 +74,9 @@ async def generate_stock_report(stock_name: str, user_id: int):
         #     logger.error(f"Error in forum processing for {stock_name}:")
         #     logger.error(traceback.format_exc())
 
-        # --- Step 2: Annual Report data ---
+
+# --- Step 2: Annual Report data ---
+        enhanced_annual = None 
         try:
             logger.info(f"Step 2: Scraping annual report for {stock_name}...")
             annual_raw = await asyncio.to_thread(scrape_annual_report_text, stock_name)
@@ -61,11 +84,37 @@ async def generate_stock_report(stock_name: str, user_id: int):
                 logger.info(f"Annual report scraped successfully: {len(annual_raw)} sections")
                 annual_text = " ".join([text for _, text in annual_raw])
                 annual_preprocessed = preprocess_annual_report(annual_text)
-                enhanced_annual = enhance_annual_data(annual_preprocessed, stock_name)
+                logger.info("Chunking annual report for batch processing...")
+                report_chunks = create_chunks(annual_preprocessed)
+                logger.info(f"📊 Created {len(report_chunks)} chunks for processing.")
+                
+                summarized_chunks = []
+                for i, chunk in enumerate(report_chunks):
+                    logger.info(f"🔄 Processing chunk {i+1}/{len(report_chunks)}...")
+                    chunk_result = await asyncio.to_thread(enhance_annual_data, chunk, stock_name)
+                    summarized_chunks.append(chunk_result)
+                
+                logger.info("✅ All chunks processed. Consolidating results...")
+                enhanced_annual = "[" + ",".join(filter(None, summarized_chunks)) + "]"
             else:
                 logger.warning(f"No annual report data found for {stock_name}")
+
         except Exception:
             logger.error(f"Error in annual report processing for {stock_name}:", exc_info=True)
+
+        # # --- Step 2: Annual Report data ---
+        # try:
+        #     logger.info(f"Step 2: Scraping annual report for {stock_name}...")
+        #     annual_raw = await asyncio.to_thread(scrape_annual_report_text, stock_name)
+        #     if annual_raw:
+        #         logger.info(f"Annual report scraped successfully: {len(annual_raw)} sections")
+        #         annual_text = " ".join([text for _, text in annual_raw])
+        #         annual_preprocessed = preprocess_annual_report(annual_text)
+        #         enhanced_annual = enhance_annual_data(annual_preprocessed, stock_name)
+        #     else:
+        #         logger.warning(f"No annual report data found for {stock_name}")
+        # except Exception:
+        #     logger.error(f"Error in annual report processing for {stock_name}:", exc_info=True)
 
 
         # --- Step 3: Concall Transcript data ---
