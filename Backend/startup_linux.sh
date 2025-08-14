@@ -38,7 +38,18 @@ else
 fi
 
 
-# --- STEP 4: Start the Gunicorn Server ---
-echo "--- STEP 4: Starting application with Gunicorn ---"
+# --- STEP 4: Initialize Database ---
+echo "--- STEP 4: Initializing database safely ---"
+python init_database.py || {
+    echo "Database initialization failed, trying alembic..."
+    python -m alembic upgrade head || {
+        echo "Database migration failed, but continuing..."
+        echo "This might be expected if tables already exist"
+    }
+}
+
+
+# --- STEP 5: Start the Gunicorn Server ---
+echo "--- STEP 5: Starting application with Gunicorn ---"
 # gunicorn -w 1 -k uvicorn.workers.UvicornWorker main:app --timeout 600 --bind 0.0.0.0:8000 --log-level info
 gunicorn -w 2 --threads 4 -k uvicorn.workers.UvicornWorker main:app --timeout 600 --bind 0.0.0.0:8000 --log-level info
