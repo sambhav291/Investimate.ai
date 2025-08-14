@@ -1,5 +1,4 @@
 import React, { useContext, useEffect, useState } from 'react';
-import PropTypes from 'prop-types';
 import StockSelector from "./stock_selector.jsx";
 import { AuthContext } from '../context/AuthContext.jsx';
 import { useScroll } from "../context/ScrollContext.jsx";
@@ -88,12 +87,12 @@ const Services = () => {
           });
           setSummaryLoading(false);
           setSummaryJobId(null);
-        } else if (result.status === "failed") {
-          clearInterval(intervalId); 
-          setSummaryError(result.error || "Summary generation failed in the backend.");
-          setSummaryLoading(false);
-          setSummaryJobId(null);
-        }
+          } else if (result.status === "failed") {
+            clearInterval(intervalId);
+            setSummaryError(result.data?.error || "Summary generation failed in the backend.");
+            setSummaryLoading(false);
+            setSummaryJobId(null);
+          }
 
       } catch (err) {
         clearInterval(intervalId); 
@@ -108,43 +107,44 @@ const Services = () => {
   }, [summaryJobId, summaryLoading, fetchWithAuth]);
 
 
-  useEffect(() => {
-    if (!reportJobId || !reportLoading) {
-      return;
-    }
+useEffect(() => {
+  if (!reportJobId || !reportLoading) {
+    return;
+  }
 
-    const intervalId = setInterval(async () => {
-      try {
-        const response = await fetchWithAuth(`${API_ENDPOINTS.jobStatus}/${reportJobId}`);
-        if (!response.ok) throw new Error("Failed to get report status.");
+  const intervalId = setInterval(async () => {
+    try {
+      const response = await fetchWithAuth(`${API_ENDPOINTS.jobStatus}/${reportJobId}`);
+      if (!response.ok) throw new Error("Failed to get report status.");
 
-        const result = await response.json();
+      const result = await response.json();
+
       if (result.status === "completed") {
         clearInterval(intervalId);
         setReportJobId(null);
+        // --- The change is here ---
         if (result.data && result.data.signed_url) {
-          setStoragePath(result.data.storage_path);
+          setStoragePath(result.data.filename);
           fetchAndDisplayPdf(result.data.signed_url);
         } else {
           throw new Error("Report generation completed, but the PDF URL was not provided.");
         }
-        } else if (result.status === "failed") {
-          clearInterval(intervalId);
-          setPdfError(result.error || "Report generation failed in the backend.");
-          setReportLoading(false);
-          setReportJobId(null);
-        }
-      } catch (err) {
+      } else if (result.status === "failed") {
         clearInterval(intervalId);
-        setPdfError(err.message);
+        setPdfError(result.data?.error || "Report generation failed in the backend.");
         setReportLoading(false);
         setReportJobId(null);
       }
-    }, 5000); 
+    } catch (err) {
+      clearInterval(intervalId);
+      setPdfError(err.message);
+      setReportLoading(false);
+      setReportJobId(null);
+    }
+  }, 5000);
 
-    return () => clearInterval(intervalId);
-
-  }, [reportJobId, reportLoading, fetchWithAuth]);
+  return () => clearInterval(intervalId);
+}, [reportJobId, reportLoading, fetchWithAuth]);
 
   const itemVariants = {
     hidden: { opacity: 0, y: 30 },

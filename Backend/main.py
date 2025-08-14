@@ -16,10 +16,9 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 from starlette.middleware.sessions import SessionMiddleware
 
-# Add the parent directory to the path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from Auth.database import engine, Base, get_db
+from Auth.database import engine, Base, get_db, SessionLocal
 from Auth import schemas, models
 from Auth.supabase_utils import supabase, SUPABASE_BUCKET
 from Auth.auth import router as auth_router, get_current_user
@@ -28,8 +27,6 @@ from Generator.report_generator import generate_stock_report
 
 load_dotenv()
 
-# --- Unified Job Tracker ---
-job_statuses = {}
 
 # --- Logging Configuration ---
 LOGGING_CONFIG = {
@@ -75,36 +72,65 @@ class JobRequest(BaseModel):
 
 # --- Background Task Wrappers ---
 def run_summary_generation(job_id: str, company_name: str, user_id: int):
+    db = SessionLocal()
     logger.info(f"--- [Job {job_id}] Starting background summary generation for {company_name} ---")
+    job = db.query(models.Job).filter(models.Job.id == job_id).first()
+    if not job:
+        logger.error(f"--- [Job {job_id}] Job not found in database before starting. ---")
+        db.close()
+        return
+
     try:
         summary_data = asyncio.run(generate_stock_summary(company_name, user_id))
-        job_statuses[job_id] = {"status": "completed", "data": summary_data}
+        job.status = "completed"
+        job.result = summary_data
         logger.info(f"--- [Job {job_id}] Finished background summary generation ---")
     except Exception as e:
         logger.error(f"--- [Job {job_id}] Summary generation failed: {e} ---", exc_info=True)
-        job_statuses[job_id] = {"status": "failed", "error": str(e)}
+        job.status = "failed"
+        job.result = {"error": str(e)}
+    finally:
+        db.commit()
+        db.close()
 
 def run_report_generation(job_id: str, company_name: str, user_id: int):
+    db = SessionLocal() # Create a new session for the background task
     logger.info(f"--- [Job {job_id}] Starting background report generation for {company_name} ---")
+    job = db.query(models.Job).filter(models.Job.id == job_id).first()
+    if not job:
+        logger.error(f"--- [Job {job_id}] Job not found in database before starting. ---")
+        db.close()
+        return
+
     try:
         result_data = asyncio.run(generate_stock_report(company_name, user_id))
         if not result_data or "signed_url" not in result_data:
             raise Exception("Report generation failed to return a valid signed URL.")
-        job_statuses[job_id] = {"status": "completed", "url": result_data["signed_url"], "filename": result_data.get("filename")}
+
+        job.status = "completed"
+        job.result = result_data
         logger.info(f"--- [Job {job_id}] Finished background report generation successfully ---")
     except Exception as e:
         logger.error(f"--- [Job {job_id}] Report generation failed: {e} ---", exc_info=True)
-        job_statuses[job_id] = {"status": "failed", "error": str(e)}
+        job.status = "failed"
+        job.result = {"error": str(e)}
+    finally:
+        db.commit()
+        db.close()
 
 # --- API Endpoints ---
 @app.post("/generate-summary", tags=["Analysis"], status_code=202)
 async def generate_summary_endpoint(
-    req: JobRequest, 
+    req: JobRequest,
     background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
     user: schemas.UserOut = Depends(get_current_user)
 ):
     job_id = str(uuid.uuid4())
-    job_statuses[job_id] = {"status": "processing"}
+    new_job = models.Job(id=job_id, user_id=user.id, status="processing")
+    db.add(new_job)
+    db.commit()
+
     background_tasks.add_task(run_summary_generation, job_id, req.company, user.id)
     return {"message": "Summary generation started", "job_id": job_id}
 
@@ -112,19 +138,28 @@ async def generate_summary_endpoint(
 async def generate_report_endpoint(
     req: JobRequest,
     background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
     user: schemas.UserOut = Depends(get_current_user)
 ):
     job_id = str(uuid.uuid4())
-    job_statuses[job_id] = {"status": "processing"}
+    new_job = models.Job(id=job_id, user_id=user.id, status="processing")
+    db.add(new_job)
+    db.commit()
+
     background_tasks.add_task(run_report_generation, job_id, req.company, user.id)
     return {"message": "Report generation started.", "job_id": job_id}
 
-@app.get("/job-status/{job_id}", tags=["Analysis"])
-async def get_job_status(job_id: str, user: schemas.UserOut = Depends(get_current_user)):
-    status_info = job_statuses.get(job_id)
-    if not status_info:
+@app.get("/job-status/{job_id}", tags=["Analysis", "Reports"])
+async def get_job_status(
+    job_id: str,
+    db: Session = Depends(get_db),
+    user: schemas.UserOut = Depends(get_current_user)
+):
+    job = db.query(models.Job).filter(models.Job.id == job_id, models.Job.user_id == user.id).first()
+
+    if not job:
         raise HTTPException(status_code=404, detail="Job not found.")
-    return status_info
+    return {"status": job.status, "data": job.result}
 
 @app.get("/preview-pdf", tags=["Reports"])
 async def preview_pdf(storage_path: str):
