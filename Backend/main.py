@@ -38,13 +38,6 @@ LOGGING_CONFIG = {
 dictConfig(LOGGING_CONFIG)
 logger = logging.getLogger(__name__)
 
-# --- Database Initialization ---
-# try:
-#     Base.metadata.create_all(bind=engine)
-#     logger.info("Database tables created successfully.")
-# except Exception as e:
-#     logger.error(f"Database setup failed: {e}")
-
 # --- FastAPI App Initialization ---
 app = FastAPI(title="Investimate AI Backend", version="1.0.0")
 
@@ -73,10 +66,10 @@ class JobRequest(BaseModel):
 # --- Background Task Wrappers ---
 def run_summary_generation(job_id: str, company_name: str, user_id: int):
     logger.info(f"--- [Job {job_id}] Starting background summary generation for {company_name} ---")
-    
+
     final_status = "completed"
     result_data = None
-    
+
     try:
         summary_data = asyncio.run(generate_stock_summary(company_name, user_id))
         result_data = summary_data
@@ -90,11 +83,18 @@ def run_summary_generation(job_id: str, company_name: str, user_id: int):
     finally:
         db = SessionLocal()
         try:
+            logger.info(f"--- [Job {job_id}] FINALLY BLOCK: Attempting to update job status to '{final_status}' ---")
             job = db.query(models.Job).filter(models.Job.id == job_id).first()
             if job:
                 job.status = final_status
                 job.result = result_data
                 db.commit()
+                logger.info(f"--- [Job {job_id}] FINALLY BLOCK: Successfully committed status '{final_status}' to DB. ---")
+            else:
+                logger.error(f"--- [Job {job_id}] FINALLY BLOCK: Job not found in DB, could not update status. ---")
+        except Exception as e:
+            logger.error(f"--- [Job {job_id}] FINALLY BLOCK: An exception occurred during DB update: {e} ---", exc_info=True)
+            db.rollback()
         finally:
             db.close()
 
@@ -108,7 +108,7 @@ def run_report_generation(job_id: str, company_name: str, user_id: int):
         result_data = asyncio.run(generate_stock_report(company_name, user_id))
         if not result_data or "signed_url" not in result_data:
             raise Exception("Report generation failed to return a valid signed URL.")
-        
+
         final_result = result_data
         logger.info(f"--- [Job {job_id}] Finished background report generation successfully ---")
 
@@ -116,15 +116,22 @@ def run_report_generation(job_id: str, company_name: str, user_id: int):
         logger.error(f"--- [Job {job_id}] Report generation failed: {e} ---", exc_info=True)
         final_status = "failed"
         final_result = {"error": str(e)}
-        
+
     finally: 
         db = SessionLocal()
         try:
+            logger.info(f"--- [Job {job_id}] FINALLY BLOCK: Attempting to update job status to '{final_status}' ---")
             job = db.query(models.Job).filter(models.Job.id == job_id).first()
             if job:
                 job.status = final_status
                 job.result = final_result
                 db.commit()
+                logger.info(f"--- [Job {job_id}] FINALLY BLOCK: Successfully committed status '{final_status}' to DB. ---")
+            else:
+                logger.error(f"--- [Job {job_id}] FINALLY BLOCK: Job not found in DB, could not update status. ---")
+        except Exception as e:
+            logger.error(f"--- [Job {job_id}] FINALLY BLOCK: An exception occurred during DB update: {e} ---", exc_info=True)
+            db.rollback()
         finally:
             db.close()
 
