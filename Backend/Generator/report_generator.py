@@ -80,8 +80,14 @@ async def generate_stock_report(stock_name: str, user_id: int):
                     chunk_result = await asyncio.to_thread(enhance_forum_data, chunk, stock_name)
                     summarized_chunks.append(chunk_result)
                 
-                logger.info("✅ All forum chunks processed. Consolidating results...")
-                enhanced_forum = "[" + ",".join(filter(None, summarized_chunks)) + "]"
+                logger.info(f"✅ All ... chunks processed. Consolidating results...")
+                consolidated_data = []
+                for chunk_json in filter(None, summarized_chunks):
+                    try:
+                        consolidated_data.append(json.loads(chunk_json))
+                    except json.JSONDecodeError:
+                        logger.warning(f"Could not decode an AI chunk: {chunk_json[:100]}...")
+                enhanced_forum = consolidated_data
             else:
                 logger.warning(f"No forum data found for {stock_name}")
         except Exception:
@@ -107,8 +113,14 @@ async def generate_stock_report(stock_name: str, user_id: int):
         #             chunk_result = await asyncio.to_thread(enhance_annual_data, chunk, stock_name)
         #             summarized_chunks.append(chunk_result)
                 
-        #         logger.info("✅ All chunks processed. Consolidating results...")
-        #         enhanced_annual = "[" + ",".join(filter(None, summarized_chunks)) + "]"
+        #         logger.info(f"✅ All ... chunks processed. Consolidating results...")
+        #         consolidated_data = []
+        #         for chunk_json in filter(None, summarized_chunks):
+        #             try:
+        #                 consolidated_data.append(json.loads(chunk_json))
+        #             except json.JSONDecodeError:
+        #                 logger.warning(f"Could not decode an AI chunk: {chunk_json[:100]}...")
+        #         enhanced_annual = consolidated_data
         #     else:
         #         logger.warning(f"No annual report data found for {stock_name}")
 
@@ -136,8 +148,14 @@ async def generate_stock_report(stock_name: str, user_id: int):
         #             chunk_result = await asyncio.to_thread(enhance_concall_data, chunk, stock_name)
         #             summarized_chunks.append(chunk_result)
 
-        #         logger.info("✅ All concall chunks processed. Consolidating results...")
-        #         enhanced_concall = "[" + ",".join(filter(None, summarized_chunks)) + "]"
+        #         logger.info(f"✅ All ... chunks processed. Consolidating results...")
+        #         consolidated_data = []
+        #         for chunk_json in filter(None, summarized_chunks):
+        #             try:
+        #                 consolidated_data.append(json.loads(chunk_json))
+        #             except json.JSONDecodeError:
+        #                 logger.warning(f"Could not decode an AI chunk: {chunk_json[:100]}...")
+        #         enhanced_concall = consolidated_data
         #     else:
         #         logger.warning(f"No concall transcript data found for {stock_name}")
         # except Exception:
