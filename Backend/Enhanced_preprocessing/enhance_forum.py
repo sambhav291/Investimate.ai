@@ -91,7 +91,7 @@ def enhance_forum_data(basic_forum_data, stock_name):
     """
     try:
         response = client.chat.completions.create(
-            model="deepseek/REDACTED-GOOGLE-CLIENT-SECRET-32b:free",
+            model="deepseek/deepseek-r1:free",
             messages=[
                 {"role": "system", "content": "You are a senior financial analyst specializing in social sentiment analysis and forum discussion interpretation. Return only valid JSON without any additional text or commentary."},
                 {"role": "user", "content": enhancement_prompt}

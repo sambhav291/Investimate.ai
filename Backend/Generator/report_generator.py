@@ -89,59 +89,59 @@ async def generate_stock_report(stock_name: str, user_id: int):
 
 
 # --- Step 2: Annual Report data ---
-        enhanced_annual = None 
-        try:
-            logger.info(f"Step 2: Scraping annual report for {stock_name}...")
-            annual_raw = await asyncio.to_thread(scrape_annual_report_text, stock_name)
-            if annual_raw:
-                logger.info(f"Annual report scraped successfully: {len(annual_raw)} sections")
-                annual_text = " ".join([text for _, text in annual_raw])
-                annual_preprocessed = preprocess_annual_report(annual_text)
-                logger.info("Chunking annual report for batch processing...")
-                report_chunks = create_chunks(annual_preprocessed)
-                logger.info(f"📊 Created {len(report_chunks)} chunks for processing.")
+        # enhanced_annual = None 
+        # try:
+        #     logger.info(f"Step 2: Scraping annual report for {stock_name}...")
+        #     annual_raw = await asyncio.to_thread(scrape_annual_report_text, stock_name)
+        #     if annual_raw:
+        #         logger.info(f"Annual report scraped successfully: {len(annual_raw)} sections")
+        #         annual_text = " ".join([text for _, text in annual_raw])
+        #         annual_preprocessed = preprocess_annual_report(annual_text)
+        #         logger.info("Chunking annual report for batch processing...")
+        #         report_chunks = create_chunks(annual_preprocessed)
+        #         logger.info(f"📊 Created {len(report_chunks)} chunks for processing.")
                 
-                summarized_chunks = []
-                for i, chunk in enumerate(report_chunks):
-                    logger.info(f"🔄 Processing chunk {i+1}/{len(report_chunks)}...")
-                    chunk_result = await asyncio.to_thread(enhance_annual_data, chunk, stock_name)
-                    summarized_chunks.append(chunk_result)
+        #         summarized_chunks = []
+        #         for i, chunk in enumerate(report_chunks):
+        #             logger.info(f"🔄 Processing chunk {i+1}/{len(report_chunks)}...")
+        #             chunk_result = await asyncio.to_thread(enhance_annual_data, chunk, stock_name)
+        #             summarized_chunks.append(chunk_result)
                 
-                logger.info("✅ All chunks processed. Consolidating results...")
-                enhanced_annual = "[" + ",".join(filter(None, summarized_chunks)) + "]"
-            else:
-                logger.warning(f"No annual report data found for {stock_name}")
+        #         logger.info("✅ All chunks processed. Consolidating results...")
+        #         enhanced_annual = "[" + ",".join(filter(None, summarized_chunks)) + "]"
+        #     else:
+        #         logger.warning(f"No annual report data found for {stock_name}")
 
-        except Exception:
-            logger.error(f"Error in annual report processing for {stock_name}:", exc_info=True)
+        # except Exception:
+        #     logger.error(f"Error in annual report processing for {stock_name}:", exc_info=True)
 
 
 # --- Step 3: Concall Transcript data ---
-        try:
-            logger.info(f"Step 3: Scraping concall transcripts for {stock_name}...")
-            concall_raw = await asyncio.to_thread(scrape_concall_transcripts, stock_name)
+        # try:
+        #     logger.info(f"Step 3: Scraping concall transcripts for {stock_name}...")
+        #     concall_raw = await asyncio.to_thread(scrape_concall_transcripts, stock_name)
             
-            if concall_raw and len(concall_raw) > 0:
-                logger.info(f"Concall transcripts scraped successfully: {len(concall_raw)} transcripts")
-                concall_text = " ".join([transcript.get("text", "") for transcript in concall_raw])
-                _, _, concall_preprocessed = preprocess_concall_transcripts(concall_text)
+        #     if concall_raw and len(concall_raw) > 0:
+        #         logger.info(f"Concall transcripts scraped successfully: {len(concall_raw)} transcripts")
+        #         concall_text = " ".join([transcript.get("text", "") for transcript in concall_raw])
+        #         _, _, concall_preprocessed = preprocess_concall_transcripts(concall_text)
 
-                concall_chunks = create_chunks(concall_preprocessed)
-                logger.info(f"📊 Created {len(concall_chunks)} concall chunks for processing.")
+        #         concall_chunks = create_chunks(concall_preprocessed)
+        #         logger.info(f"📊 Created {len(concall_chunks)} concall chunks for processing.")
 
-                summarized_chunks = []
-                for i, chunk in enumerate(concall_chunks):
-                    logger.info(f"🔄 Processing concall chunk {i+1}/{len(concall_chunks)}...")
-                    # Pass the text chunk to the enhancer
-                    chunk_result = await asyncio.to_thread(enhance_concall_data, chunk, stock_name)
-                    summarized_chunks.append(chunk_result)
+        #         summarized_chunks = []
+        #         for i, chunk in enumerate(concall_chunks):
+        #             logger.info(f"🔄 Processing concall chunk {i+1}/{len(concall_chunks)}...")
+        #             # Pass the text chunk to the enhancer
+        #             chunk_result = await asyncio.to_thread(enhance_concall_data, chunk, stock_name)
+        #             summarized_chunks.append(chunk_result)
 
-                logger.info("✅ All concall chunks processed. Consolidating results...")
-                enhanced_concall = "[" + ",".join(filter(None, summarized_chunks)) + "]"
-            else:
-                logger.warning(f"No concall transcript data found for {stock_name}")
-        except Exception:
-            logger.error(f"Error in concall transcript processing for {stock_name}:", exc_info=True)
+        #         logger.info("✅ All concall chunks processed. Consolidating results...")
+        #         enhanced_concall = "[" + ",".join(filter(None, summarized_chunks)) + "]"
+        #     else:
+        #         logger.warning(f"No concall transcript data found for {stock_name}")
+        # except Exception:
+        #     logger.error(f"Error in concall transcript processing for {stock_name}:", exc_info=True)
 
         # --- Step 4 & 5: Generate Sections and Assemble PDF ---
         logger.info("Step 4: Generating report sections...")
