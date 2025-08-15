@@ -125,20 +125,33 @@ const Services = (props) => {
                     {saveMessage}
                   </motion.div>
                 )}
-                <div className="bg-white/10 rounded-2xl overflow-hidden">
-                   <div className="overflow-y-auto max-h-[80vh] p-4">
-                      <Document file={pdfUrl} onLoadSuccess={({ numPages }) => setNumPages(numPages)} loading={"Loading PDF..."}>
-                        {Array.from(new Array(numPages), (el, index) => (
-                          <Page key={`page_${index + 1}`} pageNumber={index + 1} width={Math.min(800, window.innerWidth * 0.8)} />
-                        ))}
-                      </Document>
-                    </div>
+                <div className="bg-black/20 rounded-2xl overflow-hidden">
+                  <div className="overflow-y-auto max-h-[80vh] p-4">
+                    <Document
+                      file={pdfUrl}
+                      onLoadSuccess={({ numPages }) => setNumPages(numPages)}
+                      error={<div className="text-red-300 p-4">Failed to render the PDF document. It may be corrupted.</div>}
+                      loading={<div className="text-white/70 p-4 text-center">Loading PDF preview...</div>}
+                      className="flex flex-col items-center gap-4"
+                    >
+                      {Array.from(new Array(numPages || 0), (el, index) => (
+                        <Page
+                          key={`page_${index + 1}`}
+                          pageNumber={index + 1}
+                          width={Math.min(800, window.innerWidth * 0.8)}
+                          className="shadow-lg"
+                        />
+                      ))}
+                    </Document>
+                  </div>
                 </div>
               </div>
             </div>
           )}
           {pdfError && (
-              <div className="bg-red-500/10 p-4 mt-4 rounded text-red-300">{pdfError}</div>
+            <div className="mt-4 max-w-4xl mx-auto bg-red-500/10 p-4 rounded-2xl text-red-300 text-center border border-red-500/30">
+              {pdfError}
+            </div>
           )}
         </div>
       </div>

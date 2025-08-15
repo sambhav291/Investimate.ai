@@ -91,13 +91,17 @@ const App = () => {
     const fetchAndDisplayPdf = async (signedUrl) => {
       try {
         const response = await fetch(signedUrl);
-        if (!response.ok) throw new Error(`Failed to download PDF`);
+        if (!response.ok) {
+          throw new Error(`PDF download failed: Server responded with status ${response.status}`);
+        }
         const blob = await response.blob();
         const blobUrl = URL.createObjectURL(blob);
         setPdfUrl(blobUrl);
         setShowPdfPreview(true);
       } catch (err) {
-        setPdfError(err.message);
+        // THIS IS THE KEY CHANGE: Log the actual error to the console.
+        console.error("Error processing PDF after download:", err);
+        setPdfError("Failed to process the downloaded PDF. See browser console for details.");
         setShowPdfPreview(false);
       } finally {
         setReportLoading(false);
@@ -112,13 +116,14 @@ const App = () => {
             setStoragePath(data.filename);
             fetchAndDisplayPdf(data.signed_url);
           } else {
-            setPdfError("Report generated, but no PDF URL was provided.");
+            setPdfError("Report generation completed, but the signed URL was missing.");
             setReportLoading(false);
           }
           setReportJobId(null);
         },
         (errorMsg) => {
-          setPdfError(errorMsg);
+          // This handles backend failures like rate limiting
+          setPdfError(`Report generation failed: ${errorMsg}`);
           setReportLoading(false);
           setReportJobId(null);
         }
