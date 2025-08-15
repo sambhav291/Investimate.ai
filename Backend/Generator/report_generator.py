@@ -149,8 +149,6 @@ async def generate_stock_report(stock_name: str, user_id: int):
         try:
             generator = ReportSectionGenerator(enhanced_concall, enhanced_forum, enhanced_annual)
             sections = generator.generate_all_sections()
-
-            # Check if any section returned an error string or is empty
             for section_name, content in sections.items():
                 if not content or "Error processing" in str(content):
                     raise Exception(f"Failed to generate content for section: {section_name}")
