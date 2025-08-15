@@ -1,9 +1,24 @@
 import json
 import sys
 import os
+import re
 from openai import OpenAI
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from secdat import openrouter_key 
+
+def sanitize_for_json(data):
+    """
+    Recursively sanitizes strings within a data structure to remove characters
+    that might cause issues when sent to an API.
+    """
+    if isinstance(data, str):
+        # Removes characters outside the printable ASCII range and some control chars
+        return re.sub(r'[^\x20-\x7E\t\n\r]+', ' ', data)
+    if isinstance(data, list):
+        return [sanitize_for_json(item) for item in data]
+    if isinstance(data, dict):
+        return {k: sanitize_for_json(v) for k, v in data.items()}
+    return data
 
 client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
@@ -18,14 +33,16 @@ class ReportSectionGenerator:
         
     def generate_executive_summary(self):
         """Generate executive summary section"""
+        safe_concall = sanitize_for_json(self.concall)
+        safe_forum = sanitize_for_json(self.forum)
+        safe_annual = sanitize_for_json(self.annual)
+
         prompt = f"""
         You are a senior equity research analyst writing an executive summary for a brokerage report.
-        
         DATA SOURCES:
-        Concall Analysis: {json.dumps(self.concall, indent=2)}
-        Forum Sentiment: {json.dumps(self.forum, indent=2)}
-        Annual Report: {json.dumps(self.annual, indent=2)}
-        
+        Concall Analysis: {json.dumps(safe_concall, indent=2)}
+        Forum Sentiment: {json.dumps(safe_forum, indent=2)}
+        Annual Report: {json.dumps(safe_annual, indent=2)}
         Write a comprehensive 1-page executive summary that includes:
         
         1. INVESTMENT RECOMMENDATION (Buy/Hold/Sell) with clear rationale
@@ -60,18 +77,22 @@ class ReportSectionGenerator:
             return result.strip()
 
         except Exception as e:
-            return f"Error processing sections: {e}"
+            print(f"CRITICAL: AI call failed in generate_executive_summary: {e}")
+            raise
     
     def generate_investment_thesis(self):
         """Generate detailed investment thesis"""
+        safe_concall = sanitize_for_json(self.concall)
+        safe_forum = sanitize_for_json(self.forum)
+        safe_annual = sanitize_for_json(self.annual)
         prompt = f"""
         Develop a comprehensive investment thesis (2-3 pages) based on the data:
-        
-        DATA: 
-        Concall: {json.dumps(self.concall, indent=2)}
-        Forum: {json.dumps(self.forum, indent=2)}
-        Annual: {json.dumps(self.annual, indent=2)}
-        
+
+        DATA:
+        Concall: {json.dumps(safe_concall, indent=2)}
+        Forum: {json.dumps(safe_forum, indent=2)}
+        Annual: {json.dumps(safe_annual, indent=2)}
+
         Structure:
         
         ## BULL CASE
@@ -118,17 +139,21 @@ class ReportSectionGenerator:
             return result.strip()
 
         except Exception as e:
-            return f"Error processing sections: {e}"
+            print(f"CRITICAL: AI call failed in generate_investment_thesis(: {e}")
+            raise
     
     def generate_financial_analysis(self):
         """Generate comprehensive financial analysis"""
+        safe_concall = sanitize_for_json(self.concall)
+        safe_forum = sanitize_for_json(self.forum)
+        safe_annual = sanitize_for_json(self.annual)
         prompt = f"""
         Create a detailed financial analysis (2-3 pages) covering:
         
         DATA:
-        Annual Report: {json.dumps(self.annual, indent=2)}
-        Concall Updates: {json.dumps(self.concall, indent=2)}
-        
+        Annual Report: {json.dumps(safe_annual, indent=2)}
+        Concall Updates: {json.dumps(safe_concall, indent=2)}
+
         SECTIONS:
         
         ## REVENUE ANALYSIS
@@ -186,18 +211,22 @@ class ReportSectionGenerator:
             return result.strip()
 
         except Exception as e:
-            return f"Error processing sections: {e}"
+            print(f"CRITICAL: AI call failed in generate_financial_analysis: {e}")
+            raise
     
     def generate_business_analysis(self):
         """Generate business and industry analysis"""
+        safe_concall = sanitize_for_json(self.concall)
+        safe_forum = sanitize_for_json(self.forum)
+        safe_annual = sanitize_for_json(self.annual)
         prompt = f"""
         Analyze the business fundamentals and industry dynamics:
         
         DATA:
-        Concall: {json.dumps(self.concall, indent=2)}
-        Annual: {json.dumps(self.annual, indent=2)}
-        Forum: {json.dumps(self.forum, indent=2)}
-        
+        Concall: {json.dumps(safe_concall, indent=2)}
+        Annual: {json.dumps(safe_annual, indent=2)}
+        Forum: {json.dumps(safe_forum, indent=2)}
+
         COVER:
         
         ## BUSINESS MODEL
@@ -249,18 +278,22 @@ class ReportSectionGenerator:
             return result.strip()
 
         except Exception as e:
-            return f"Error processing sections: {e}"
+            print(f"CRITICAL: AI call failed in generate_business_analysis: {e}")
+            raise
     
     def generate_risk_assessment(self):
         """Generate comprehensive risk assessment"""
+        safe_concall = sanitize_for_json(self.concall)
+        safe_forum = sanitize_for_json(self.forum)
+        safe_annual = sanitize_for_json(self.annual)
         prompt = f"""
         Conduct thorough risk assessment for investment decision:
         
         DATA:
-        Concall: {json.dumps(self.concall, indent=2)}
-        Annual: {json.dumps(self.annual, indent=2)}
-        Forum: {json.dumps(self.forum, indent=2)}
-        
+        Concall: {json.dumps(safe_concall, indent=2)}
+        Annual: {json.dumps(safe_annual, indent=2)}
+        Forum: {json.dumps(safe_forum, indent=2)}
+
         ANALYZE:
         
         ## BUSINESS RISKS
@@ -318,18 +351,22 @@ class ReportSectionGenerator:
             return result.strip()
 
         except Exception as e:
-            return f"Error processing sections: {e}"
+            print(f"CRITICAL: AI call failed in generate_risk_assessment: {e}")
+            raise
     
     def generate_valuation_analysis(self):
         """Generate valuation and recommendation"""
+        safe_concall = sanitize_for_json(self.concall)
+        safe_forum = sanitize_for_json(self.forum)
+        safe_annual = sanitize_for_json(self.annual)
         prompt = f"""
         Provide comprehensive valuation analysis and investment recommendation:
         
         DATA:
-        Annual: {json.dumps(self.annual, indent=2)}
-        Concall: {json.dumps(self.concall, indent=2)}
-        Forum: {json.dumps(self.forum, indent=2)}
-        
+        Annual: {json.dumps(safe_annual, indent=2)}
+        Concall: {json.dumps(safe_concall, indent=2)}
+        Forum: {json.dumps(safe_forum, indent=2)}
+
         INCLUDE:
         
         ## VALUATION METHODOLOGIES
@@ -386,7 +423,8 @@ class ReportSectionGenerator:
             return result.strip()
 
         except Exception as e:
-            return f"Error processing sections: {e}"
+            print(f"CRITICAL: AI call failed in generate_valuation_analysis: {e}")
+            raise
     
     def generate_all_sections(self):
         """Generate all report sections"""
