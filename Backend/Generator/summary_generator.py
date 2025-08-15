@@ -114,25 +114,6 @@ async def generate_stock_summary(stock_name: str, user_id: int):
             logger.error(f"Error generating combined summary for {stock_name}:")
             logger.error(traceback.format_exc())
             combined_summary = "An error occurred while generating the combined summary."
-
-        # --- Final Step: Save to Database (This part is crucial) ---
-        # You need to implement the logic to save the generated summaries to your database
-        # so the frontend can retrieve them later.
-        
-        # Example (you will need to create this function):
-        # from Auth.database import get_db
-        # from Auth import models
-        # db = next(get_db())
-        # summary_data = models.Summary(
-        #     user_id=user_id,
-        #     stock_symbol=stock_name,
-        #     forum_summary=forum_summary,
-        #     annual_report_summary=annual_summary,
-        #     concall_summary=concall_summary,
-        #     combined_summary=combined_summary
-        # )
-        # db.add(summary_data)
-        # db.commit()
         
         logger.info(f"BACKGROUND TASK COMPLETED for {stock_name}. Results should be saved.")
 

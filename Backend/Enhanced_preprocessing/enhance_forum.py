@@ -1,22 +1,32 @@
 import json
 import sys
 import os
+import re
 from openai import OpenAI
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from secdat import openrouter_key 
+
+def sanitize_text_for_ai(text: str) -> str:
+    """
+    Removes problematic characters from text before sending to an AI API.
+    """
+    if not isinstance(text, str):
+        return ""
+    return re.sub(r'[^\x20-\x7E\t\n\r]+', ' ', text)
 
 client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
     api_key=openrouter_key,
 )
 
-
 def enhance_forum_data(basic_forum_data, stock_name):
-    
+
+    safe_data = sanitize_text_for_ai(basic_forum_data)
+
     enhancement_prompt = f"""
     You are a senior financial analyst specializing in social sentiment analysis. Analyze this forum discussion data for {stock_name} and extract investment-relevant insights.
-    
-    INPUT DATA: {json.dumps(basic_forum_data, indent=2)}
+
+    INPUT DATA: {safe_data}
     
     Return ONLY a valid JSON object (no additional text) with these sections:
     
@@ -103,7 +113,8 @@ def enhance_forum_data(basic_forum_data, stock_name):
         return result.strip()
 
     except Exception as e:
-        return f"Error processing {stock_name}: {e}"
+        print(f"CRITICAL: AI call failed in enhance_forum_data: {e}")
+        raise
     
 def generate_response(basic_forum_data, stock_name):
     enhanced_data = enhance_forum_data(basic_forum_data, stock_name)
