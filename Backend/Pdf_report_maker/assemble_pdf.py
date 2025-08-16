@@ -503,26 +503,6 @@ class BrokerageReportAssembler:
             }
         }
         
-        :root {
-            --primary-color: #6366f1;
-            --primary-dark: #4338ca;
-            --primary-light: #a5b4fc;
-            --secondary-color: #8b5cf6;
-            --accent-color: #06b6d4;
-            --text-primary: #1e293b;
-            --text-secondary: #475569;
-            --text-muted: #64748b;
-            --background-light: #f8fafc;
-            --background-card: #ffffff;
-            --border-light: #e2e8f0;
-            --border-medium: #cbd5e1;
-            --success-color: #10b981;
-            --warning-color: #f59e0b;
-            --danger-color: #ef4444;
-            --gradient-start: #667eea;
-            --gradient-end: #764ba2;
-        }
-        
         * {
             box-sizing: border-box;
         }
@@ -530,35 +510,21 @@ class BrokerageReportAssembler:
         body {
             font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
             line-height: 1.6;
-            color: var(--text-primary);
+            color: #1e293b;
             margin: 0;
             padding: 0;
             font-size: 11pt;
             font-weight: 400;
         }
         
-        /* Cover Page - Modern and Classy Design */
+        /* Cover Page - Simplified for WeasyPrint */
         .cover-page {
             padding: 0;
             page-break-after: always;
-            background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+            background: #667eea;
             color: white;
             min-height: 900px;
             position: relative;
-        }
-        
-        /* Geometric pattern background */
-        .cover-page::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-image: 
-                radial-gradient(circle at 25% 25%, rgba(255,255,255,0.1) 0%, transparent 50%),
-                radial-gradient(circle at 75% 75%, rgba(255,255,255,0.05) 0%, transparent 50%);
-            background-size: 200px 200px, 300px 300px;
         }
         
         .cover-header {
@@ -569,9 +535,7 @@ class BrokerageReportAssembler:
         }
         
         .logo-container {
-            display: flex;
-            align-items: center;
-            gap: 1.5rem;
+            text-align: center;
         }
         
         .logo {
@@ -580,15 +544,16 @@ class BrokerageReportAssembler:
             background: rgba(255, 255, 255, 0.15);
             border-radius: 16px;
             border: 2px solid rgba(255, 255, 255, 0.3);
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: inline-block;
+            text-align: center;
+            line-height: 56px;
             font-size: 24px;
             font-weight: bold;
+            margin-bottom: 1rem;
         }
         
         .logo-text {
-            flex: 1;
+            text-align: center;
         }
         
         .brand-name {
@@ -612,7 +577,6 @@ class BrokerageReportAssembler:
             text-align: center;
             position: relative;
             z-index: 2;
-            flex: 1;
         }
         
         .cover-badge {
@@ -679,21 +643,19 @@ class BrokerageReportAssembler:
         
         .feature-grid {
             margin: 3rem 0;
-            display: table;
-            width: 100%;
-            table-layout: fixed;
         }
         
         .feature-row {
-            display: table-row;
+            text-align: center;
         }
         
         .feature-item {
-            display: table-cell;
+            display: inline-block;
             padding: 1.5rem;
             text-align: center;
-            vertical-align: middle;
-            width: 50%;
+            vertical-align: top;
+            width: 45%;
+            margin: 0 2%;
         }
         
         .feature-icon {
@@ -736,11 +698,11 @@ class BrokerageReportAssembler:
             line-height: 1.5;
         }
         
-        /* Page Headers - Remove date, show page numbers */
+        /* Page Headers */
         .page-header {
             padding: 0.75rem 0;
             margin-bottom: 2rem;
-            border-bottom: 3px solid var(--primary-color);
+            border-bottom: 3px solid #6366f1;
             font-size: 0.875rem;
             position: relative;
             overflow: hidden;
@@ -753,7 +715,7 @@ class BrokerageReportAssembler:
             left: 0;
             width: 60px;
             height: 3px;
-            background: var(--secondary-color);
+            background: #8b5cf6;
         }
         
         .header-left {
@@ -762,22 +724,22 @@ class BrokerageReportAssembler:
         
         .header-company {
             font-weight: 700;
-            color: var(--primary-color);
+            color: #6366f1;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
         
         .header-separator {
-            color: var(--text-muted);
+            color: #64748b;
             margin: 0 0.75rem;
         }
         
         .header-section {
-            color: var(--text-secondary);
+            color: #475569;
             font-weight: 500;
         }
         
-        /* Table of Contents - Enhanced */
+        /* Table of Contents */
         .toc-page {
             padding: 3rem 0;
             page-break-after: always;
@@ -785,7 +747,7 @@ class BrokerageReportAssembler:
         
         .toc-title {
             font-size: 3rem;
-            color: var(--text-primary);
+            color: #1e293b;
             margin-bottom: 3rem;
             text-align: center;
             font-weight: 800;
@@ -797,10 +759,10 @@ class BrokerageReportAssembler:
             position: absolute;
             bottom: -1rem;
             left: 50%;
-            transform: translateX(-50%);
+            margin-left: -50px;
             width: 100px;
             height: 4px;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            background: #6366f1;
             border-radius: 2px;
         }
         
@@ -812,17 +774,16 @@ class BrokerageReportAssembler:
         .toc-item {
             margin: 1.5rem 0;
             padding: 2rem;
-            background: var(--background-card);
+            background: #ffffff;
             border-radius: 16px;
-            border-left: 6px solid var(--primary-color);
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            border-left: 6px solid #6366f1;
             page-break-inside: avoid;
         }
         
         .toc-number {
             width: 50px;
             height: 50px;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            background: #6366f1;
             color: white;
             border-radius: 12px;
             display: inline-block;
@@ -840,18 +801,18 @@ class BrokerageReportAssembler:
         
         .toc-section-title {
             font-weight: 700;
-            color: var(--text-primary);
+            color: #1e293b;
             font-size: 1.25rem;
             margin-bottom: 0.5rem;
         }
         
         .toc-section-desc {
-            color: var(--text-secondary);
+            color: #475569;
             font-size: 0.9rem;
             line-height: 1.5;
         }
         
-        /* Section Styles - Enhanced */
+        /* Section Styles */
         .section {
             margin: 3rem 0;
             padding: 1rem 0;
@@ -860,7 +821,7 @@ class BrokerageReportAssembler:
         
         .section-title {
             font-size: 2.75rem;
-            color: var(--primary-color);
+            color: #6366f1;
             margin-bottom: 2.5rem;
             font-weight: 800;
             position: relative;
@@ -874,7 +835,7 @@ class BrokerageReportAssembler:
             left: 0;
             width: 120px;
             height: 6px;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            background: #6366f1;
             border-radius: 3px;
         }
         
@@ -885,17 +846,17 @@ class BrokerageReportAssembler:
         
         .content h1 {
             font-size: 2rem;
-            color: var(--text-primary);
+            color: #1e293b;
             margin: 3rem 0 1.5rem 0;
             font-weight: 700;
-            border-left: 6px solid var(--primary-color);
+            border-left: 6px solid #6366f1;
             padding-left: 1.5rem;
             page-break-after: avoid;
         }
         
         .content h2 {
             font-size: 1.5rem;
-            color: var(--text-primary);
+            color: #1e293b;
             margin: 2.5rem 0 1rem 0;
             font-weight: 600;
             page-break-after: avoid;
@@ -903,7 +864,7 @@ class BrokerageReportAssembler:
         
         .content h3 {
             font-size: 1.25rem;
-            color: var(--text-primary);
+            color: #1e293b;
             margin: 2rem 0 0.75rem 0;
             font-weight: 600;
             page-break-after: avoid;
@@ -912,7 +873,7 @@ class BrokerageReportAssembler:
         .content p {
             margin: 1.5rem 0;
             text-align: justify;
-            color: var(--text-primary);
+            color: #1e293b;
             line-height: 1.8;
         }
         
@@ -927,12 +888,12 @@ class BrokerageReportAssembler:
             list-style: none;
             position: relative;
             padding-left: 2rem;
-            color: var(--text-primary);
+            color: #1e293b;
         }
         
         .content li::before {
             content: '●';
-            color: var(--primary-color);
+            color: #6366f1;
             font-size: 1.2em;
             position: absolute;
             left: 0;
@@ -941,30 +902,29 @@ class BrokerageReportAssembler:
         
         .content strong {
             font-weight: 700;
-            color: var(--text-primary);
+            color: #1e293b;
         }
         
-        /* Enhanced Tables */
+        /* Tables */
         table {
             width: 100%;
             border-collapse: collapse;
             margin: 2.5rem 0;
-            background: var(--background-card);
+            background: #ffffff;
             border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             page-break-inside: avoid;
         }
         
         th, td {
             padding: 1.25rem 1rem;
             text-align: left;
-            border-bottom: 1px solid var(--border-light);
+            border-bottom: 1px solid #e2e8f0;
             vertical-align: top;
         }
         
         th {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            background: #6366f1;
             color: white;
             font-weight: 700;
             font-size: 0.9rem;
@@ -973,26 +933,22 @@ class BrokerageReportAssembler:
         }
         
         tr:nth-child(even) {
-            background-color: var(--background-light);
-        }
-        
-        tr:hover {
-            background-color: rgba(99, 102, 241, 0.02);
+            background-color: #f8fafc;
         }
         
         td:first-child {
             font-weight: 600;
-            color: var(--text-primary);
+            color: #1e293b;
         }
         
         /* Financial metrics styling */
         .metric-positive {
-            color: var(--success-color);
+            color: #10b981;
             font-weight: 600;
         }
         
         .metric-negative {
-            color: var(--danger-color);
+            color: #ef4444;
             font-weight: 600;
         }
         
@@ -1003,7 +959,7 @@ class BrokerageReportAssembler:
         
         /* Risk Indicators */
         .risk-high {
-            color: var(--danger-color);
+            color: #ef4444;
             font-weight: 700;
             background: rgba(239, 68, 68, 0.1);
             padding: 0.375rem 0.75rem;
@@ -1012,7 +968,7 @@ class BrokerageReportAssembler:
         }
         
         .risk-medium {
-            color: var(--warning-color);
+            color: #f59e0b;
             font-weight: 700;
             background: rgba(245, 158, 11, 0.1);
             padding: 0.375rem 0.75rem;
@@ -1021,7 +977,7 @@ class BrokerageReportAssembler:
         }
         
         .risk-low {
-            color: var(--success-color);
+            color: #10b981;
             font-weight: 700;
             background: rgba(16, 185, 129, 0.1);
             padding: 0.375rem 0.75rem;
@@ -1029,11 +985,11 @@ class BrokerageReportAssembler:
             border: 1px solid rgba(16, 185, 129, 0.2);
         }
         
-        /* Enhanced callout boxes */
+        /* Callout boxes */
         .callout-box {
-            background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(139, 92, 246, 0.05));
-            border: 2px solid var(--primary-light);
-            border-left: 6px solid var(--primary-color);
+            background: rgba(99, 102, 241, 0.08);
+            border: 2px solid #a5b4fc;
+            border-left: 6px solid #6366f1;
             border-radius: 12px;
             padding: 2rem;
             margin: 2rem 0;
@@ -1043,11 +999,11 @@ class BrokerageReportAssembler:
         .callout-title {
             font-size: 1.125rem;
             font-weight: 700;
-            color: var(--primary-color);
+            color: #6366f1;
             margin-bottom: 1rem;
         }
         
-        /* Disclaimer Page - Fixed Layout */
+        /* Disclaimer Page */
         .disclaimer-page {
             padding: 2rem 0;
             page-break-before: always;
@@ -1058,25 +1014,24 @@ class BrokerageReportAssembler:
         }
         
         .disclaimer-card {
-            background: var(--background-card);
-            border: 2px solid var(--border-light);
-            border-left: 6px solid var(--primary-color);
+            background: #ffffff;
+            border: 2px solid #e2e8f0;
+            border-left: 6px solid #6366f1;
             border-radius: 12px;
             padding: 2rem;
             margin: 1.5rem 0;
             page-break-inside: avoid;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
         
         .disclaimer-icon {
             font-size: 2.5rem;
             margin-bottom: 1rem;
             display: block;
-            color: var(--primary-color);
+            color: #6366f1;
         }
         
         .disclaimer-card h3 {
-            color: var(--text-primary);
+            color: #1e293b;
             margin: 0 0 1rem 0;
             font-weight: 700;
             font-size: 1.25rem;
@@ -1086,14 +1041,14 @@ class BrokerageReportAssembler:
             margin: 0;
             line-height: 1.7;
             text-align: justify;
-            color: var(--text-secondary);
+            color: #475569;
         }
         
         .generation-info {
             margin-top: 3rem;
             padding: 2rem;
-            background: linear-gradient(135deg, var(--background-light), rgba(99, 102, 241, 0.03));
-            border: 2px solid var(--border-light);
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
             border-radius: 16px;
             text-align: center;
         }
@@ -1101,7 +1056,7 @@ class BrokerageReportAssembler:
         .info-row {
             margin: 1rem 0;
             padding: 0.75rem 0;
-            border-bottom: 1px solid var(--border-light);
+            border-bottom: 1px solid #e2e8f0;
         }
         
         .info-row:last-child {
@@ -1110,23 +1065,23 @@ class BrokerageReportAssembler:
         
         .info-label {
             font-weight: 600;
-            color: var(--text-secondary);
+            color: #475569;
             margin-right: 1rem;
         }
         
         .info-value {
             font-weight: 700;
-            color: var(--text-primary);
+            color: #1e293b;
         }
         
         /* Prepared by signature */
         .section-footer {
             margin-top: 3rem;
             padding-top: 1rem;
-            border-top: 2px solid var(--border-light);
+            border-top: 2px solid #e2e8f0;
             text-align: right;
             font-style: italic;
-            color: var(--text-muted);
+            color: #64748b;
             font-size: 0.9rem;
         }
         
@@ -1135,24 +1090,7 @@ class BrokerageReportAssembler:
             content: "";
             display: table;
             clear: both;
-        }
-        
-        /* Print optimizations */
-        @media print {
-            .cover-page {
-                -webkit-print-color-adjust: exact;
-                color-adjust: exact;
-            }
-            
-            .callout-box, .disclaimer-card, .toc-item {
-                break-inside: avoid;
-            }
-            
-            h1, h2, h3 {
-                break-after: avoid;
-            }
-        }
-        """
+        }        """
     
     def generate_pdf(self, sections):
         """Generate PDF from assembled sections and return the local path."""
@@ -1186,6 +1124,23 @@ class BrokerageReportAssembler:
             if output_path and os.path.exists(output_path):
                 os.remove(output_path)
             return None
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
