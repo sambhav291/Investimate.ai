@@ -201,7 +201,7 @@ class BrokerageReportAssembler:
             <!-- Header with logo -->
             <div class="cover-header">
                 <div class="logo-container">
-                    <img src="Investimate logo.png" alt="Investimate" class="logo" />
+                    <img src="https://investimate-ai-eight.vercel.app/Investimate%20logo.png" alt="Investimate" class="logo" />
                     <div class="logo-text">
                         <span class="brand-name">Investimate</span>
                         <span class="brand-tagline">AI-Powered Investment Research</span>
