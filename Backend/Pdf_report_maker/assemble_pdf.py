@@ -403,713 +403,525 @@ class BrokerageReportAssembler:
         </div>
         """
     
-    def get_report_css(self):
-        """Modern, professional CSS styling with purplish-blue branding"""
-        return """
-        @page {
-            size: A4;
-            margin: 0.75in;
-        }
-        
-        :root {
-            --primary-color: #6366f1;
-            --primary-dark: #4338ca;
-            --primary-light: #818cf8;
-            --secondary-color: #8b5cf6;
-            --accent-color: #06b6d4;
-            --text-primary: #1e293b;
-            --text-secondary: #475569;
-            --text-muted: #64748b;
-            --background-light: #f8fafc;
-            --background-card: #ffffff;
-            --border-light: #e2e8f0;
-            --border-medium: #cbd5e1;
-            --success-color: #10b981;
-            --warning-color: #f59e0b;
-            --danger-color: #ef4444;
-        }
-        
-        * {
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            line-height: 1.6;
-            color: var(--text-primary);
-            margin: 0;
-            padding: 0;
-            font-size: 11pt;
-            font-weight: 400;
-        }
-        
-        /* Cover Page Styles */
-        .cover-page {
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            padding: 0;
-            page-break-after: always;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #667eea 100%);
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .cover-page::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><defs><pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse"><path d="M 50 0 L 0 0 0 50" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="url(%23grid)"/></svg>');
-            opacity: 0.3;
-        }
-        
-        .cover-header {
-            position: relative;
-            z-index: 2;
-            padding: 2rem 3rem 1rem;
-        }
-        
-        .logo-container {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-        
-        .logo {
-            width: 50px;
-            height: 50px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
-        }
-        
-        .logo-text {
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .brand-name {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: white;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-        }
-        
-        .brand-tagline {
-            font-size: 0.875rem;
-            color: rgba(255, 255, 255, 0.8);
-            font-weight: 400;
-        }
-        
-        .cover-main {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            padding: 2rem 3rem;
-            position: relative;
-            z-index: 2;
-        }
-        
-        .cover-badge {
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 50px;
-            padding: 0.75rem 2rem;
-            margin-bottom: 2rem;
-        }
-        
-        .badge-text {
-            color: white;
-            font-size: 0.875rem;
-            font-weight: 600;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-        }
-        
-        .cover-company-name {
-            font-size: 4rem;
-            font-weight: 800;
-            color: white;
-            margin: 0 0 1rem 0;
-            text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-            line-height: 0.9;
-        }
-        
-        .cover-subtitle {
-            margin-bottom: 3rem;
-        }
-        
-        .subtitle-text {
-            font-size: 1.25rem;
-            color: rgba(255, 255, 255, 0.9);
-            font-weight: 400;
-        }
-        
-        .metrics-card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 20px;
-            padding: 2rem 3rem;
-            display: flex;
-            align-items: center;
-            gap: 3rem;
-            margin-bottom: 3rem;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-        }
-        
-        .metric-item {
-            text-align: center;
-        }
-        
-        .metric-label {
-            font-size: 0.875rem;
-            color: rgba(255, 255, 255, 0.7);
-            margin-bottom: 0.5rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .metric-value {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: white;
-        }
-        
-        .metric-divider {
-            width: 1px;
-            height: 40px;
-            background: rgba(255, 255, 255, 0.3);
-        }
-        
-        .info-grid {
-            display: flex;
-            gap: 2rem;
-            max-width: 800px;
-        }
-        
-        .info-item {
-            flex: 1;
-            display: flex;
-            align-items: flex-start;
-            gap: 1rem;
-            background: rgba(255, 255, 255, 0.05);
-            padding: 1.5rem;
-            border-radius: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-        }
-        
-        .info-icon {
-            font-size: 1.5rem;
-            min-width: 24px;
-        }
-        
-        .info-text {
-            flex: 1;
-        }
-        
-        .info-title {
-            font-weight: 600;
-            color: white;
-            margin-bottom: 0.25rem;
-        }
-        
-        .info-desc {
-            font-size: 0.875rem;
-            color: rgba(255, 255, 255, 0.7);
-            line-height: 1.4;
-        }
-        
-        .cover-footer {
-            position: relative;
-            z-index: 2;
-            padding: 1rem 3rem 2rem;
-        }
-        
-        .footer-warning {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 12px;
-            padding: 1rem 1.5rem;
-        }
-        
-        .warning-icon {
-            font-size: 1.25rem;
-        }
-        
-        .warning-text {
-            font-size: 0.875rem;
-            color: rgba(255, 255, 255, 0.9);
-            line-height: 1.4;
-        }
-        
-        /* Page Headers */
-        .page-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.75rem 0;
-            margin-bottom: 2rem;
-            border-bottom: 2px solid var(--border-light);
-            font-size: 0.875rem;
-        }
-        
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        
-        .header-company {
-            font-weight: 600;
-            color: var(--primary-color);
-        }
-        
-        .header-separator {
-            color: var(--text-muted);
-        }
-        
-        .header-section {
-            color: var(--text-secondary);
-        }
-        
-        .header-right {
-            color: var(--text-muted);
-        }
-        
-        /* Table of Contents Styles */
-        .toc-page {
-            padding: 2rem 0;
-            page-break-after: always;
-        }
-        
-        .toc-title {
-            font-size: 2.5rem;
-            color: var(--text-primary);
-            margin-bottom: 3rem;
-            text-align: center;
-            font-weight: 700;
-        }
-        
-        .toc-content {
-            max-width: 700px;
-            margin: 0 auto;
-        }
-        
-        .toc-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 2rem;
-            margin: 2rem 0;
-            padding: 1.5rem;
-            background: var(--background-card);
-            border-radius: 16px;
-            border: 1px solid var(--border-light);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-            transition: all 0.2s ease;
-        }
-        
-        .toc-item:hover {
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-            border-color: var(--primary-light);
-        }
-        
-        .toc-number {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            color: white;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            font-size: 1rem;
-            min-width: 40px;
-        }
-        
-        .toc-section {
-            flex: 1;
-        }
-        
-        .toc-section-title {
-            font-weight: 600;
-            color: var(--text-primary);
-            font-size: 1.125rem;
-            margin-bottom: 0.5rem;
-        }
-        
-        .toc-section-desc {
-            color: var(--text-secondary);
-            font-size: 0.875rem;
-            line-height: 1.4;
-        }
-        
-        /* Section Styles */
-        .section {
-            margin: 2rem 0;
-            padding: 1rem 0;
-        }
-        
-        .section-title {
-            font-size: 2.25rem;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            background-clip: text;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 2rem;
-            font-weight: 700;
-            position: relative;
-        }
-        
-        .section-title::after {
-            content: '';
-            position: absolute;
-            bottom: -0.5rem;
-            left: 0;
-            width: 80px;
-            height: 4px;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            border-radius: 2px;
-        }
-        
-        .content {
-            line-height: 1.7;
-            font-size: 11pt;
-        }
-        
-        .content h1 {
-            font-size: 1.75rem;
-            color: var(--text-primary);
-            margin: 2.5rem 0 1.5rem 0;
-            font-weight: 600;
-            position: relative;
-            padding-left: 1rem;
-        }
-        
-        .content h1::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 4px;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            border-radius: 2px;
-        }
-        
-        .content h2 {
-            font-size: 1.375rem;
-            color: var(--text-primary);
-            margin: 2rem 0 1rem 0;
-            font-weight: 600;
-            position: relative;
-        }
-        
-        .content h3 {
-            font-size: 1.125rem;
-            color: var(--text-primary);
-            margin: 1.5rem 0 0.75rem 0;
-            font-weight: 600;
-        }
-        
-        .content p {
-            margin: 1.25rem 0;
-            text-align: justify;
-            color: var(--text-primary);
-            line-height: 1.7;
-        }
-        
-        .content ul {
-            margin: 1.5rem 0;
-            padding-left: 0;
-        }
-        
-        .content li {
-            margin: 0.75rem 0;
-            line-height: 1.6;
-            position: relative;
-            padding-left: 1.5rem;
-            list-style: none;
-        }
-        
-        .content li::before {
-            content: '•';
-            color: var(--primary-color);
-            font-weight: bold;
-            position: absolute;
-            left: 0;
-            font-size: 1.2em;
-        }
-        
-        .content strong {
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-        
-        /* Enhanced Visual Elements */
-        .highlight-box {
-            background: linear-gradient(135deg, rgba(99, 102, 241, 0.05), rgba(139, 92, 246, 0.05));
-            border: 1px solid var(--primary-light);
-            border-left: 4px solid var(--primary-color);
-            padding: 2rem;
-            margin: 2rem 0;
-            border-radius: 12px;
-            position: relative;
-        }
-        
-        .highlight-box::before {
-            content: '💡';
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
-            font-size: 1.5rem;
-            opacity: 0.7;
-        }
-        
-        .bull-case {
-            background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(6, 182, 212, 0.05));
-            border-left-color: var(--success-color);
-        }
-        
-        .bull-case::before {
-            content: '📈';
-        }
-        
-        .bear-case {
-            background: linear-gradient(135deg, rgba(239, 68, 68, 0.05), rgba(245, 158, 11, 0.05));
-            border-left-color: var(--danger-color);
-        }
-        
-        .bear-case::before {
-            content: '📉';
-        }
-        
-        /* Page Breaks */
-        .page-break {
-            page-break-before: always;
-        }
-        
-        /* Enhanced Tables */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 2rem 0;
-            background: var(--background-card);
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-        }
-        
-        th, td {
-            padding: 1rem;
-            text-align: left;
-            border-bottom: 1px solid var(--border-light);
-        }
-        
-        th {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            color: white;
-            font-weight: 600;
-            font-size: 0.95rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        tr:nth-child(even) {
-            background-color: var(--background-light);
-        }
-        
-        tr:hover {
-            background-color: rgba(99, 102, 241, 0.02);
-        }
-        
-        td:first-child {
-            font-weight: 500;
-            color: var(--text-primary);
-        }
-        
-        /* Risk Indicators */
-        .risk-high {
-            color: var(--danger-color);
-            font-weight: 600;
-            background: rgba(239, 68, 68, 0.1);
-            padding: 0.25rem 0.5rem;
-            border-radius: 6px;
-        }
-        
-        .risk-medium {
-            color: var(--warning-color);
-            font-weight: 600;
-            background: rgba(245, 158, 11, 0.1);
-            padding: 0.25rem 0.5rem;
-            border-radius: 6px;
-        }
-        
-        .risk-low {
-            color: var(--success-color);
-            font-weight: 600;
-            background: rgba(16, 185, 129, 0.1);
-            padding: 0.25rem 0.5rem;
-            border-radius: 6px;
-        }
-        
-        /* Disclaimer Page */
-        .disclaimer-page {
-            padding: 2rem 0;
-        }
-        
-        .disclaimer-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 2rem;
-            margin: 2rem 0;
-        }
-        
-        .disclaimer-card {
-            background: var(--background-card);
-            border: 1px solid var(--border-light);
-            border-radius: 16px;
-            padding: 2rem;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
-            position: relative;
-            transition: all 0.2s ease;
-        }
-        
-        .disclaimer-card:hover {
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-            border-color: var(--primary-light);
-        }
-        
-        .disclaimer-icon {
-            font-size: 2rem;
-            margin-bottom: 1rem;
-            display: block;
-        }
-        
-        .disclaimer-card h3 {
-            color: var(--text-primary);
-            margin: 0 0 1rem 0;
-            font-weight: 600;
-            font-size: 1.125rem;
-        }
-        
-        .disclaimer-card p {
-            margin: 0;
-            line-height: 1.6;
-            text-align: justify;
-            color: var(--text-secondary);
-        }
-        
-        .generation-info {
-            margin-top: 3rem;
-            padding: 2rem;
-            background: linear-gradient(135deg, var(--background-light), rgba(99, 102, 241, 0.02));
-            border: 1px solid var(--border-light);
-            border-radius: 16px;
-            text-align: center;
-        }
-        
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin: 0.75rem 0;
-            padding: 0.5rem 0;
-        }
-        
-        .info-row:not(:last-child) {
-            border-bottom: 1px solid var(--border-light);
-        }
-        
-        .info-label {
-            font-weight: 500;
-            color: var(--text-secondary);
-        }
-        
-        .info-value {
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-        
-        /* Responsive adjustments for PDF */
-        @media print {
-            .cover-page {
-                -webkit-print-color-adjust: exact;
-                color-adjust: exact;
-            }
-            
-            .highlight-box, .disclaimer-card, .toc-item {
-                break-inside: avoid;
-            }
-        }
-        
-        /* Additional utility classes */
-        .text-center {
-            text-align: center;
-        }
-        
-        .text-primary {
-            color: var(--primary-color);
-        }
-        
-        .text-secondary {
-            color: var(--text-secondary);
-        }
-        
-        .text-muted {
-            color: var(--text-muted);
-        }
-        
-        .font-mono {
-            font-family: 'JetBrains Mono', 'Monaco', 'Consolas', monospace;
-        }
-        
-        .gradient-text {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            background-clip: text;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        
-        /* Key metrics callouts */
-        .metric-callout {
-            background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(139, 92, 246, 0.08));
-            border: 2px solid var(--primary-color);
-            border-radius: 16px;
-            padding: 1.5rem;
-            margin: 2rem 0;
-            text-align: center;
-        }
-        
-        .metric-callout .value {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--primary-color);
-            display: block;
-            margin-bottom: 0.5rem;
-        }
-        
-        .metric-callout .label {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        """
+def get_report_css(self):
+    """WeasyPrint compatible CSS styling - removes unsupported properties"""
+    return """
+    @page {
+        size: A4;
+        margin: 0.75in;
+    }
+    
+    :root {
+        --primary-color: #6366f1;
+        --primary-dark: #4338ca;
+        --primary-light: #818cf8;
+        --secondary-color: #8b5cf6;
+        --accent-color: #06b6d4;
+        --text-primary: #1e293b;
+        --text-secondary: #475569;
+        --text-muted: #64748b;
+        --background-light: #f8fafc;
+        --background-card: #ffffff;
+        --border-light: #e2e8f0;
+        --border-medium: #cbd5e1;
+        --success-color: #10b981;
+        --warning-color: #f59e0b;
+        --danger-color: #ef4444;
+    }
+    
+    * {
+        box-sizing: border-box;
+    }
+    
+    body {
+        font-family: 'Arial', sans-serif;
+        line-height: 1.6;
+        color: var(--text-primary);
+        margin: 0;
+        padding: 0;
+        font-size: 11pt;
+        font-weight: 400;
+    }
+    
+    /* Cover Page Styles - Simplified for WeasyPrint */
+    .cover-page {
+        padding: 2rem;
+        page-break-after: always;
+        background: #667eea;
+        color: white;
+        text-align: center;
+        /* Remove height: 100vh and complex positioning */
+        min-height: 800px;
+    }
+    
+    /* Remove ::before pseudo-elements - WeasyPrint doesn't handle them well */
+    
+    .cover-header {
+        padding: 2rem 3rem 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .logo-container {
+        margin-bottom: 2rem;
+    }
+    
+    .logo {
+        width: 50px;
+        height: 50px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        /* Remove backdrop-filter */
+        display: inline-block;
+        margin-bottom: 1rem;
+    }
+    
+    .logo-text {
+        margin-top: 1rem;
+    }
+    
+    .brand-name {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: white;
+        display: block;
+        margin-bottom: 0.5rem;
+    }
+    
+    .brand-tagline {
+        font-size: 0.875rem;
+        color: rgba(255, 255, 255, 0.9);
+        font-weight: 400;
+    }
+    
+    .cover-main {
+        padding: 2rem;
+        margin: 2rem 0;
+    }
+    
+    .cover-badge {
+        background: rgba(255, 255, 255, 0.2);
+        /* Remove backdrop-filter */
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 25px;
+        padding: 0.75rem 2rem;
+        margin-bottom: 2rem;
+        display: inline-block;
+    }
+    
+    .badge-text {
+        color: white;
+        font-size: 0.875rem;
+        font-weight: 600;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+    }
+    
+    .cover-company-name {
+        font-size: 3rem;
+        font-weight: 800;
+        color: white;
+        margin: 1rem 0;
+        line-height: 1;
+    }
+    
+    .cover-subtitle {
+        margin-bottom: 2rem;
+    }
+    
+    .subtitle-text {
+        font-size: 1.25rem;
+        color: rgba(255, 255, 255, 0.9);
+        font-weight: 400;
+    }
+    
+    .metrics-card {
+        background: rgba(255, 255, 255, 0.15);
+        /* Remove backdrop-filter */
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 15px;
+        padding: 2rem;
+        margin: 2rem auto;
+        max-width: 500px;
+        /* Simplified layout - no complex flexbox */
+    }
+    
+    .metric-item {
+        text-align: center;
+        margin: 1rem 0;
+        display: inline-block;
+        width: 45%;
+        vertical-align: top;
+    }
+    
+    .metric-label {
+        font-size: 0.875rem;
+        color: rgba(255, 255, 255, 0.8);
+        margin-bottom: 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .metric-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: white;
+    }
+    
+    .metric-divider {
+        width: 1px;
+        height: 40px;
+        background: rgba(255, 255, 255, 0.4);
+        display: inline-block;
+        margin: 0 2%;
+    }
+    
+    .info-grid {
+        margin-top: 2rem;
+    }
+    
+    .info-item {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 1.5rem;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        margin: 1rem 0;
+        /* Remove backdrop-filter */
+    }
+    
+    .info-icon {
+        font-size: 1.5rem;
+        display: inline-block;
+        margin-bottom: 0.5rem;
+    }
+    
+    .info-title {
+        font-weight: 600;
+        color: white;
+        margin-bottom: 0.25rem;
+    }
+    
+    .info-desc {
+        font-size: 0.875rem;
+        color: rgba(255, 255, 255, 0.8);
+        line-height: 1.4;
+    }
+    
+    .cover-footer {
+        margin-top: 2rem;
+        padding: 1rem;
+    }
+    
+    .footer-warning {
+        background: rgba(255, 255, 255, 0.15);
+        /* Remove backdrop-filter */
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 8px;
+        padding: 1rem;
+    }
+    
+    .warning-icon {
+        font-size: 1.25rem;
+        margin-right: 0.5rem;
+    }
+    
+    .warning-text {
+        font-size: 0.875rem;
+        color: rgba(255, 255, 255, 0.9);
+        line-height: 1.4;
+        display: inline;
+    }
+    
+    /* Page Headers - Simplified */
+    .page-header {
+        padding: 0.75rem 0;
+        margin-bottom: 2rem;
+        border-bottom: 2px solid var(--border-light);
+        font-size: 0.875rem;
+    }
+    
+    .header-left {
+        float: left;
+    }
+    
+    .header-right {
+        float: right;
+    }
+    
+    .header-company {
+        font-weight: 600;
+        color: var(--primary-color);
+    }
+    
+    .header-separator {
+        color: var(--text-muted);
+        margin: 0 0.5rem;
+    }
+    
+    .header-section {
+        color: var(--text-secondary);
+    }
+    
+    /* Table of Contents - Simplified */
+    .toc-page {
+        padding: 2rem 0;
+        page-break-after: always;
+    }
+    
+    .toc-title {
+        font-size: 2.5rem;
+        color: var(--text-primary);
+        margin-bottom: 3rem;
+        text-align: center;
+        font-weight: 700;
+    }
+    
+    .toc-content {
+        max-width: 700px;
+        margin: 0 auto;
+    }
+    
+    .toc-item {
+        margin: 1.5rem 0;
+        padding: 1.5rem;
+        background: var(--background-card);
+        border-radius: 8px;
+        border: 1px solid var(--border-light);
+        /* Remove complex shadows and transitions */
+    }
+    
+    .toc-number {
+        width: 40px;
+        height: 40px;
+        background: var(--primary-color);
+        color: white;
+        border-radius: 8px;
+        display: inline-block;
+        text-align: center;
+        line-height: 40px;
+        font-weight: 600;
+        font-size: 1rem;
+        float: left;
+        margin-right: 1rem;
+    }
+    
+    .toc-section {
+        margin-left: 60px; /* Account for floated number */
+    }
+    
+    .toc-section-title {
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 1.125rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .toc-section-desc {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        line-height: 1.4;
+    }
+    
+    /* Section Styles - Simplified */
+    .section {
+        margin: 2rem 0;
+        padding: 1rem 0;
+        clear: both; /* Clear floats */
+    }
+    
+    .section-title {
+        font-size: 2.25rem;
+        color: var(--primary-color);
+        margin-bottom: 2rem;
+        font-weight: 700;
+        border-bottom: 4px solid var(--primary-color);
+        padding-bottom: 0.5rem;
+    }
+    
+    .content {
+        line-height: 1.7;
+        font-size: 11pt;
+    }
+    
+    .content h1 {
+        font-size: 1.75rem;
+        color: var(--text-primary);
+        margin: 2.5rem 0 1.5rem 0;
+        font-weight: 600;
+        border-left: 4px solid var(--primary-color);
+        padding-left: 1rem;
+    }
+    
+    .content h2 {
+        font-size: 1.375rem;
+        color: var(--text-primary);
+        margin: 2rem 0 1rem 0;
+        font-weight: 600;
+    }
+    
+    .content h3 {
+        font-size: 1.125rem;
+        color: var(--text-primary);
+        margin: 1.5rem 0 0.75rem 0;
+        font-weight: 600;
+    }
+    
+    .content p {
+        margin: 1.25rem 0;
+        text-align: justify;
+        color: var(--text-primary);
+        line-height: 1.7;
+    }
+    
+    .content ul {
+        margin: 1.5rem 0;
+        padding-left: 1.5rem;
+    }
+    
+    .content li {
+        margin: 0.75rem 0;
+        line-height: 1.6;
+        list-style: disc;
+        color: var(--text-primary);
+    }
+    
+    .content strong {
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+    
+    /* Page Breaks */
+    .page-break {
+        page-break-before: always;
+    }
+    
+    /* Tables - Simplified */
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 2rem 0;
+        background: var(--background-card);
+    }
+    
+    th, td {
+        padding: 1rem;
+        text-align: left;
+        border: 1px solid var(--border-light);
+    }
+    
+    th {
+        background: var(--primary-color);
+        color: white;
+        font-weight: 600;
+        font-size: 0.95rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    tr:nth-child(even) {
+        background-color: var(--background-light);
+    }
+    
+    /* Risk Indicators */
+    .risk-high {
+        color: var(--danger-color);
+        font-weight: 600;
+        background: rgba(239, 68, 68, 0.1);
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+    }
+    
+    .risk-medium {
+        color: var(--warning-color);
+        font-weight: 600;
+        background: rgba(245, 158, 11, 0.1);
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+    }
+    
+    .risk-low {
+        color: var(--success-color);
+        font-weight: 600;
+        background: rgba(16, 185, 129, 0.1);
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+    }
+    
+    /* Disclaimer Page - Simplified */
+    .disclaimer-page {
+        padding: 2rem 0;
+    }
+    
+    .disclaimer-grid {
+        margin: 2rem 0;
+    }
+    
+    .disclaimer-card {
+        background: var(--background-card);
+        border: 1px solid var(--border-light);
+        border-radius: 8px;
+        padding: 2rem;
+        margin: 1rem 0;
+        /* Remove complex shadows and transitions */
+    }
+    
+    .disclaimer-icon {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+        display: block;
+    }
+    
+    .disclaimer-card h3 {
+        color: var(--text-primary);
+        margin: 0 0 1rem 0;
+        font-weight: 600;
+        font-size: 1.125rem;
+    }
+    
+    .disclaimer-card p {
+        margin: 0;
+        line-height: 1.6;
+        text-align: justify;
+        color: var(--text-secondary);
+    }
+    
+    .generation-info {
+        margin-top: 3rem;
+        padding: 2rem;
+        background: var(--background-light);
+        border: 1px solid var(--border-light);
+        border-radius: 8px;
+        text-align: center;
+    }
+    
+    .info-row {
+        margin: 0.75rem 0;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid var(--border-light);
+    }
+    
+    .info-row:last-child {
+        border-bottom: none;
+    }
+    
+    .info-label {
+        font-weight: 500;
+        color: var(--text-secondary);
+        margin-right: 1rem;
+    }
+    
+    .info-value {
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+    
+    /* Clear floats */
+    .clearfix::after {
+        content: "";
+        display: table;
+        clear: both;
+    }
+    """
     
     def generate_pdf(self, sections):
         """Generate PDF from assembled sections and return the local path."""
