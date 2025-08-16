@@ -314,7 +314,7 @@ class BrokerageReportAssembler:
             <div class="brand-section">
                 <img src="https://investimate-ai-eight.vercel.app/Investimate%20logo.png" alt="Investimate" class="brand-logo" />
                 <div class="brand-text">
-                    <span class="brand-name">Investimate.ai</span>
+                    <span class="brand-name">INVESTIMATE</span>
                     <span class="brand-tagline">AI-Powered Investment Research</span>
                 </div>
             </div>
@@ -610,16 +610,10 @@ class BrokerageReportAssembler:
         
         .brand-logo {
             display: table-cell;
-            width: 60px;
-            height: 60px;
-            background: rgba(255, 255, 255, 0.15);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 15px;
-            text-align: center;
+            width: 50px;
+            height: 50px;
             vertical-align: middle;
-            font-size: 24px;
-            line-height: 56px;
-        }      
+        }       
         
         .brand-text {
             display: table-cell;

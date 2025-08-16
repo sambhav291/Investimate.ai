@@ -216,6 +216,34 @@ async def list_my_reports(
     reports = db.query(models.UserReport).filter(models.UserReport.user_id == user.id).all()
     return [{"id": r.id, "filename": r.filename, "filepath": r.filepath, "created_at": r.created_at} for r in reports]
 
+@app.get("/my-reports/{report_id}", tags=["Reports"])
+async def get_report_details(
+    report_id: int,
+    db: Session = Depends(get_db),
+    user: schemas.UserOut = Depends(get_current_user)
+):
+    """
+    Fetches the details for a single report by its ID, ensuring it belongs
+    to the currently authenticated user.
+    """
+    report = db.query(models.UserReport).filter(
+        models.UserReport.id == report_id,
+        models.UserReport.user_id == user.id
+    ).first()
+
+    if not report:
+        raise HTTPException(
+            status_code=404, 
+            detail="Report not found or you do not have permission to view it."
+        )
+        
+    return {
+        "id": report.id,
+        "filename": report.filename,
+        "filepath": report.filepath,
+        "created_at": report.created_at
+    }
+
 @app.delete("/delete-report/{report_id}", tags=["Reports"])
 async def delete_report(
     report_id: int, 
