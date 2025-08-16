@@ -9,10 +9,6 @@ import './index.css';
 import './App.css';
 import { pdfjs } from 'react-pdf';
 
-// pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-//   'pdfjs-dist/build/pdf.worker.min.mjs',
-//   import.meta.url,
-// ).toString();
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
 
 // Get the root element from the DOM
