@@ -53,6 +53,27 @@ class BrokerageReportAssembler:
         content = re.sub(r'\n\s*\n\s*\n', '\n\n', content)
         
         return content
+    def clean_section_content(self, content, section_name):
+        """Clean section content by removing template placeholders and redundant headers"""
+        if not content:
+            return content
+        
+        # Remove common template placeholders
+        content = re.sub(r'Equity Research Executive Summary.*?Date:\s*\[Insert Date\]', '', content, flags=re.IGNORECASE | re.DOTALL)
+        content = re.sub(r'Company:\s*\[Company Name\].*?\|.*?Date:\s*\[Insert Date\]', '', content, flags=re.IGNORECASE)
+        content = re.sub(r'Company:\s*\[Company Name\]', '', content, flags=re.IGNORECASE)
+        content = re.sub(r'Date:\s*\[Insert Date\]', '', content, flags=re.IGNORECASE)
+        content = re.sub(r'Sector:\s*\[.*?\]', '', content, flags=re.IGNORECASE)
+        
+        # Remove redundant section headers that match the current section
+        if section_name.lower() in content.lower():
+            content = re.sub(rf'^.*?{re.escape(section_name)}.*?\n', '', content, flags=re.IGNORECASE | re.MULTILINE)
+        
+        # Clean up extra whitespace
+        content = re.sub(r'\n\s*\n\s*\n', '\n\n', content)
+        content = content.strip()
+        
+        return content
 
     def _convert_tables(self, content):
         """Convert markdown tables to proper HTML tables"""
@@ -312,9 +333,9 @@ class BrokerageReportAssembler:
         <div class="cover-page">
             <!-- Top Brand Section -->
             <div class="brand-section">
-                <div class="brand-logo">💼</div>
+                <img src="https://investimate-ai-eight.vercel.app/Investimate%20logo.png" alt="Investimate" class="brand-logo" />
                 <div class="brand-text">
-                    <span class="brand-name">INVESTIMATE</span>
+                    <span class="brand-name">Investimate.ai</span>
                     <span class="brand-tagline">AI-Powered Investment Research</span>
                 </div>
             </div>
@@ -323,7 +344,7 @@ class BrokerageReportAssembler:
             <div class="cover-main-content">
                 <!-- Report Badge -->
                 <div class="report-badge">
-                    <div class="badge-icon">📈</div>
+                    <div class="badge-icon">₹</div>
                     <span class="badge-text">EQUITY RESEARCH REPORT</span>
                 </div>
                 
@@ -334,20 +355,21 @@ class BrokerageReportAssembler:
                     <div class="company-accent-line"></div>
                 </div>
                 
-                <!-- Key Metrics Grid -->
-                <div class="metrics-grid">
-                    <div class="metric-card primary">
-                        <div class="metric-icon">🎯</div>
-                        <div class="metric-content">
-                            <div class="metric-label">Investment Outlook</div>
-                            <div class="metric-value">{key_metrics['recommendation']}</div>
+                <!-- Key Metrics Combined -->
+                <div class="metrics-combined">
+                    <div class="combined-metric-card">
+                        <div class="metric-row">
+                            <div class="metric-content">
+                                <div class="metric-label">Investment Outlook</div>
+                                <div class="metric-value">{key_metrics['recommendation']}</div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="metric-card secondary">
-                        <div class="metric-icon">📅</div>
-                        <div class="metric-content">
-                            <div class="metric-label">Analysis Date</div>
-                            <div class="metric-value">{self.report_date}</div>
+                        <div class="metric-divider-horizontal"></div>
+                        <div class="metric-row">
+                            <div class="metric-content">
+                                <div class="metric-label">Analysis Date</div>
+                                <div class="metric-value">{self.report_date}</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -355,7 +377,7 @@ class BrokerageReportAssembler:
                 <!-- Features Section -->
                 <div class="features-section">
                     <div class="feature-item">
-                        <div class="feature-icon">🤖</div>
+                        <div class="feature-icon">@</div>
                         <div class="feature-text">
                             <strong>AI Analysis</strong>
                             <span>Advanced pattern recognition</span>
@@ -371,7 +393,7 @@ class BrokerageReportAssembler:
                     </div>
                     <div class="feature-divider"></div>
                     <div class="feature-item">
-                        <div class="feature-icon">📊</div>
+                        <div class="feature-icon">%</div>
                         <div class="feature-text">
                             <strong>Deep Research</strong>
                             <span>Comprehensive analysis</span>
@@ -609,16 +631,10 @@ class BrokerageReportAssembler:
         
         .brand-logo {
             display: table-cell;
-            width: 60px;
-            height: 60px;
-            background: rgba(255, 255, 255, 0.15);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 15px;
-            text-align: center;
+            width: 50px;
+            height: 50px;
             vertical-align: middle;
-            font-size: 24px;
-            line-height: 56px;
-        }
+        }       
         
         .brand-text {
             display: table-cell;
@@ -695,44 +711,59 @@ class BrokerageReportAssembler:
             letter-spacing: -1px;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
         }
-        
-        /* Metrics Grid */
-        .metrics-grid {
-            margin: 2rem 0;
+
+        /* Metrics Combined */
+        .metrics-combined {
+            margin: 1.5rem 0;
             text-align: center;
         }
-        
-        .metric-card {
+
+        .combined-metric-card {
             display: inline-block;
-            width: 45%;
-            margin: 0 2.5%;
-            background: rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.15);
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 12px;
-            padding: 1.5rem 1rem;
-            vertical-align: top;
+            padding: 1.25rem;
+            max-width: 400px;
         }
-        
-        .metric-card.primary {
-            background: rgba(255, 255, 255, 0.18);
+
+        .metric-row {
+            display: table;
+            width: 100%;
+            margin: 0.5rem 0;
         }
-        
-        .metric-icon {
-            font-size: 1.8rem;
-            margin-bottom: 0.75rem;
+
+        .metric-row .metric-icon {
+            display: table-cell;
+            width: 30px;
+            font-size: 1.5rem;
+            vertical-align: middle;
         }
-        
-        .metric-label {
-            font-size: 0.8rem;
+
+        .metric-row .metric-content {
+            display: table-cell;
+            text-align: left;
+            padding-left: 1rem;
+            vertical-align: middle;
+        }
+
+        .metric-row .metric-label {
+            font-size: 0.75rem;
             opacity: 0.85;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.25rem;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-        
-        .metric-value {
-            font-size: 1.1rem;
+
+        .metric-row .metric-value {
+            font-size: 1rem;
             font-weight: 700;
+        }
+
+        .metric-divider-horizontal {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.3);
+            margin: 0.75rem 0;
         }
         
         /* Features Section */
