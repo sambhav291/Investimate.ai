@@ -53,27 +53,6 @@ class BrokerageReportAssembler:
         content = re.sub(r'\n\s*\n\s*\n', '\n\n', content)
         
         return content
-    def clean_section_content(self, content, section_name):
-        """Clean section content by removing template placeholders and redundant headers"""
-        if not content:
-            return content
-        
-        # Remove common template placeholders
-        content = re.sub(r'Equity Research Executive Summary.*?Date:\s*\[Insert Date\]', '', content, flags=re.IGNORECASE | re.DOTALL)
-        content = re.sub(r'Company:\s*\[Company Name\].*?\|.*?Date:\s*\[Insert Date\]', '', content, flags=re.IGNORECASE)
-        content = re.sub(r'Company:\s*\[Company Name\]', '', content, flags=re.IGNORECASE)
-        content = re.sub(r'Date:\s*\[Insert Date\]', '', content, flags=re.IGNORECASE)
-        content = re.sub(r'Sector:\s*\[.*?\]', '', content, flags=re.IGNORECASE)
-        
-        # Remove redundant section headers that match the current section
-        if section_name.lower() in content.lower():
-            content = re.sub(rf'^.*?{re.escape(section_name)}.*?\n', '', content, flags=re.IGNORECASE | re.MULTILINE)
-        
-        # Clean up extra whitespace
-        content = re.sub(r'\n\s*\n\s*\n', '\n\n', content)
-        content = content.strip()
-        
-        return content
 
     def _convert_tables(self, content):
         """Convert markdown tables to proper HTML tables"""
@@ -631,10 +610,16 @@ class BrokerageReportAssembler:
         
         .brand-logo {
             display: table-cell;
-            width: 50px;
-            height: 50px;
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 15px;
+            text-align: center;
             vertical-align: middle;
-        }       
+            font-size: 24px;
+            line-height: 56px;
+        }      
         
         .brand-text {
             display: table-cell;
