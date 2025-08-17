@@ -85,7 +85,6 @@ const Library = () => {
 
   // Load PDF blob preview
   useEffect(() => {
-    let blobUrl = null;
 
     const fetchPreview = async () => {
       if (!storagePath) {
@@ -98,8 +97,8 @@ const Library = () => {
         if (!res.ok) throw new Error("Failed to fetch PDF preview");
         
         const blob = await res.blob();
-        blobUrl = URL.createObjectURL(blob);
-        setPdfBlobUrl(blobUrl);
+        const newblobUrl = URL.createObjectURL(blob);
+        setPdfBlobUrl(newblobUrl);
 
       } catch (err) {
         console.error("[PDF PREVIEW] Error:", err.message);
@@ -107,11 +106,6 @@ const Library = () => {
       }
     };
     fetchPreview();
-    return () => {
-      if (blobUrl) {
-        URL.revokeObjectURL(blobUrl);
-      }
-    };
   }, [storagePath, fetchWithAuth]); 
 
   const handleOpenReport = async (reportId) => {
@@ -166,8 +160,12 @@ const Library = () => {
 
   const handleClosePdf = () => {
     console.log("[CLOSE PDF] Closing PDF preview");
+    if (pdfBlobUrl) {
+      URL.revokeObjectURL(pdfBlobUrl);
+    }
     setStoragePath("");
     setActiveReport(null);
+    setPdfBlobUrl(null);
   };
 
   const formatFileSize = (bytes) => {

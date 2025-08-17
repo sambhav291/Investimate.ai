@@ -660,7 +660,7 @@ class BrokerageReportAssembler:
             border-radius: 25px;
             padding: 0.75rem 2rem;
             display: inline-block;
-            margin-bottom: 5rem;
+            margin-top: 5rem;
         }
         
         .badge-icon {
