@@ -165,7 +165,12 @@ const Library = () => {
     }
     setStoragePath("");
     setActiveReport(null);
-    setPdfBlobUrl(null);
+    setPdfBlobUrl(null); 
+  };
+
+  const handlePdfLoadSuccess = ({ numPages }) => {
+    console.log(`PDF loaded with ${numPages} pages`);
+    setNumPages(numPages);
   };
 
   const formatFileSize = (bytes) => {
@@ -284,8 +289,6 @@ const Library = () => {
       </div>
     );
   }
-
-  console.log("[RENDER] UI rendering with", filteredReports.length, "filtered reports");
 
   return (
     <div className="min-h-screen bg-black relative overflow-hidden pt-16 px-16">
@@ -729,10 +732,7 @@ const Library = () => {
                     >
                       <Document
                         file={pdfBlobUrl}
-                        onLoadSuccess={({ numPages }) => {
-                          console.log(`PDF loaded with ${numPages} pages`);
-                          setNumPages(numPages);
-                        }}
+                        onLoadSuccess={handlePdfLoadSuccess}
                         onLoadError={(error) => console.error("Error loading PDF:", error)}
                         className="shadow-2xl"
                       >

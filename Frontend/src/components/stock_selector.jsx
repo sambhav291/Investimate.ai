@@ -9,10 +9,10 @@ const StockSelector = ({
   inputStock,
   setInputStock,
   summaries,
-  setSummaries, // Keep this one to allow closing the summary
+  setSummaries, 
   summaryLoading,
   summaryError,
-  handleGenerateSummary, // This prop is now correctly expected
+  handleGenerateSummary, 
   reportLoading,
   pdfError,
   handleGenerateReport,
@@ -28,14 +28,21 @@ const StockSelector = ({
       setShowLoginPrompt(true);
       return;
     }
-    // This now calls the function passed down from Services.jsx
     handleGenerateReport();
+  };
+
+  const handleGenerateSummaryWithAuth = () => {
+    if (!token) {
+      setShowLoginPrompt(true);
+      return;
+    }
+    handleGenerateSummary();
   };
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && inputStock.trim() && !summaryLoading && !reportLoading) {
       // This now calls the function passed down from Services.jsx
-      handleGenerateSummary();
+      handleGenerateSummaryWithAuth();
     }
   };
   
@@ -102,7 +109,7 @@ const StockSelector = ({
 
           <div className="flex gap-4 items-end">
             <motion.button
-              onClick={handleGenerateSummary}
+              onClick={handleGenerateSummaryWithAuth}
               disabled={!inputStock || summaryLoading || reportLoading}
               className="relative overflow-hidden bg-gradient-to-r from-blue-600/50 to-purple-600/40 hover:from-blue-500/40 hover:to-purple-500/40 disabled:from-blue-600/50 disabled:to-purple-600/40 backdrop-blur-md border border-blue-400/25 text-blue-300 hover:text-blue-200 disabled:text-blue-300/80 py-3 px-8 rounded-3xl font-semibold disabled:cursor-not-allowed transition-all duration-300 w-auto md:min-w-[180px] h-auto md:h-12 shadow-lg"
               whileHover={{ scale: 1.05, boxShadow: '0 10px 25px rgba(59, 130, 246, 0.4)' }}
