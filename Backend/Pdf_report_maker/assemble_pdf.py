@@ -312,7 +312,7 @@ class BrokerageReportAssembler:
         <div class="cover-page">
             <!-- Top Brand Section -->
             <div class="brand-section">
-                <img src="https://investimate-ai-eight.vercel.app/Investimate%20logo.png" alt="Investimate" class="brand-logo" />
+                <div class="brand-logo">💼</div>
                 <div class="brand-text">
                     <span class="brand-name">INVESTIMATE</span>
                     <span class="brand-tagline">AI-Powered Investment Research</span>
@@ -323,7 +323,7 @@ class BrokerageReportAssembler:
             <div class="cover-main-content">
                 <!-- Report Badge -->
                 <div class="report-badge">
-                    <div class="badge-icon">₹</div>
+                    <div class="badge-icon">📈</div>
                     <span class="badge-text">EQUITY RESEARCH REPORT</span>
                 </div>
                 
@@ -334,21 +334,20 @@ class BrokerageReportAssembler:
                     <div class="company-accent-line"></div>
                 </div>
                 
-                <!-- Key Metrics Combined -->
-                <div class="metrics-combined">
-                    <div class="combined-metric-card">
-                        <div class="metric-row">
-                            <div class="metric-content">
-                                <div class="metric-label">Investment Outlook</div>
-                                <div class="metric-value">{key_metrics['recommendation']}</div>
-                            </div>
+                <!-- Key Metrics Grid -->
+                <div class="metrics-grid">
+                    <div class="metric-card primary">
+                        <div class="metric-icon">🎯</div>
+                        <div class="metric-content">
+                            <div class="metric-label">Investment Outlook</div>
+                            <div class="metric-value">{key_metrics['recommendation']}</div>
                         </div>
-                        <div class="metric-divider-horizontal"></div>
-                        <div class="metric-row">
-                            <div class="metric-content">
-                                <div class="metric-label">Analysis Date</div>
-                                <div class="metric-value">{self.report_date}</div>
-                            </div>
+                    </div>
+                    <div class="metric-card secondary">
+                        <div class="metric-icon">📅</div>
+                        <div class="metric-content">
+                            <div class="metric-label">Analysis Date</div>
+                            <div class="metric-value">{self.report_date}</div>
                         </div>
                     </div>
                 </div>
@@ -356,7 +355,7 @@ class BrokerageReportAssembler:
                 <!-- Features Section -->
                 <div class="features-section">
                     <div class="feature-item">
-                        <div class="feature-icon">@</div>
+                        <div class="feature-icon">🤖</div>
                         <div class="feature-text">
                             <strong>AI Analysis</strong>
                             <span>Advanced pattern recognition</span>
@@ -372,7 +371,7 @@ class BrokerageReportAssembler:
                     </div>
                     <div class="feature-divider"></div>
                     <div class="feature-item">
-                        <div class="feature-icon">%</div>
+                        <div class="feature-icon">📊</div>
                         <div class="feature-text">
                             <strong>Deep Research</strong>
                             <span>Comprehensive analysis</span>
@@ -412,6 +411,113 @@ class BrokerageReportAssembler:
             </div>
         </div>
         """
+    
+    # def generate_cover_page(self, key_metrics):
+    #     """Generate modern, professional cover page with enhanced visual appeal"""
+    #     return f"""
+    #     <div class="cover-page">
+    #         <!-- Top Brand Section -->
+    #         <div class="brand-section">
+    #             <img src="https://investimate-ai-eight.vercel.app/Investimate%20logo.png" alt="Investimate" class="brand-logo" />
+    #             <div class="brand-text">
+    #                 <span class="brand-name">INVESTIMATE</span>
+    #                 <span class="brand-tagline">AI-Powered Investment Research</span>
+    #             </div>
+    #         </div>
+            
+    #         <!-- Main Content Section -->
+    #         <div class="cover-main-content">
+    #             <!-- Report Badge -->
+    #             <div class="report-badge">
+    #                 <div class="badge-icon">₹</div>
+    #                 <span class="badge-text">EQUITY RESEARCH REPORT</span>
+    #             </div>
+                
+    #             <!-- Company Name with Accent -->
+    #             <div class="company-section">
+    #                 <div class="company-accent-line"></div>
+    #                 <h1 class="company-name">{self.company_name.upper()}</h1>
+    #                 <div class="company-accent-line"></div>
+    #             </div>
+                
+    #             <!-- Key Metrics Combined -->
+    #             <div class="metrics-combined">
+    #                 <div class="combined-metric-card">
+    #                     <div class="metric-row">
+    #                         <div class="metric-content">
+    #                             <div class="metric-label">Investment Outlook</div>
+    #                             <div class="metric-value">{key_metrics['recommendation']}</div>
+    #                         </div>
+    #                     </div>
+    #                     <div class="metric-divider-horizontal"></div>
+    #                     <div class="metric-row">
+    #                         <div class="metric-content">
+    #                             <div class="metric-label">Analysis Date</div>
+    #                             <div class="metric-value">{self.report_date}</div>
+    #                         </div>
+    #                     </div>
+    #                 </div>
+    #             </div>
+                
+    #             <!-- Features Section -->
+    #             <div class="features-section">
+    #                 <div class="feature-item">
+    #                     <div class="feature-icon">@</div>
+    #                     <div class="feature-text">
+    #                         <strong>AI Analysis</strong>
+    #                         <span>Advanced pattern recognition</span>
+    #                     </div>
+    #                 </div>
+    #                 <div class="feature-divider"></div>
+    #                 <div class="feature-item">
+    #                     <div class="feature-icon">⚡</div>
+    #                     <div class="feature-text">
+    #                         <strong>Real-time Data</strong>
+    #                         <span>Latest market insights</span>
+    #                     </div>
+    #                 </div>
+    #                 <div class="feature-divider"></div>
+    #                 <div class="feature-item">
+    #                     <div class="feature-icon">%</div>
+    #                     <div class="feature-text">
+    #                         <strong>Deep Research</strong>
+    #                         <span>Comprehensive analysis</span>
+    #                     </div>
+    #                 </div>
+    #             </div>
+    #         </div>
+            
+    #         <!-- Bottom Section -->
+    #         <div class="cover-bottom">
+    #             <!-- Analysis Stats -->
+    #             <div class="stats-row">
+    #                 <div class="stat-item">
+    #                     <div class="stat-number">6</div>
+    #                     <div class="stat-label">Analysis Sections</div>
+    #                 </div>
+    #                 <div class="stat-divider"></div>
+    #                 <div class="stat-item">
+    #                     <div class="stat-number">100+</div>
+    #                     <div class="stat-label">Data Points</div>
+    #                 </div>
+    #                 <div class="stat-divider"></div>
+    #                 <div class="stat-item">
+    #                     <div class="stat-number">AI</div>
+    #                     <div class="stat-label">Powered</div>
+    #                 </div>
+    #             </div>
+                
+    #             <!-- Disclaimer -->
+    #             <div class="cover-disclaimer">
+    #                 <div class="disclaimer-icon">⚠️</div>
+    #                 <div class="disclaimer-text">
+    #                     <strong>Important:</strong> This report is for informational purposes only. 
+    #                     Please consult qualified financial advisors before making investment decisions.
+    #                 </div>
+    #             </div>
+    #         </div>
+    #     </div>
+    #     """
     
     def generate_table_of_contents(self):
         """Generate enhanced table of contents"""
@@ -610,10 +716,16 @@ class BrokerageReportAssembler:
         
         .brand-logo {
             display: table-cell;
-            width: 50px;
-            height: 50px;
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 15px;
+            text-align: center;
             vertical-align: middle;
-        }       
+            font-size: 24px;
+            line-height: 56px;
+        }      
         
         .brand-text {
             display: table-cell;
@@ -691,58 +803,43 @@ class BrokerageReportAssembler:
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
         }
 
-        /* Metrics Combined */
-        .metrics-combined {
-            margin: 1.5rem 0;
+        /* Metrics Grid */
+        .metrics-grid {
+            margin: 2rem 0;
             text-align: center;
         }
-
-        .combined-metric-card {
+        
+        .metric-card {
             display: inline-block;
-            background: rgba(255, 255, 255, 0.15);
+            width: 45%;
+            margin: 0 2.5%;
+            background: rgba(255, 255, 255, 0.12);
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 12px;
-            padding: 1.25rem;
-            max-width: 400px;
+            padding: 1.5rem 1rem;
+            vertical-align: top;
         }
-
-        .metric-row {
-            display: table;
-            width: 100%;
-            margin: 0.5rem 0;
+        
+        .metric-card.primary {
+            background: rgba(255, 255, 255, 0.18);
         }
-
-        .metric-row .metric-icon {
-            display: table-cell;
-            width: 30px;
-            font-size: 1.5rem;
-            vertical-align: middle;
+        
+        .metric-icon {
+            font-size: 1.8rem;
+            margin-bottom: 0.75rem;
         }
-
-        .metric-row .metric-content {
-            display: table-cell;
-            text-align: left;
-            padding-left: 1rem;
-            vertical-align: middle;
-        }
-
-        .metric-row .metric-label {
-            font-size: 0.75rem;
+        
+        .metric-label {
+            font-size: 0.8rem;
             opacity: 0.85;
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.5rem;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-
-        .metric-row .metric-value {
-            font-size: 1rem;
+        
+        .metric-value {
+            font-size: 1.1rem;
             font-weight: 700;
-        }
-
-        .metric-divider-horizontal {
-            height: 1px;
-            background: rgba(255, 255, 255, 0.3);
-            margin: 0.75rem 0;
         }
         
         /* Features Section */
