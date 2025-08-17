@@ -189,11 +189,11 @@ const Services = (props) => {
               </div>
             </div>
           )}
-          {pdfError && (
+          {/* {pdfError && (
             <div className="mt-4 max-w-4xl mx-auto bg-red-500/10 p-4 rounded-2xl text-red-300 text-center border border-red-500/30">
               {pdfError}
             </div>
-          )}
+          )} */}
         </div>
       </div>
     </div>
