@@ -1,11 +1,11 @@
-import { useContext } from "react";
+import { useContext, useCallback } from "react";
 import { AuthContext } from "../context/AuthContext";
 import { API_ENDPOINTS } from "./apiConfig";
 
 export const useFetchWithAuth = () => {
   const { token, refreshToken, setAuthData, logout } = useContext(AuthContext);
 
-  return async (url, options = {}) => {
+  return useCallback(async (url, options = {}) => {
     let accessToken = token; 
     const currentRefreshToken = refreshToken; 
 
@@ -53,5 +53,5 @@ export const useFetchWithAuth = () => {
     }
 
     return response;
-  };
+  }, [token, refreshToken, setAuthData, logout]);
 };

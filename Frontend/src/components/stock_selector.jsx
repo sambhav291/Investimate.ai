@@ -234,7 +234,7 @@ const StockSelector = ({
               onClick={(e) => e.stopPropagation()}
             >
               <h3 className="text-xl font-bold text-white mb-3">Login Required</h3>
-              <p className="text-white/70 mb-6">You need to log in to generate PDF reports.</p>
+              <p className="text-white/70 mb-6">You need to log in to access this resource.</p>
               <div className="flex gap-3 justify-center">
                 <motion.button
                   className="bg-gradient-to-r from-blue-500 to-purple-500 text-white font-semibold py-3 px-6 rounded-xl"

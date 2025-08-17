@@ -2,7 +2,7 @@ import React, { useEffect, useState, useContext } from "react";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 import { AuthContext } from "../context/AuthContext";
-import { FileText, Trash2, Eye, Search, Filter, Calendar, BarChart3, TrendingUp, Grid3X3, List, Plus, Archive } from "lucide-react";
+import { FileText, Download, Trash2, Eye, Search, Filter, Calendar, BarChart3, TrendingUp, Zap, Grid3X3, List, X, Plus, Archive } from "lucide-react";
 import { useFetchWithAuth } from "../utils/fetchWithAuth";
 import { motion, AnimatePresence } from "framer-motion";
 import Login from './Login';
@@ -20,6 +20,7 @@ const Library = () => {
   const [sortBy, setSortBy] = useState("newest");
   const [viewMode, setViewMode] = useState("grid");
   const fetchWithAuth = useFetchWithAuth();
+  const [pdfBlobUrl, setPdfBlobUrl] = useState(null);
   const [storagePath, setStoragePath] = useState("");
   const [isLoginOpen, setIsLoginOpen] = useState(false);
 
@@ -80,6 +81,31 @@ const Library = () => {
     setFilteredReports(filtered);
   }, [reports, searchTerm, sortBy]);
 
+  // Load PDF blob preview
+  useEffect(() => {
+
+    const fetchPreview = async () => {
+      if (!storagePath) {
+        setPdfBlobUrl(null);
+        return;
+      }
+
+      try {
+        const res = await fetchWithAuth(`${API_ENDPOINTS.previewPdf}?storage_path=${encodeURIComponent(storagePath)}`);
+        if (!res.ok) throw new Error("Failed to fetch PDF preview");
+        
+        const blob = await res.blob();
+        const newblobUrl = URL.createObjectURL(blob);
+        setPdfBlobUrl(newblobUrl);
+
+      } catch (err) {
+        console.error("[PDF PREVIEW] Error:", err.message);
+        setError("Could not load the report preview.");
+      }
+    };
+    fetchPreview();
+  }, [storagePath, fetchWithAuth]); 
+
   const handleOpenReport = async (reportId) => {
     console.log("[OPEN REPORT] Opening report with ID:", reportId);
     try {
@@ -132,8 +158,12 @@ const Library = () => {
 
   const handleClosePdf = () => {
     console.log("[CLOSE PDF] Closing PDF preview");
+    if (pdfBlobUrl) {
+      URL.revokeObjectURL(pdfBlobUrl);
+    }
     setStoragePath("");
     setActiveReport(null);
+    setPdfBlobUrl(null); 
   };
 
   const formatFileSize = (bytes) => {
@@ -649,6 +679,7 @@ const Library = () => {
         <AnimatePresence>
           {storagePath && (
             <PDFViewer
+              pdfBlobUrl={pdfBlobUrl}
               storagePath={storagePath}
               onClose={handleClosePdf}
             />
